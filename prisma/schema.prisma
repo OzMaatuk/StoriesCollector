@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Story {
+  id               String   @id @default(uuid())
+  name             String   @db.VarChar(255)
+  phone            String   @db.VarChar(20)
+  email            String?  @db.VarChar(255)
+  city             String?  @db.VarChar(100)
+  country          String?  @db.VarChar(100)
+  tellerBackground String?  @db.Text
+  storyBackground  String?  @db.Text
+  title            String?  @db.VarChar(500)
+  content          String   @db.Text
+  language         String   @db.VarChar(5)
+  verifiedPhone    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([language])
+  @@index([createdAt])
+  @@index([verifiedPhone])
+  @@map("stories")
+}

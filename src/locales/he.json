@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "אוסף סיפורים",
+    "language": "שפה",
+    "submit": "שלח",
+    "cancel": "בטל",
+    "back": "חזור",
+    "next": "הבא",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה"
+  },
+  "nav": {
+    "home": "בית",
+    "stories": "סיפורים",
+    "submit": "שתף את הסיפור שלך"
+  },
+  "home": {
+    "title": "ברוכים הבאים לאוסף הסיפורים",
+    "subtitle": "שתף את הסיפור שלך עם העולם",
+    "description": "פלטפורמה לאיסוף ושיתוף סיפורים משמעותיים מאנשים ברחבי העולם.",
+    "cta": "שתף את הסיפור שלך",
+    "viewStories": "צפה בסיפורים"
+  },
+  "form": {
+    "title": "שתף את הסיפור שלך",
+    "requiredFields": "* שדות חובה",
+    "name": "שם",
+    "namePlaceholder": "שמך המלא",
+    "phone": "מספר טלפון",
+    "phonePlaceholder": "+972501234567",
+    "phoneHint": "השתמש בפורמט בינלאומי (E.164)",
+    "email": "אימייל",
+    "emailPlaceholder": "your.email@example.com",
+    "city": "עיר",
+    "cityPlaceholder": "העיר שלך",
+    "country": "מדינה",
+    "countryPlaceholder": "המדינה שלך",
+    "tellerBackground": "אודותיך",
+    "tellerBackgroundPlaceholder": "ספר לנו קצת על עצמך...",
+    "storyBackground": "רקע לסיפור",
+    "storyBackgroundPlaceholder": "מה ההקשר של הסיפור שלך?",
+    "storyTitle": "כותרת הסיפור",
+    "storyTitlePlaceholder": "תן לסיפור שלך כותרת",
+    "content": "הסיפור שלך",
+    "contentPlaceholder": "שתף את הסיפור שלך כאן...",
+    "submitSuccess": "תודה! הסיפור שלך נשלח בהצלחה.",
+    "submitError": "משהו השתבש. אנא נסה שוב."
+  },
+  "stories": {
+    "title": "כל הסיפורים",
+    "filterByLanguage": "סנן לפי שפה",
+    "allLanguages": "כל השפות",
+    "noStories": "לא נמצאו סיפורים",
+    "loadMore": "טען עוד",
+    "verifiedPhone": "מאומת",
+    "unverifiedPhone": "לא מאומת"
+  },
+  "validation": {
+    "required": "שדה זה נדרש",
+    "invalidEmail": "פורמט אימייל לא תקין",
+    "invalidPhone": "פורמט מספר טלפון לא תקין. השתמש בפורמט E.164 (למשל: +972501234567)",
+    "tooShort": "קצר מדי",
+    "tooLong": "ארוך מדי",
+    "minLength": "חייב להיות לפחות {{min}} תווים",
+    "maxLength": "חייב להיות לא יותר מ-{{max}} תווים"
+  },
+  "errors": {
+    "generic": "אירעה שגיאה. אנא נסה שוב.",
+    "notFound": "סיפור לא נמצא",
+    "rateLimit": "יותר מדי בקשות. אנא נסה שוב מאוחר יותר.",
+    "serverError": "שגיאת שרת. אנא נסה שוב מאוחר יותר."
+  }
+}

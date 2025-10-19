@@ -1,0 +1,74 @@
+{
+  "common": {
+    "appName": "Collecteur d'Histoires",
+    "language": "Langue",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "back": "Retour",
+    "next": "Suivant",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "nav": {
+    "home": "Accueil",
+    "stories": "Histoires",
+    "submit": "Partagez Votre Histoire"
+  },
+  "home": {
+    "title": "Bienvenue sur Collecteur d'Histoires",
+    "subtitle": "Partagez votre histoire avec le monde",
+    "description": "Une plateforme pour collecter et partager des histoires significatives de personnes du monde entier.",
+    "cta": "Partagez Votre Histoire",
+    "viewStories": "Voir les Histoires"
+  },
+  "form": {
+    "title": "Partagez Votre Histoire",
+    "requiredFields": "* Champs obligatoires",
+    "name": "Nom",
+    "namePlaceholder": "Votre nom complet",
+    "phone": "Numéro de Téléphone",
+    "phonePlaceholder": "+33612345678",
+    "phoneHint": "Utilisez le format international (E.164)",
+    "email": "Email",
+    "emailPlaceholder": "votre.email@exemple.com",
+    "city": "Ville",
+    "cityPlaceholder": "Votre ville",
+    "country": "Pays",
+    "countryPlaceholder": "Votre pays",
+    "tellerBackground": "À Propos de Vous",
+    "tellerBackgroundPlaceholder": "Parlez-nous un peu de vous...",
+    "storyBackground": "Contexte de l'Histoire",
+    "storyBackgroundPlaceholder": "Quel est le contexte de votre histoire?",
+    "storyTitle": "Titre de l'Histoire",
+    "storyTitlePlaceholder": "Donnez un titre à votre histoire",
+    "content": "Votre Histoire",
+    "contentPlaceholder": "Partagez votre histoire ici...",
+    "submitSuccess": "Merci! Votre histoire a été soumise avec succès.",
+    "submitError": "Une erreur s'est produite. Veuillez réessayer."
+  },
+  "stories": {
+    "title": "Toutes les Histoires",
+    "filterByLanguage": "Filtrer par langue",
+    "allLanguages": "Toutes les Langues",
+    "noStories": "Aucune histoire trouvée",
+    "loadMore": "Charger Plus",
+    "verifiedPhone": "Vérifié",
+    "unverifiedPhone": "Non vérifié"
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "invalidEmail": "Format d'email invalide",
+    "invalidPhone": "Format de numéro de téléphone invalide. Utilisez le format E.164 (ex: +33612345678)",
+    "tooShort": "Trop court",
+    "tooLong": "Trop long",
+    "minLength": "Doit contenir au moins {{min}} caractères",
+    "maxLength": "Ne doit pas dépasser {{max}} caractères"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "notFound": "Histoire non trouvée",
+    "rateLimit": "Trop de requêtes. Veuillez réessayer plus tard.",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard."
+  }
+}

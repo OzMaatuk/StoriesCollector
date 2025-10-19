@@ -1,0 +1,74 @@
+    {
+  "common": {
+    "appName": "Stories Collector",
+    "language": "Language",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "home": "Home",
+    "stories": "Stories",
+    "submit": "Share Your Story"
+  },
+  "home": {
+    "title": "Welcome to Stories Collector",
+    "subtitle": "Share your story with the world",
+    "description": "A platform for collecting and sharing meaningful stories from people around the globe.",
+    "cta": "Share Your Story",
+    "viewStories": "View Stories"
+  },
+  "form": {
+    "title": "Share Your Story",
+    "requiredFields": "* Required fields",
+    "name": "Name",
+    "namePlaceholder": "Your full name",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+1234567890",
+    "phoneHint": "Use international format (E.164)",
+    "email": "Email",
+    "emailPlaceholder": "your.email@example.com",
+    "city": "City",
+    "cityPlaceholder": "Your city",
+    "country": "Country",
+    "countryPlaceholder": "Your country",
+    "tellerBackground": "About You",
+    "tellerBackgroundPlaceholder": "Tell us a bit about yourself...",
+    "storyBackground": "Story Background",
+    "storyBackgroundPlaceholder": "What's the context of your story?",
+    "storyTitle": "Story Title",
+    "storyTitlePlaceholder": "Give your story a title",
+    "content": "Your Story",
+    "contentPlaceholder": "Share your story here...",
+    "submitSuccess": "Thank you! Your story has been submitted successfully.",
+    "submitError": "Something went wrong. Please try again."
+  },
+  "stories": {
+    "title": "All Stories",
+    "filterByLanguage": "Filter by language",
+    "allLanguages": "All Languages",
+    "noStories": "No stories found",
+    "loadMore": "Load More",
+    "verifiedPhone": "Verified",
+    "unverifiedPhone": "Unverified"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email format",
+    "invalidPhone": "Invalid phone number format. Use E.164 format (e.g., +1234567890)",
+    "tooShort": "Too short",
+    "tooLong": "Too long",
+    "minLength": "Must be at least {{min}} characters",
+    "maxLength": "Must be no more than {{max}} characters"
+  },
+  "errors": {
+    "generic": "An error occurred. Please try again.",
+    "notFound": "Story not found",
+    "rateLimit": "Too many requests. Please try again later.",
+    "serverError": "Server error. Please try again later."
+  }
+}

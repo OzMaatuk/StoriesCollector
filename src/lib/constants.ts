@@ -1,0 +1,41 @@
+export const APP_NAME = 'Stories Collector';
+export const APP_DESCRIPTION = 'Share and discover meaningful stories from around the world';
+
+export const PAGINATION = {
+  DEFAULT_PAGE_SIZE: 10,
+  MAX_PAGE_SIZE: 100,
+  MIN_PAGE_SIZE: 1,
+};
+
+export const VALIDATION = {
+  NAME_MIN_LENGTH: 2,
+  NAME_MAX_LENGTH: 255,
+  PHONE_MAX_LENGTH: 20,
+  EMAIL_MAX_LENGTH: 255,
+  CITY_MAX_LENGTH: 100,
+  COUNTRY_MAX_LENGTH: 100,
+  BACKGROUND_MAX_LENGTH: 5000,
+  TITLE_MAX_LENGTH: 500,
+  CONTENT_MIN_LENGTH: 10,
+  CONTENT_MAX_LENGTH: 50000,
+  OTP_CODE_LENGTH: 6,
+};
+
+export const RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  MAX_REQUESTS: 10,
+};
+
+export const SUPPORTED_LANGUAGES = ['en', 'he', 'fr'] as const;
+
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500,
+  NOT_IMPLEMENTED: 501,
+};
