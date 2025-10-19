@@ -1,25 +1,20 @@
 import Link from 'next/link';
 import { Language } from '@/types';
+import { getTranslations } from '@/lib/translations';
 
 interface PageProps {
   params: { lang: Language };
 }
 
 export default function HomePage({ params }: PageProps) {
-  const translations = require(`@/locales/${params.lang}.json`);
+  const translations = getTranslations(params.lang);
 
   return (
     <div className="text-center space-y-8">
       <div className="space-y-4">
-        <h1 className="text-5xl font-bold text-gray-900">
-          {translations.home.title}
-        </h1>
-        <p className="text-xl text-gray-600">
-          {translations.home.subtitle}
-        </p>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-          {translations.home.description}
-        </p>
+        <h1 className="text-5xl font-bold text-gray-900">{translations.home.title}</h1>
+        <p className="text-xl text-gray-600">{translations.home.subtitle}</p>
+        <p className="text-lg text-gray-500 max-w-2xl mx-auto">{translations.home.description}</p>
       </div>
 
       <div className="flex justify-center space-x-4">
@@ -51,7 +46,9 @@ export default function HomePage({ params }: PageProps) {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="text-4xl mb-4">🔒</div>
           <h3 className="text-lg font-semibold mb-2">Secure & Private</h3>
-          <p className="text-gray-600">Your information is protected with industry-standard security</p>
+          <p className="text-gray-600">
+            Your information is protected with industry-standard security
+          </p>
         </div>
       </div>
     </div>

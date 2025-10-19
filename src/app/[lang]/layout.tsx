@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { languages, isRTL } from '@/lib/i18n';
 import { Language } from '@/types';
+import { getTranslations } from '@/lib/translations';
 import '../globals.css';
 
 interface LayoutProps {
@@ -20,9 +21,7 @@ export default function LocaleLayout({ children, params }: LayoutProps) {
   }
 
   const dir = isRTL(params.lang) ? 'rtl' : 'ltr';
-
-  // Import translations
-  const translations = require(`@/locales/${params.lang}.json`);
+  const translations = getTranslations(params.lang);
 
   return (
     <html lang={params.lang} dir={dir}>
@@ -64,9 +63,7 @@ export default function LocaleLayout({ children, params }: LayoutProps) {
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
 
         <footer className="bg-white border-t border-gray-200 mt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

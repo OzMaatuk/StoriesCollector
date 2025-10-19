@@ -82,7 +82,12 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-center">
-          <svg className="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-6 h-6 text-green-600 mr-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           <p className="text-green-800 font-medium">{translations.form.submitSuccess}</p>
@@ -203,7 +208,10 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
         {/* Teller Background - Optional */}
         <div className="mb-4">
-          <label htmlFor="tellerBackground" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="tellerBackground"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             {translations.form.tellerBackground}
           </label>
           <textarea
@@ -217,7 +225,9 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
               errors.tellerBackground ? 'border-red-500' : 'border-gray-300'
             }`}
           />
-          {errors.tellerBackground && <p className="mt-1 text-sm text-red-600">{errors.tellerBackground[0]}</p>}
+          {errors.tellerBackground && (
+            <p className="mt-1 text-sm text-red-600">{errors.tellerBackground[0]}</p>
+          )}
         </div>
 
         {/* Story Background - Optional */}
@@ -236,7 +246,9 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
               errors.storyBackground ? 'border-red-500' : 'border-gray-300'
             }`}
           />
-          {errors.storyBackground && <p className="mt-1 text-sm text-red-600">{errors.storyBackground[0]}</p>}
+          {errors.storyBackground && (
+            <p className="mt-1 text-sm text-red-600">{errors.storyBackground[0]}</p>
+          )}
         </div>
 
         {/* Story Title - Optional */}
