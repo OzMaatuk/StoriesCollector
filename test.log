@@ -1,0 +1,72 @@
+/workspace git:(main) ✗ npm test
+
+> stories-collector@2.0.0 test
+> jest
+
+ PASS  tests/unit/validation.test.ts
+ FAIL  tests/unit/otp.providers.test.ts
+  ● Test suite failed to run
+
+    ReferenceError: Cannot access 'mockSendMail' before initialization
+
+       7 |
+       8 | jest.mock('nodemailer', () => ({
+    >  9 |   createTransport: jest.fn().mockReturnValue({ sendMail: mockSendMail }),
+         |                                                          ^
+      10 |   __esModule: true,
+      11 |   default: {
+      12 |     createTransport: jest.fn().mockReturnValue({ sendMail: mockSendMail }),
+
+      at mockSendMail (tests/unit/otp.providers.test.ts:9:58)
+      at Object.<anonymous> (tests/unit/otp.providers.test.ts:23:60)
+
+ FAIL  tests/unit/otp.service.test.ts (10.559 s)
+  ● Console
+
+
+    console.log
+      [SMS] Sending to +1234567890: Subject: Your verification code Message: Your verification code is: 356553. This code will expire in 5 minutes.
+
+      at ConsoleProvider.log [as send] (src/services/notifications/providers/console.provider.ts:15:13)
+
+  ● OtpService › sendOtp › should generate and send an OTP code via email
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"jwtSecret": "test-jwt-secret-key", "maxAttempts": 5, "ttl": 300}
+    Received: undefined
+
+      44 |
+      45 |       // Verify notification service was used correctly
+    > 46 |       expect(mockedConfig).toEqual(testConfig);
+         |                            ^
+      47 |       expect(mockGetProvider).toHaveBeenCalledWith('email');
+      48 |       expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({
+      49 |         recipient: 'test@example.com',
+
+      at Object.toEqual (tests/unit/otp.service.test.ts:46:28)
+
+  ● OtpService › sendOtp › should generate and send an OTP code via SMS
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"jwtSecret": "test-jwt-secret-key", "maxAttempts": 5, "ttl": 300}
+    Received: undefined
+
+      58 |
+      59 |       // Verify notification service was used correctly
+    > 60 |       expect(mockedConfig).toEqual(testConfig);
+         |                            ^
+      61 |       expect(mockGetProvider).toHaveBeenCalledWith('sms');
+      62 |       expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({
+      63 |         recipient: '+1234567890',
+
+      at Object.toEqual (tests/unit/otp.service.test.ts:60:28)
+
+ PASS  tests/integration/story.service.test.ts (10.262 s)
+
+Test Suites: 2 failed, 2 passed, 4 total
+Tests:       2 failed, 18 passed, 20 total
+Snapshots:   0 total
+Time:        20.778 s
+Ran all test suites.

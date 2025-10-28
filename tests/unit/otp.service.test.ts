@@ -1,16 +1,75 @@
 import { OtpService } from '@/services/otp.service';
+import { jest } from '@jest/globals';
 
+type NotificationMocks = {
+  getMockedConfig: () => any;
+  mockGetProvider: jest.Mock;
+  mockSend: jest.Mock;
+};
+
+// Mock implementation
+const mockSend = jest.fn().mockImplementation(() => Promise.resolve());
+const mockGetProvider = jest.fn().mockReturnValue({ send: mockSend });
+const mockNotificationService = jest.fn((config) => {
+  return {
+    config,
+    getProvider: mockGetProvider,
+  };
+});
+
+// Reset mocks before each test
+beforeEach(() => {
+  mockNotificationService.mockClear();
+  mockSend.mockClear();
+  mockGetProvider.mockClear();
+});
+
+jest.mock('@/services/notifications/providers', () => ({
+  NotificationService: mockNotificationService,
+}));
 describe('OtpService', () => {
   let otpService: OtpService;
+  const testConfig = {
+    ttl: 300,
+    maxAttempts: 5,
+    jwtSecret: 'test-jwt-secret-key',
+  };
 
   beforeEach(() => {
-    otpService = new OtpService();
+    jest.clearAllMocks();
+    otpService = new OtpService(testConfig);
   });
 
   describe('sendOtp', () => {
-    it('should generate and send an OTP code', async () => {
+    it('should generate and send an OTP code via email', async () => {
+      const result = await otpService.sendOtp('test@example.com', 'email');
+      expect(result.expiresIn).toBe(testConfig.ttl);
+
+      // Verify notification service was used correctly
+      expect(mockNotificationService).toHaveBeenCalledWith(testConfig);
+      expect(mockGetProvider).toHaveBeenCalledWith('email');
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: 'test@example.com',
+          subject: 'Your verification code',
+          message: expect.stringMatching(/Your verification code is: \d{6}/),
+        })
+      );
+    });
+
+    it('should generate and send an OTP code via SMS', async () => {
       const result = await otpService.sendOtp('+1234567890', 'sms');
-      expect(result.expiresIn).toBe(300); // 5 minutes in seconds
+      expect(result.expiresIn).toBe(testConfig.ttl);
+
+      // Verify notification service was used correctly
+      expect(mockNotificationService).toHaveBeenCalledWith(testConfig);
+      expect(mockGetProvider).toHaveBeenCalledWith('sms');
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: '+1234567890',
+          message: expect.stringMatching(/Your verification code is: \d{6}/),
+        })
+      );
     });
   });
 

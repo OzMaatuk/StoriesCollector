@@ -51,6 +51,17 @@ jobs:
 
       - name: Run unit tests
         run: npm test -- --coverage
+        env:
+          # Provider tests use mocks, so we set minimal env vars
+          SMTP_HOST: smtp.zoho.com
+          SMTP_PORT: 587
+          SMTP_USER: test@example.com
+          SMTP_PASS: dummy-pass
+          TEXTBEE_BASE_URL: https://api.textbee.example
+          TEXTBEE_DEVICE_ID: test-device
+          TEXTBEE_API_KEY: dummy-key
+          OTP_CODE_TTL_SECONDS: 300
+          OTP_MAX_ATTEMPTS: 5
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
