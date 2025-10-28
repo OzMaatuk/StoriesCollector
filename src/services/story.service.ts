@@ -3,12 +3,15 @@ import { Story, StoryCreateInput, PaginatedResponse } from '@/types';
 import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
+import { OtpService } from './otp.service';
 
 export class StoryService {
   private repository: StoryRepository;
+  private otpService: OtpService;
 
   constructor() {
     this.repository = new StoryRepository();
+    this.otpService = new OtpService();
   }
 
   async createStory(input: any): Promise<Story> {
@@ -19,8 +22,37 @@ export class StoryService {
     try {
       const validated = storySchema.parse(sanitized);
 
-      // Create story
-      return await this.repository.create(validated);
+      // Verify OTP token if provided
+      if (validated.verificationToken) {
+        const tokenData = this.otpService.verifyToken(validated.verificationToken);
+        if (!tokenData) {
+          throw new Error('Invalid or expired verification token');
+        }
+
+        // Ensure the verified contact matches the provided contact
+        const hasMatchingEmail = validated.email && validated.email === tokenData.recipient;
+        const hasMatchingPhone = validated.phone && validated.phone === tokenData.recipient;
+        
+        if (!hasMatchingEmail && !hasMatchingPhone) {
+          throw new Error('Verification token does not match provided contact information');
+        }
+
+        // Mark as verified
+        const storyData = {
+          ...validated,
+          verifiedPhone: tokenData.channel === 'sms',
+          verifiedEmail: tokenData.channel === 'email',
+        };
+
+        // Remove the token before saving
+        delete storyData.verificationToken;
+
+        return await this.repository.create(storyData);
+      } else {
+        // For backward compatibility, allow stories without verification for now
+        // In production, you might want to require verification
+        return await this.repository.create(validated);
+      }
     } catch (error) {
       if (error instanceof ZodError) {
         throw new Error(JSON.stringify(error.flatten().fieldErrors));

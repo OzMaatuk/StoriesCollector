@@ -7,7 +7,22 @@ interface PageProps {
 }
 
 export default function HomePage({ params }: PageProps) {
+  if (!params?.lang) {
+    console.error('Language parameter is missing');
+    return null;
+  }
+
   const translations = getTranslations(params.lang);
+
+  if (!translations) {
+    console.error('Translations are missing for language:', params.lang);
+    return null;
+  }
+
+  if (!translations.home) {
+    console.error('Home translations are missing for language:', params.lang, translations);
+    return null;
+  }
 
   return (
     <div className="text-center space-y-8">

@@ -118,7 +118,73 @@ stories-collector/
   - **Sanitization**: DOMPurify for XSS prevention
   - **Rate Limiting**: Per-IP request throttling
   - **CSRF Protection**: Built into Next.js
-  - **Phone Verification**: Architecture ready (deferred implementation)
+  - **Phone Verification**: OTP and JWT-based verification system
+  - **JWT Security**: Secure token-based verification system
+
+### 🔑 JWT & OTP Configuration
+
+The application uses JWT (JSON Web Tokens) for secure verification tokens and OTP (One-Time Passwords) for phone verification. Here's how to set it up:
+
+1. Configure JWT in your environment file:
+   ```bash
+   # Required - at least 32 characters long, keep this secret!
+   JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+   
+   # Optional - defaults to 15m (15 minutes)
+   JWT_EXPIRES_IN=15m
+   ```
+   
+   ⚠️ **Important Security Notes**:
+   - Generate a strong JWT secret (at least 32 characters)
+   - Never commit your JWT secret to version control
+   - Use different secrets for development and production
+   - Rotate your JWT secret periodically in production
+
+2. Configure OTP settings:
+   ```bash
+   # Optional - defaults to 300 (5 minutes)
+   OTP_CODE_TTL_SECONDS=300
+   
+   # Optional - defaults to 5
+   OTP_MAX_ATTEMPTS=5
+   ```
+
+3. Generate a secure JWT secret:
+   ```bash
+   # Using openssl (recommended for production)
+   openssl rand -base64 32
+   
+   # Or using Node.js
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+
+4. Token Security Best Practices:
+   - Store tokens securely (e.g., HttpOnly cookies)
+   - Use short expiration times (default: 15 minutes)
+   - Implement token refresh mechanism for longer sessions
+   - Monitor for suspicious activity (multiple failed attempts)
+
+### ⚡ Quick dev & test (JWT / OTP)
+
+You can run the app and tests in development without setting a production-grade `JWT_SECRET` because the `OtpService` falls back to a default secret for convenience. However, this is insecure for anything beyond local experimentation.
+
+Recommended quick commands (zsh):
+
+- Start dev server with a temporary secure secret:
+```bash
+JWT_SECRET=$(openssl rand -base64 32) npm run dev
+```
+
+- Run tests with a deterministic secret (recommended for CI/local test runs):
+```bash
+JWT_SECRET=test-jwt-secret-32chars npm test
+# or run a single test file:
+JWT_SECRET=test-jwt-secret-32chars npx jest tests/unit/otp.service.test.ts --runInBand
+```
+
+Best practices:
+- Add `JWT_SECRET` to your local `.env.development` while developing (never commit it).
+- Use a secrets manager for production secrets.
 
 ### 🌐 Internationalization
 

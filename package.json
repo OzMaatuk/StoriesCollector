@@ -33,9 +33,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.9.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "clsx": "^2.1.0",
     "dompurify": "^3.0.9",
     "isomorphic-dompurify": "^2.9.0",
+    "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.10.53",
     "next": "^14.2.33",
     "next-intl": "^3.9.0",

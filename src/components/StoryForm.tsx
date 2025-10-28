@@ -27,6 +27,15 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // OTP verification states
+  const [otpStep, setOtpStep] = useState<'form' | 'otp' | 'verified'>('form');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpRecipient, setOtpRecipient] = useState('');
+  const [otpChannel, setOtpChannel] = useState<'email' | 'sms'>('email');
+  const [verificationToken, setVerificationToken] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -41,8 +50,119 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     }
   };
 
+  const determineOtpMethod = () => {
+    // Priority: email > phone
+    if (formData.email && formData.email.trim() !== '') {
+      return { recipient: formData.email.trim(), channel: 'email' as const };
+    } else if (formData.phone && formData.phone.trim() !== '') {
+      return { recipient: formData.phone.trim(), channel: 'sms' as const };
+    }
+    return null;
+  };
+
+  const handleSendOtp = async () => {
+    const otpMethod = determineOtpMethod();
+    if (!otpMethod) {
+      setError('Please provide either an email address or phone number');
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError(null);
+
+    try {
+      const response = await fetch('/api/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipient: otpMethod.recipient,
+          channel: otpMethod.channel,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setOtpError(data.error || 'Failed to send verification code');
+        return;
+      }
+
+      setOtpRecipient(otpMethod.recipient);
+      setOtpChannel(otpMethod.channel);
+      setOtpStep('otp');
+    } catch (err) {
+      console.error('Error sending OTP:', err);
+      setOtpError('Failed to send verification code');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length !== 6) {
+      setOtpError('Please enter a 6-digit verification code');
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError(null);
+
+    try {
+      const response = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipient: otpRecipient,
+          code: otpCode,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setOtpError(data.error || 'Invalid verification code');
+        return;
+      }
+
+      const data = await response.json();
+      setVerificationToken(data.token);
+      setOtpStep('verified');
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
+      setOtpError('Failed to verify code');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if we need OTP verification first
+    if (otpStep === 'form') {
+      // Validate that at least one contact method is provided
+      const hasPhone = formData.phone && formData.phone.trim() !== '';
+      const hasEmail = formData.email && formData.email.trim() !== '';
+      
+      if (!hasPhone && !hasEmail) {
+        setError('Please provide either an email address or phone number');
+        return;
+      }
+      
+      // Send OTP
+      await handleSendOtp();
+      return;
+    }
+
+    if (otpStep === 'otp') {
+      // Verify OTP
+      await handleVerifyOtp();
+      return;
+    }
+
+    // Submit story (otpStep === 'verified')
     setLoading(true);
     setError(null);
     setErrors({});
@@ -53,7 +173,10 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          verificationToken,
+        }),
       });
 
       if (!response.ok) {
@@ -96,15 +219,96 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     );
   }
 
+  // OTP verification step
+  if (otpStep === 'otp') {
+    return (
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <h2 className="text-2xl font-bold mb-6">Verify Your {otpChannel === 'email' ? 'Email' : 'Phone'}</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            We've sent a 6-digit verification code to {otpRecipient}
+          </p>
+
+          {otpError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800">{otpError}</p>
+            </div>
+          )}
+
+          <div className="mb-6">
+            <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700 mb-2">
+              Verification Code
+            </label>
+            <input
+              type="text"
+              id="otpCode"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="Enter 6-digit code"
+              maxLength={6}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center text-2xl tracking-widest"
+            />
+          </div>
+
+          <div className="flex space-x-4">
+            <button
+              type="submit"
+              disabled={otpLoading || otpCode.length !== 6}
+              className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+            >
+              {otpLoading ? 'Verifying...' : 'Verify Code'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOtpStep('form')}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 font-medium transition-colors"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleSendOtp}
+              disabled={otpLoading}
+              className="text-sm text-primary-600 hover:text-primary-700 disabled:opacity-50"
+            >
+              Resend Code
+            </button>
+          </div>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
       <div className="bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6">{translations.form.title}</h2>
-        <p className="text-sm text-gray-600 mb-6">{translations.form.requiredFields}</p>
+        <p className="text-sm text-gray-600 mb-6">
+          {otpStep === 'verified' 
+            ? '✅ Contact verified! Please complete your story submission.' 
+            : 'Please provide either an email address or phone number for verification.'
+          }
+        </p>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {otpStep === 'verified' && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-green-800">
+                {otpChannel === 'email' ? 'Email' : 'Phone'} verified: {otpRecipient}
+              </p>
+            </div>
           </div>
         )}
 
@@ -128,44 +332,53 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
           {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name[0]}</p>}
         </div>
 
-        {/* Phone - Required */}
-        <div className="mb-4">
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-            {translations.form.phone} *
-          </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder={translations.form.phonePlaceholder}
-            required
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.phone ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          <p className="mt-1 text-sm text-gray-500">{translations.form.phoneHint}</p>
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone[0]}</p>}
-        </div>
+        {/* Contact Information Section */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-lg font-medium text-blue-900 mb-3">Contact Information</h3>
+          <p className="text-sm text-blue-700 mb-4">
+            Please provide either an email address or phone number for verification. Email is preferred.
+          </p>
 
-        {/* Email - Optional */}
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            {translations.form.email}
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder={translations.form.emailPlaceholder}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email[0]}</p>}
+          {/* Email - Preferred */}
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              {translations.form.email} (Preferred)
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder={translations.form.emailPlaceholder}
+              disabled={otpStep === 'verified'}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              } ${otpStep === 'verified' ? 'bg-gray-100' : ''}`}
+            />
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email[0]}</p>}
+          </div>
+
+          {/* Phone - Alternative */}
+          <div className="mb-4">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              {translations.form.phone} (Alternative)
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder={translations.form.phonePlaceholder}
+              disabled={otpStep === 'verified'}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                errors.phone ? 'border-red-500' : 'border-gray-300'
+              } ${otpStep === 'verified' ? 'bg-gray-100' : ''}`}
+            />
+            <p className="mt-1 text-sm text-gray-500">{translations.form.phoneHint}</p>
+            {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone[0]}</p>}
+          </div>
         </div>
 
         {/* City - Optional */}
@@ -292,10 +505,15 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (otpStep === 'form' && !formData.email && !formData.phone)}
           className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
         >
-          {loading ? translations.common.loading : translations.common.submit}
+          {loading 
+            ? translations.common.loading 
+            : otpStep === 'form' 
+              ? 'Send Verification Code' 
+              : translations.common.submit
+          }
         </button>
       </div>
     </form>
