@@ -19,8 +19,8 @@ FROM base AS deps
 COPY package.json package-lock.json* ./
 
 # Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN npm ci --ommit=dev
+RUN npm cache clean --force
 
 # ================================
 # Build stage
