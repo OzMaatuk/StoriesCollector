@@ -1,101 +1,146 @@
+import { jest } from '@jest/globals';
 import { OtpService } from '@/services/otp.service';
 
-// Mock modules first
-// Import required modules
-import type { Transporter } from 'nodemailer';
-import nodemailer from 'nodemailer';
-import axios from 'axios';
-
-// Set up mock functions
-const mockSendMail = jest.fn().mockResolvedValue({});
-const mockTransport = { sendMail: mockSendMail };
-const mockCreateTransport = jest.fn().mockReturnValue(mockTransport);
-
-const mockPost = jest.fn().mockResolvedValue({});
-
-// Now mock modules
-jest.mock('nodemailer');
-(nodemailer.createTransport as jest.Mock) = mockCreateTransport;
-
-jest.mock('axios');
-(axios.post as jest.Mock) = mockPost;
-
-describe('OtpService providers', () => {
+describe('OtpService', () => {
   let otpService: OtpService;
+  let mockSend: jest.Mock;
+
+  const testConfig = {
+    ttl: 300,
+    maxAttempts: 5,
+    jwtSecret: 'test-jwt-secret-key',
+  };
 
   beforeEach(() => {
-    // Clear env vars before each test
-    delete process.env.SMTP_HOST;
-    delete process.env.SMTP_PORT;
-    delete process.env.SMTP_SECURE;
-    delete process.env.SMTP_USER;
-    delete process.env.SMTP_PASS;
-    delete process.env.EMAIL_FROM;
+    // Create a fresh mock for each test
+    mockSend = jest.fn().mockResolvedValue(undefined);
 
-    delete process.env.TEXTBEE_BASE_URL;
-    delete process.env.TEXTBEE_DEVICE_ID;
-    delete process.env.TEXTBEE_API_KEY;
+    // Create OtpService instance
+    otpService = new OtpService(testConfig);
 
-    jest.clearAllMocks();
-    // Re-instantiate because we need the constructor to pick up new env vars
-    delete require.cache[require.resolve('@/services/otp.service')];
-    const { OtpService } = require('@/services/otp.service');
-    otpService = new OtpService();
+    // Get access to the private notificationService
+    const notificationService = (otpService as any).notificationService;
+
+    // Mock the getProvider method to return a provider with our mocked send function
+    jest
+      .spyOn(notificationService, 'getProvider')
+      .mockImplementation((channel: 'email' | 'sms') => {
+        return {
+          type: channel,
+          isConfigured: () => true,
+          send: mockSend,
+        };
+      });
   });
 
-  it('uses nodemailer when SMTP env vars are present', async () => {
-    process.env.SMTP_HOST = 'smtp.zoho.com';
-    process.env.SMTP_PORT = '587';
-    process.env.SMTP_SECURE = 'false';
-    process.env.SMTP_USER = 'test@domain.com';
-    process.env.SMTP_PASS = 'pass';
-    process.env.EMAIL_FROM = 'no-reply@domain.com';
-
-    const result = await otpService.sendOtp('user@example.com', 'email');
-    expect(result.expiresIn).toBe(parseInt(process.env.OTP_CODE_TTL_SECONDS || '300', 10));
-
-    // nodemailer.createTransport should have been called
-    expect(nodemailer.createTransport).toHaveBeenCalled();
-    // The mock createTransport returns a transporter instance; grab the instance
-    // that was returned when the service called createTransport (recorded by Jest)
-    const createCalls = (nodemailer.createTransport as jest.Mock).mock.results;
-    expect(createCalls.length).toBeGreaterThan(0);
-    const transporter = createCalls[0].value;
-    expect(transporter).toBeDefined();
-    expect(transporter.sendMail).toHaveBeenCalled();
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it('uses axios/TextBee when TEXTBEE env vars are present', async () => {
-    process.env.TEXTBEE_BASE_URL = 'https://api.textbee.example';
-    process.env.TEXTBEE_DEVICE_ID = 'device1';
-    process.env.TEXTBEE_API_KEY = 'apikey';
+  describe('sendOtp', () => {
+    it('should generate and send an OTP code via email', async () => {
+      const result = await otpService.sendOtp('test@example.com', 'email');
 
-    const result = await otpService.sendOtp('+1234567890', 'sms');
-    expect(result.expiresIn).toBe(parseInt(process.env.OTP_CODE_TTL_SECONDS || '300', 10));
+      expect(result.expiresIn).toBe(testConfig.ttl);
 
-    // axios.post should have been called
-    expect(axios.post).toHaveBeenCalled();
+      // Verify send was called with correct parameters
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: 'test@example.com',
+          subject: 'Your verification code',
+          message: expect.stringMatching(/Your verification code is: \d{6}/),
+        })
+      );
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
 
-    // Check that the URL contained the base and device id
-    const postCalls = (axios.post as jest.Mock).mock.calls;
-    expect(postCalls.length).toBeGreaterThan(0);
-    const callArgs = postCalls[0];
-    const url = callArgs[0];
-    expect(url).toContain('api.textbee.example');
-    expect(url).toContain('/gateway/devices/device1/send-sms');
+    it('should generate and send an OTP code via SMS', async () => {
+      const result = await otpService.sendOtp('+1234567890', 'sms');
+
+      expect(result.expiresIn).toBe(testConfig.ttl);
+
+      // Verify send was called with correct parameters
+      expect(mockSend).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: '+1234567890',
+          subject: 'Your verification code',
+          message: expect.stringMatching(/Your verification code is: \d{6}/),
+        })
+      );
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('falls back to console.log when providers are not configured', async () => {
-    // No env vars set
-    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  describe('verifyOtp', () => {
+    it('should verify a valid OTP code and return a JWT token', async () => {
+      // First send an OTP
+      await otpService.sendOtp('+1234567890', 'sms');
 
-    const resSms = await otpService.sendOtp('+1234567890', 'sms');
-    expect(resSms.expiresIn).toBe(parseInt(process.env.OTP_CODE_TTL_SECONDS || '300', 10));
+      // Get the OTP code from the private store (for testing only)
+      const otpRecord = (otpService as any).otpStore.get('+1234567890');
+      expect(otpRecord).toBeDefined();
 
-    const resEmail = await otpService.sendOtp('user@example.com', 'email');
-    expect(resEmail.expiresIn).toBe(parseInt(process.env.OTP_CODE_TTL_SECONDS || '300', 10));
+      // Verify the OTP
+      const result = await otpService.verifyOtp('+1234567890', otpRecord.code);
 
-    expect(logSpy).toHaveBeenCalled();
-    logSpy.mockRestore();
+      expect(result.isValid).toBe(true);
+      expect(result.token).toBeDefined();
+
+      // Verify the JWT token
+      const decoded = otpService.verifyToken(result.token!);
+      expect(decoded).toBeDefined();
+      expect(decoded?.recipient).toBe('+1234567890');
+      expect(decoded?.channel).toBe('sms');
+    });
+
+    it('should reject an invalid OTP code', async () => {
+      // First send an OTP
+      await otpService.sendOtp('+1234567890', 'sms');
+
+      // Try to verify with wrong code
+      const result = await otpService.verifyOtp('+1234567890', '000000');
+
+      expect(result.isValid).toBe(false);
+      expect(result.token).toBeUndefined();
+    });
+
+    it('should reject after max attempts', async () => {
+      // First send an OTP
+      await otpService.sendOtp('+1234567890', 'sms');
+
+      // Try to verify multiple times with wrong code
+      for (let i = 0; i < 5; i++) {
+        const result = await otpService.verifyOtp('+1234567890', '000000');
+        expect(result.isValid).toBe(false);
+      }
+
+      // Get the OTP code from the private store (for testing only)
+      const otpRecord = (otpService as any).otpStore.get('+1234567890');
+      expect(otpRecord).toBeDefined();
+
+      // Try one more time with correct code - should still fail
+      const result = await otpService.verifyOtp('+1234567890', otpRecord.code);
+      expect(result.isValid).toBe(false);
+    });
+  });
+
+  describe('verifyToken', () => {
+    it('should verify a valid JWT token', async () => {
+      // First send and verify an OTP to get a token
+      await otpService.sendOtp('+1234567890', 'sms');
+      const otpRecord = (otpService as any).otpStore.get('+1234567890');
+      const verifyResult = await otpService.verifyOtp('+1234567890', otpRecord.code);
+
+      // Verify the token
+      const decoded = otpService.verifyToken(verifyResult.token!);
+      expect(decoded).toBeDefined();
+      expect(decoded?.recipient).toBe('+1234567890');
+      expect(decoded?.channel).toBe('sms');
+    });
+
+    it('should reject an invalid JWT token', () => {
+      const result = otpService.verifyToken('invalid-token');
+      expect(result).toBeNull();
+    });
   });
 });
