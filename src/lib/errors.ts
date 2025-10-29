@@ -1,9 +1,5 @@
 export class AppError extends Error {
-  constructor(
-    public message: string,
-    public statusCode: number = 500,
-    public details?: any
-  ) {
+  constructor(public message: string, public statusCode: number = 500, public details?: unknown) {
     super(message);
     this.name = 'AppError';
     Object.setPrototypeOf(this, AppError.prototype);
@@ -11,7 +7,7 @@ export class AppError extends Error {
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: unknown) {
     super(message, 400, details);
     this.name = 'ValidationError';
   }

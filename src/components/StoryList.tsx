@@ -1,3 +1,5 @@
+// src/components/StoryList.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,11 +7,13 @@ import StoryCard from './StoryCard';
 import Pagination from './Pagination';
 import { Story, PaginatedResponse, Language } from '@/types';
 import { languages, languageNames } from '@/lib/i18n';
+import { Translations } from '@/types/translations';
+import { useCallback } from 'react';
 
 interface StoryListProps {
   initialData: PaginatedResponse<Story>;
   lang: Language;
-  translations: any;
+  translations: Translations;
 }
 
 export default function StoryList({ initialData, lang, translations }: StoryListProps) {
@@ -17,6 +21,11 @@ export default function StoryList({ initialData, lang, translations }: StoryList
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     fetchStories(currentPage, selectedLanguage);
@@ -29,7 +38,7 @@ export default function StoryList({ initialData, lang, translations }: StoryList
         page: String(page),
         pageSize: '10',
       });
-      
+
       if (filterLang) {
         params.append('language', filterLang);
       }
@@ -49,11 +58,6 @@ export default function StoryList({ initialData, lang, translations }: StoryList
   const handleLanguageFilter = (lang: string) => {
     setSelectedLanguage(lang);
     setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -90,7 +94,12 @@ export default function StoryList({ initialData, lang, translations }: StoryList
         <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {data.data.map((story) => (
-              <StoryCard key={story.id} story={story} lang={lang} translations={translations} />
+              <StoryCard
+                key={story.id}
+                story={story}
+                lang={lang}
+                translations={translations.stories}
+              />
             ))}
           </div>
 

@@ -1,0 +1,5 @@
+// vscode/settings.json
+{
+  "css.validate": false,
+  "tailwindCSS.validate": true
+}

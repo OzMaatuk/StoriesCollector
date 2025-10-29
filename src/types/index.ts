@@ -11,6 +11,7 @@ export interface Story {
   content: string;
   language: string;
   verifiedPhone: boolean;
+  unverifiedphone?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,19 +1,22 @@
+// src/middleware.ts
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { languages } from '@/lib/i18n';
+import { Language } from './types';
 
 // Get the preferred language from headers
-function getPreferredLanguage(request: NextRequest) {
+function getPreferredLanguage(request: NextRequest): string {
   const acceptLanguage = request.headers.get('accept-language');
   if (!acceptLanguage) return 'en';
 
   const preferredLanguages = acceptLanguage
     .split(',')
-    .map((lang) => lang.split(';')[0].trim().substring(0, 2).toLowerCase());
+    .map((l) => l.split(';')[0].trim().substring(0, 2).toLowerCase());
 
-  const matchedLanguage = preferredLanguages.find((lang) => languages.includes(lang as any));
+  const matchedLanguage = preferredLanguages.find((lang) => languages.includes(lang as Language));
 
-  return matchedLanguage || 'en';
+  return matchedLanguage ?? 'en';
 }
 
 export function middleware(request: NextRequest) {

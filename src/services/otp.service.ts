@@ -124,7 +124,11 @@ export class OtpService {
 
   verifyToken(token: string): { recipient: string; channel: string } | null {
     try {
-      const decoded = jwt.verify(token, this.JWT_SECRET) as any;
+      const decoded = jwt.verify(token, this.JWT_SECRET) as unknown & {
+        recipient: string;
+        channel: string;
+        verified: boolean;
+      };
       return {
         recipient: decoded.recipient,
         channel: decoded.channel,

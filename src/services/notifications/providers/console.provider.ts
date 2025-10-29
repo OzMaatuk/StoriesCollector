@@ -12,6 +12,7 @@ export class ConsoleProvider implements NotificationProvider {
   }
 
   async send(payload: NotificationPayload): Promise<void> {
+    // eslint-disable-next-line no-console
     console.log(
       `[${this.type.toUpperCase()}] Sending to ${payload.recipient}:`,
       payload.subject ? `Subject: ${payload.subject}` : '',

@@ -1,5 +1,3 @@
-'use client';
-
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -8,7 +6,7 @@ interface PaginationProps {
 
 export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-  
+
   // Show max 7 pages at a time
   const getVisiblePages = () => {
     if (totalPages <= 7) return pages;
@@ -21,15 +19,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
       return [1, '...', ...pages.slice(totalPages - 5)];
     }
 
-    return [
-      1,
-      '...',
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      '...',
-      totalPages,
-    ];
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
   };
 
   const visiblePages = getVisiblePages();

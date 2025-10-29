@@ -1,12 +1,15 @@
+// src/components/StoryCard.tsx
+
 'use client';
 
 import Link from 'next/link';
 import { Story } from '@/types';
+import { Translations } from '@/types/translations';
 
 interface StoryCardProps {
   story: Story;
   lang: string;
-  translations: any;
+  translations: Translations['stories'];
 }
 
 export default function StoryCard({ story, lang, translations }: StoryCardProps) {
@@ -36,11 +39,11 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
           <div className="ml-4 flex-shrink-0">
             {story.verifiedPhone ? (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                ✓ {translations.stories.verifiedPhone}
+                ✓ {translations.verifiedPhone}
               </span>
             ) : (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                {translations.stories.unverifiedPhone}
+                {translations.verifiedPhone}
               </span>
             )}
           </div>
@@ -50,9 +53,7 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
 
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>{formatDate(story.createdAt)}</span>
-          <span className="text-primary-600 hover:text-primary-700 font-medium">
-            Read more →
-          </span>
+          <span className="text-primary-600 hover:text-primary-700 font-medium">Read more →</span>
         </div>
       </div>
     </Link>

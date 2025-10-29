@@ -1,19 +1,22 @@
+// src/app/[lang]/stories/[id]/page.tsx
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { StoryService } from '@/services/story.service';
 import { Language } from '@/types';
+import en from '@/locales/en.json';
+import he from '@/locales/he.json';
+import fr from '@/locales/fr.json';
+import { Translations } from '@/types/translations';
 
 interface PageProps {
-  params: { 
-    lang: Language;
-    id: string;
-  };
+  params: { lang: Language; id: string };
 }
 
-export default async function StoryDetailPage({ params }: PageProps) {
-  const translations = require(`@/locales/${params.lang}.json`);
+export default async function SubmitPage({ params }: PageProps) {
+  const translationsMap: Record<Language, Translations> = { en, fr, he };
+  const translations = translationsMap[params.lang] ?? en;
   const storyService = new StoryService();
-  
   const story = await storyService.getStoryById(params.id);
 
   if (!story) {
@@ -32,7 +35,7 @@ export default async function StoryDetailPage({ params }: PageProps) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Link 
+      <Link
         href={`/${params.lang}/stories`}
         className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-6"
       >
@@ -42,9 +45,7 @@ export default async function StoryDetailPage({ params }: PageProps) {
       <article className="bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
-          {story.title && (
-            <h1 className="text-4xl font-bold mb-4">{story.title}</h1>
-          )}
+          {story.title && <h1 className="text-4xl font-bold mb-4">{story.title}</h1>}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-lg opacity-90">By {story.name}</p>
@@ -83,9 +84,7 @@ export default async function StoryDetailPage({ params }: PageProps) {
           )}
 
           <div className="prose prose-lg max-w-none">
-            <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-              {story.content}
-            </div>
+            <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{story.content}</div>
           </div>
         </div>
 
@@ -93,9 +92,7 @@ export default async function StoryDetailPage({ params }: PageProps) {
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>Published {formatDate(story.createdAt)}</span>
-            {story.email && (
-              <span>Contact: {story.email}</span>
-            )}
+            {story.email && <span>Contact: {story.email}</span>}
           </div>
         </div>
       </article>

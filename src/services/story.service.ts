@@ -1,9 +1,13 @@
+// src/services/story.service.ts
+
 import { StoryRepository } from '@/repositories/story.repository';
-import { Story, StoryCreateInput, PaginatedResponse } from '@/types';
+import { Story, PaginatedResponse } from '@/types';
 import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
 import { OtpService } from './otp.service';
+
+type CreateStoryInput = Record<string, string | undefined>;
 
 export class StoryService {
   private repository: StoryRepository;
@@ -14,8 +18,7 @@ export class StoryService {
     this.otpService = new OtpService();
   }
 
-  async createStory(input: any): Promise<Story> {
-    // Sanitize input
+  async createStory(input: CreateStoryInput): Promise<Story> {
     const sanitized = sanitizeStoryInput(input);
 
     // Validate
@@ -32,7 +35,7 @@ export class StoryService {
         // Ensure the verified contact matches the provided contact
         const hasMatchingEmail = validated.email && validated.email === tokenData.recipient;
         const hasMatchingPhone = validated.phone && validated.phone === tokenData.recipient;
-        
+
         if (!hasMatchingEmail && !hasMatchingPhone) {
           throw new Error('Verification token does not match provided contact information');
         }
@@ -42,6 +45,8 @@ export class StoryService {
           ...validated,
           verifiedPhone: tokenData.channel === 'sms',
           verifiedEmail: tokenData.channel === 'email',
+          phone: validated.phone ?? '',
+          email: validated.email ?? '',
         };
 
         // Remove the token before saving
@@ -51,7 +56,11 @@ export class StoryService {
       } else {
         // For backward compatibility, allow stories without verification for now
         // In production, you might want to require verification
-        return await this.repository.create(validated);
+        return await this.repository.create({
+          ...validated,
+          phone: validated.phone ?? '',
+          email: validated.email ?? '',
+        });
       }
     } catch (error) {
       if (error instanceof ZodError) {
@@ -61,8 +70,7 @@ export class StoryService {
     }
   }
 
-  async getStoryById(id: string):
-  Promise<Story | null> {
+  async getStoryById(id: string): Promise<Story | null> {
     return await this.repository.findById(id);
   }
 

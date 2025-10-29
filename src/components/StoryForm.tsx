@@ -1,11 +1,27 @@
+// src/components/StoryForm.tsx
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Translations } from '@/types/translations';
 
 interface StoryFormProps {
-  translations: any;
+  translations: Translations;
   lang: string;
+}
+
+interface FormData {
+  name: string;
+  phone: string;
+  email: string;
+  city: string;
+  country: string;
+  tellerBackground: string;
+  storyBackground: string;
+  title: string;
+  content: string;
+  language: string;
 }
 
 export default function StoryForm({ translations, lang }: StoryFormProps) {
@@ -13,7 +29,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     phone: '',
     email: '',
@@ -26,8 +42,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     language: lang,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
   // OTP verification states
   const [otpStep, setOtpStep] = useState<'form' | 'otp' | 'verified'>('form');
   const [otpCode, setOtpCode] = useState('');
@@ -139,18 +154,18 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Check if we need OTP verification first
     if (otpStep === 'form') {
       // Validate that at least one contact method is provided
       const hasPhone = formData.phone && formData.phone.trim() !== '';
       const hasEmail = formData.email && formData.email.trim() !== '';
-      
+
       if (!hasPhone && !hasEmail) {
         setError('Please provide either an email address or phone number');
         return;
       }
-      
+
       // Send OTP
       await handleSendOtp();
       return;
@@ -224,9 +239,11 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     return (
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
         <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-6">Verify Your {otpChannel === 'email' ? 'Email' : 'Phone'}</h2>
+          <h2 className="text-2xl font-bold mb-6">
+            Verify Your {otpChannel === 'email' ? 'Email' : 'Phone'}
+          </h2>
           <p className="text-sm text-gray-600 mb-6">
-            We've sent a 6-digit verification code to {otpRecipient}
+            We&apos;ve sent a 6-digit verification code to {otpRecipient}
           </p>
 
           {otpError && (
@@ -287,10 +304,11 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
       <div className="bg-white shadow-md rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6">{translations.form.title}</h2>
         <p className="text-sm text-gray-600 mb-6">
-          {otpStep === 'verified' 
-            ? '✅ Contact verified! Please complete your story submission.' 
-            : 'Please provide either an email address or phone number for verification.'
-          }
+          {otpStep === 'verified' ? (
+            <>Contact verified! Please complete your story submission.</>
+          ) : (
+            <>Please provide either an email address or phone number for verification.</>
+          )}
         </p>
 
         {error && (
@@ -302,8 +320,18 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
         {otpStep === 'verified' && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-5 h-5 text-green-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               <p className="text-green-800">
                 {otpChannel === 'email' ? 'Email' : 'Phone'} verified: {otpRecipient}
@@ -336,7 +364,8 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="text-lg font-medium text-blue-900 mb-3">Contact Information</h3>
           <p className="text-sm text-blue-700 mb-4">
-            Please provide either an email address or phone number for verification. Email is preferred.
+            Please provide either an email address or phone number for verification. Email is
+            preferred.
           </p>
 
           {/* Email - Preferred */}
@@ -508,12 +537,11 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
           disabled={loading || (otpStep === 'form' && !formData.email && !formData.phone)}
           className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
         >
-          {loading 
-            ? translations.common.loading 
-            : otpStep === 'form' 
-              ? 'Send Verification Code' 
-              : translations.common.submit
-          }
+          {loading
+            ? translations.common.loading
+            : otpStep === 'form'
+            ? 'Send Verification Code'
+            : translations.common.submit}
         </button>
       </div>
     </form>
