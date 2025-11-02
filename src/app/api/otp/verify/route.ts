@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { rateLimit } from '@/lib/rate-limit';
-import { OtpService } from '@/services/otp.service';
 
 const verifyOtpSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
   code: z.string().length(6, 'OTP code must be 6 digits'),
 });
 
-const otpService = new OtpService();
+const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -31,21 +30,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { recipient, code } = verifyOtpSchema.parse(body);
 
-    const result = await otpService.verifyOtp(recipient, code);
+    // Call external OTP service
+    const response = await fetch(`${OTP_SERVICE_URL}/otp/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ recipient, code }),
+    });
 
-    if (!result.isValid) {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { error: 'Invalid or expired OTP code' },
+        { error: errorData.error || 'Invalid or expired OTP code' },
         { status: 400 }
       );
     }
+
+    const result = await response.json();
 
     return NextResponse.json(
       {
         message: 'OTP verified successfully',
         recipient,
         verified: true,
-        token: result.token, // Short-lived verification token
+        token: result.token, // Short-lived verification token from external service
       },
       {
         status: 200,

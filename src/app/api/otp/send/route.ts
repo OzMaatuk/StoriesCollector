@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { rateLimit } from '@/lib/rate-limit';
-import { OtpService } from '@/services/otp.service';
 
 const sendOtpSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
@@ -10,7 +9,7 @@ const sendOtpSchema = z.object({
   }),
 });
 
-const otpService = new OtpService();
+const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -45,7 +44,21 @@ export async function POST(request: NextRequest) {
       phoneSchema.parse(recipient);
     }
 
-    const result = await otpService.sendOtp(recipient, channel);
+    // Call external OTP service
+    const response = await fetch(`${OTP_SERVICE_URL}/otp/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ recipient, channel }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'External OTP service failed');
+    }
+
+    const result = await response.json();
 
     return NextResponse.json(
       {

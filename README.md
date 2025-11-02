@@ -142,13 +142,10 @@ The application uses JWT (JSON Web Tokens) for secure verification tokens and OT
    - Use different secrets for development and production
    - Rotate your JWT secret periodically in production
 
-2. Configure OTP settings:
+2. Configure external OTP service:
    ```bash
-   # Optional - defaults to 300 (5 minutes)
-   OTP_CODE_TTL_SECONDS=300
-   
-   # Optional - defaults to 5
-   OTP_MAX_ATTEMPTS=5
+   # External OTP Service URL
+   OTP_SERVICE_URL=http://localhost:3000
    ```
 
 3. Generate a secure JWT secret:
@@ -166,85 +163,40 @@ The application uses JWT (JSON Web Tokens) for secure verification tokens and OT
    - Implement token refresh mechanism for longer sessions
    - Monitor for suspicious activity (multiple failed attempts)
 
-### 📨 Notification Providers
+### 📨 External OTP Service
 
-The application supports sending OTP codes via email (SMTP) and SMS (TextBee). Here's how to configure the providers:
+The application uses an external OTP service for sending verification codes via email and SMS. Configure the service URL:
 
-#### 📧 Email with Zoho SMTP
-
-1. Install the required package:
-   ```bash
-   npm install nodemailer
-   ```
-
-2. Configure Zoho SMTP in your environment file:
-   ```bash
-   # Required for SMTP
-   SMTP_HOST=smtp.zoho.com
-   SMTP_PORT=465  # Use 465 for SSL or 587 for TLS
-   SMTP_SECURE=true  # true for 465, false for 587
-   SMTP_USER=your@yourdomain.com
-   SMTP_PASS=your-smtp-password
-   EMAIL_FROM="Stories Collector <no-reply@yourdomain.com>"
-   ```
-
-   ⚠️ **Important Zoho SMTP Notes**:
-   - If your Zoho account has 2FA enabled, generate an app-specific password:
-     1. Log in to Zoho Mail
-     2. Go to Settings → Mail → Security → Generate App Password
-     3. Use this password in `SMTP_PASS`
-   - The sending address (`SMTP_USER` and `EMAIL_FROM`) must be authorized in your Zoho account
-   - Test the configuration in development before deploying
-
-#### 📱 SMS with TextBee
-
-1. Install the required package:
-   ```bash
-   npm install axios
-   ```
-
-2. Configure TextBee in your environment file:
-   ```bash
-   # Required for SMS
-   TEXTBEE_BASE_URL=https://api.textbee.example
-   TEXTBEE_DEVICE_ID=your-device-id
-   TEXTBEE_API_KEY=your-api-key
-   ```
-
-   ⚠️ **Important TextBee Notes**:
-   - Sign up for a TextBee account and get your API credentials
-   - The API key should be kept secret and never committed to version control
-   - Test with a small number of recipients first
-   - Monitor your TextBee dashboard for delivery status
-
-#### 🔄 Provider Fallbacks
-
-The OTP service is designed to gracefully handle missing configurations:
-
-- If email/SMS provider configuration is missing, the service falls back to console logging (safe for development)
-- Provider packages (`nodemailer`/`axios`) are optional at runtime - they're only loaded when the corresponding provider is configured
-- All provider errors are caught and logged, preventing OTP flow disruption
-
-#### 🧪 Testing Providers
-
-Run the provider-specific tests:
 ```bash
-# Run just the provider tests
-npm test tests/unit/otp.providers.test.ts
-
-# Or run all tests (includes providers)
-npm test
+# External OTP Service Configuration
+OTP_SERVICE_URL=http://localhost:3000
 ```
 
-The test suite includes mocked providers to verify:
-- Email sending via SMTP when configured
-- SMS sending via TextBee when configured
-- Fallback to console.log when providers aren't configured
-- Error handling for all providers
+#### 🔄 OTP Service Integration
+
+The application makes HTTP requests to the external OTP service:
+
+**Send OTP:**
+```bash
+curl -X POST "$OTP_SERVICE_URL/otp/send" \
+  -H "Content-Type: application/json" \
+  -d '{"recipient": "+15555550123", "channel": "sms"}'
+```
+
+**Verify OTP:**
+```bash
+curl -X POST "$OTP_SERVICE_URL/otp/verify" \
+  -H "Content-Type: application/json" \
+  -d '{"recipient": "+15555550123", "code": "123456"}'
+```
+
+#### 🧪 Development Mode
+
+For development without an external OTP service, the service should log OTP codes to console when provider keys aren't configured.
 
 ### ⚡ Quick dev & test (JWT / OTP)
 
-You can run the app and tests in development without setting a production-grade `JWT_SECRET` because the `OtpService` falls back to a default secret for convenience. However, this is insecure for anything beyond local experimentation.
+You can run the app and tests in development without setting a production-grade `JWT_SECRET` because JWT verification falls back to a default secret for convenience. However, this is insecure for anything beyond local experimentation.
 
 Recommended quick commands (zsh):
 
@@ -300,10 +252,10 @@ Currently using `NoOpVerificationProvider` as a placeholder. Future implementati
   - **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated stories
   - **`GET /api/stories/:id`** - Get story by ID
 
-#### Phone Verification (Stubbed)
+#### OTP Verification
 
-  - **`POST /api/phone/request`** - Request OTP (returns 501)
-  - **`POST /api/phone/verify`** - Verify OTP (returns 501)
+  - **`POST /api/otp/send`** - Send OTP code via email or SMS
+  - **`POST /api/otp/verify`** - Verify OTP code and get JWT token
 
 ### 🚀 Deployment
 

@@ -5,17 +5,15 @@ import { Story, PaginatedResponse } from '@/types';
 import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
-import { OtpService } from './otp.service';
+import { verifyToken } from '@/lib/jwt';
 
 type CreateStoryInput = Record<string, string | undefined>;
 
 export class StoryService {
   private repository: StoryRepository;
-  private otpService: OtpService;
 
   constructor() {
     this.repository = new StoryRepository();
-    this.otpService = new OtpService();
   }
 
   async createStory(input: CreateStoryInput): Promise<Story> {
@@ -27,7 +25,7 @@ export class StoryService {
 
       // Verify OTP token if provided
       if (validated.verificationToken) {
-        const tokenData = this.otpService.verifyToken(validated.verificationToken);
+        const tokenData = verifyToken(validated.verificationToken);
         if (!tokenData) {
           throw new Error('Invalid or expired verification token');
         }
