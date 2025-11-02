@@ -314,7 +314,6 @@ Required for production:
 ```bash
 DATABASE_URL=your_postgres_connection_string
 NEXT_PUBLIC_APP_URL=[https://your-domain.com](https://your-domain.com)
-NODE_ENV=production
 ```
 
 #### Deploy to Netlify
