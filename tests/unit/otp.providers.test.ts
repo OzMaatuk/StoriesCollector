@@ -3,7 +3,8 @@ import { OtpService } from '@/services/otp.service';
 
 describe('OtpService', () => {
   let otpService: OtpService;
-  let mockSend: jest.Mock;
+  // mocked send function: returns a Promise<void>
+  let mockSend: ReturnType<typeof jest.fn>;
 
   const testConfig = {
     ttl: 300,
@@ -13,7 +14,7 @@ describe('OtpService', () => {
 
   beforeEach(() => {
     // Create a fresh mock for each test
-    mockSend = jest.fn().mockResolvedValue(undefined);
+    mockSend = jest.fn(() => Promise.resolve());
 
     // Create OtpService instance
     otpService = new OtpService(testConfig);
@@ -24,13 +25,14 @@ describe('OtpService', () => {
     // Mock the getProvider method to return a provider with our mocked send function
     jest
       .spyOn(notificationService, 'getProvider')
-      .mockImplementation((channel: 'email' | 'sms') => {
+      // cast to any because jest's mockImplementation typing expects (...args: unknown[]) => any
+      .mockImplementation(((channel: 'email' | 'sms') => {
         return {
           type: channel,
           isConfigured: () => true,
           send: mockSend,
         };
-      });
+      }) as any);
   });
 
   afterEach(() => {

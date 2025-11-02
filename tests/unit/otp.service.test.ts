@@ -4,7 +4,8 @@ import { OtpService } from '@/services/otp.service';
 import { ConsoleProvider } from '@/services/notifications/providers/console.provider';
 
 // --- 2. Create mock send function FIRST ---
-const mockSend = jest.fn().mockResolvedValue(undefined);
+// Use a resolved Promise-returning fn to avoid narrow 'undefined' generic inference
+const mockSend = jest.fn(() => Promise.resolve());
 
 // --- 3. Mock the OTHER providers to be unconfigured ---
 jest.mock('@/services/notifications/providers/smtp.provider', () => ({

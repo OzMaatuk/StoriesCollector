@@ -20,6 +20,8 @@ A secure, multilingual, and scalable web application for collecting and displayi
 - **CI/CD**: GitHub Actions
 - **Deployment**: Netlify (Frontend/API), Railway (Database)
 
+# TODO: update using new hosting services for dbs.
+
 ## 🚀 Getting Started
 
 ### Prerequisites

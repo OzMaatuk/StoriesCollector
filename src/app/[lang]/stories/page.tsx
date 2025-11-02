@@ -1,6 +1,6 @@
 // src/app/[lang]/stories/page.tsx
 
-import StoryList from '@/components/StoryList';
+import ClientStoryList from '@/components/ClientStoryList';
 import { StoryService } from '@/services/story.service';
 import { Language } from '@/types';
 import en from '@/locales/en.json';
@@ -27,7 +27,7 @@ export default async function StoriesPage({ params }: PageProps) {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{translations.stories.title}</h1>
       </div>
-      <StoryList initialData={initialData} lang={params.lang} translations={translations} />
+      <ClientStoryList initialData={initialData} lang={params.lang} translations={translations} />
     </div>
   );
 }

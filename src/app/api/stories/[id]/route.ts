@@ -1,14 +1,12 @@
-import { NextResponse } from 'next/server'; // NextRequest
+import { NextRequest, NextResponse } from 'next/server';
 import { StoryService } from '@/services/story.service';
 
 const storyService = new StoryService();
 
-export async function GET(
-  // request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const story = await storyService.getStoryById(params.id);
+    const resolvedParams = await params;
+    const story = await storyService.getStoryById(resolvedParams.id);
 
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });

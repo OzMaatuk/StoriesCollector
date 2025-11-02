@@ -1,6 +1,6 @@
 // src/app/[lang]/submit/page.tsx
 
-import StoryForm from '@/components/StoryForm';
+import ClientStoryForm from '@/components/ClientStoryForm';
 import { Language } from '@/types';
 import en from '@/locales/en.json';
 import he from '@/locales/he.json';
@@ -20,7 +20,7 @@ export default function SubmitPage({ params }: PageProps) {
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{translations.nav.submit}</h1>
       </div>
-      <StoryForm translations={translations} lang={params.lang} />
+      <ClientStoryForm translations={translations} lang={params.lang} />
     </div>
   );
 }
