@@ -43,9 +43,11 @@ A secure, multilingual, and scalable web application for collecting and displayi
     ```
 3.  Set up environment variables:
     ```bash
+    # Create environment files from example
     cp .env.example .env
+    cp .env.example .env.test
     ```
-    Edit `.env` with your database credentials and other configuration.
+    Edit `.env` for development and `.env.test` for testing with your configuration.
 
 4.  Run database migrations:
     ```bash
@@ -77,23 +79,43 @@ This will start:
 
 ### 🧪 Testing
 
-Run all tests:
+The project uses a multi-tier testing strategy:
 
+**Local Development (Full Testing):**
 ```bash
+# Run all unit and integration tests
 npm test
+
+# Run all tests including OTP E2E (requires external OTP service)
+npm run test:all
+
+# Run only E2E tests (excluding OTP integration)
+npm run test:e2e:no-otp
+
+# Run only OTP E2E tests (requires external service)
+npm run test:e2e:otp-only
 ```
 
-Run E2E tests:
-
+**CI/CD (No External Dependencies):**
 ```bash
-npm run test:e2e
+# What CI runs - self-contained tests only
+npm run test:ci
 ```
 
-Run tests in watch mode:
-
+**Environment Setup:**
 ```bash
-npm run test:watch
+# Create local environment files from example
+cp .env.example .env
+cp .env.example .env.test
+
+# Edit files for your local configuration
+# .env - for development (npm run dev)
+# .env.test - for testing (npm test)
 ```
+
+**For OTP E2E tests:** Ensure external OTP service is running and configured in `.env.test`
+
+See [Testing Guide](docs/testing.md) for detailed information.
 
 ### 📁 Project Structure
 
