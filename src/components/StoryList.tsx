@@ -2,13 +2,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import StoryCard from './StoryCard';
 import Pagination from './Pagination';
 import { Story, PaginatedResponse, Language } from '@/types';
 import { languages, languageNames } from '@/lib/i18n';
 import { Translations } from '@/types/translations';
-import { useCallback } from 'react';
 
 interface StoryListProps {
   initialData: PaginatedResponse<Story>;
@@ -17,6 +16,7 @@ interface StoryListProps {
 }
 
 export default function StoryList({ initialData, lang, translations }: StoryListProps) {
+  const isMounted = useRef(false);
   const [data, setData] = useState<PaginatedResponse<Story>>(initialData);
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
@@ -24,41 +24,64 @@ export default function StoryList({ initialData, lang, translations }: StoryList
 
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // window is only available in the browser; guard to avoid errors during SSR/build
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, []);
 
   useEffect(() => {
-    fetchStories(currentPage, selectedLanguage);
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted.current) return;
+    const controller = new AbortController();
+    const fetchStories = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          pageSize: '10',
+        });
+
+        if (selectedLanguage) {
+          params.append('language', selectedLanguage);
+        }
+
+        const response = await fetch(`/api/stories?${params}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch stories');
+
+        const result: PaginatedResponse<Story> = await response.json();
+        if (isMounted.current) {
+          setData(result);
+        }
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        console.error('Error fetching stories:', error);
+      } finally {
+        if (isMounted.current) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchStories();
+    return () => controller.abort();
   }, [currentPage, selectedLanguage]);
 
-  const fetchStories = async (page: number, filterLang: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: '10',
-      });
-
-      if (filterLang) {
-        params.append('language', filterLang);
-      }
-
-      const response = await fetch(`/api/stories?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch stories');
-
-      const result: PaginatedResponse<Story> = await response.json();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching stories:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLanguageFilter = (lang: string) => {
+  const handleLanguageFilter = useCallback((lang: string) => {
     setSelectedLanguage(lang);
     setCurrentPage(1);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">

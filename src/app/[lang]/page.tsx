@@ -6,6 +6,12 @@ interface PageProps {
   params: { lang: Language };
 }
 
+// Opt out of all static optimization to prevent client hooks during prerender
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
+// export const runtime = 'edge';
+
 export default function HomePage({ params }: PageProps) {
   if (!params?.lang) {
     console.error('Language parameter is missing');

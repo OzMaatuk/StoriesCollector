@@ -1,20 +1,29 @@
 import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { default as dynamicImport } from 'next/dynamic';
 import { languages, isRTL } from '@/lib/i18n';
 import { Language } from '@/types';
 import { getTranslations } from '@/lib/translations';
-// Providers are now provided at the app root via ClientProviders (app/ClientProviders.tsx)
 import '../globals.css';
+
+// Load client components dynamically with no SSR
+const LanguageSwitcher = dynamicImport(() => import('@/components/LanguageSwitcher'), {
+  ssr: false,
+  loading: () => <div style={{ width: '120px' }} />,
+});
 
 interface LayoutProps {
   children: ReactNode;
   params: { lang: Language };
 }
 
-export async function generateStaticParams() {
-  return languages.map((lang) => ({ lang }));
-}
+// export async function generateStaticParams() {
+//   return languages.map((lang) => ({ lang }));
+// }
+
+// export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
 
 export default function LocaleLayout({ children, params }: LayoutProps) {
   if (!languages.includes(params.lang)) {

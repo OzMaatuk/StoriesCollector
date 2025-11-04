@@ -2,7 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  transpilePackages: ['jsonwebtoken'],
+  // Disable Pages Router error page fallbacks
+  useFileSystemPublicRoutes: true,
+  // Disable static optimization to prevent client hooks during prerender
+  experimental: {
+    optimizeCss: false,
+  },
+  // Disable static generation for all routes
+  staticPageGenerationTimeout: 0,
   async headers() {
     return [
       {

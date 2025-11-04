@@ -1,7 +1,15 @@
 // src/types/translations.d.ts
 export interface Translations {
   nav: { submit: string; stories: string };
-  common: { back: string; loading: string; submit: string };
+  common: {
+    back: string;
+    loading: string;
+    submit: string;
+    cancel: string;
+    error: string;
+    success: string;
+    loadMore: string;
+  };
   stories: {
     title: string;
     verifiedPhone: string;

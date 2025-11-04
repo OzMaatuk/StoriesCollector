@@ -8,7 +8,8 @@
     "next": "Suivant",
     "loading": "Chargement...",
     "error": "Erreur",
-    "success": "Succès"
+    "success": "Succès",
+    "loadMore": "Charger plus"
   },
   "nav": {
     "home": "Accueil",

@@ -7,6 +7,13 @@ import he from '@/locales/he.json';
 import fr from '@/locales/fr.json';
 import { Translations } from '@/types/translations';
 
+// Opt out of all static optimization to prevent client hooks during prerender
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
+// export const runtime = 'edge';
+export const dynamicParams = true;
+
 interface PageProps {
   params: { lang: Language };
 }

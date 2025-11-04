@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   },
 };
 
+// Opt out of static rendering for the entire app to prevent client
+// hooks being called during prerender
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+export const revalidate = 0;
+
 interface RootLayoutProps {
   children: ReactNode;
 }
@@ -21,10 +27,13 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <head />
       <body className="min-h-screen bg-gray-50">
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
+}
+
+export function generateViewport() {
+  return { width: 'device-width', initialScale: 1 };
 }

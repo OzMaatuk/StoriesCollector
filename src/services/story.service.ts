@@ -25,7 +25,7 @@ export class StoryService {
 
       // Verify OTP token if provided
       if (validated.verificationToken) {
-        const tokenData = verifyToken(validated.verificationToken);
+        const tokenData = await verifyToken(validated.verificationToken);
         if (!tokenData) {
           throw new Error('Invalid or expired verification token');
         }

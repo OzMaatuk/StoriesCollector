@@ -1,4 +1,4 @@
-    {
+{
   "common": {
     "appName": "Stories Collector",
     "language": "Language",
@@ -8,7 +8,8 @@
     "next": "Next",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "loadMore": "Load more"
   },
   "nav": {
     "home": "Home",
