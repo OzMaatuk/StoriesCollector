@@ -16,7 +16,6 @@ services:
       DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
       REDIS_URL: redis://redis:6379
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NODE_ENV: development
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
     depends_on:

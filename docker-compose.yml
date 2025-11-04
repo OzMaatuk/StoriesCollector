@@ -8,9 +8,8 @@ services:
     container_name: stories_collector_app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
-      NODE_ENV: production
       DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
       REDIS_URL: redis://redis:6379
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
@@ -22,7 +21,13 @@ services:
     networks:
       - stories_network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -36,17 +41,17 @@ services:
       POSTGRES_USER: stories_user
       POSTGRES_PASSWORD: stories_pass
       POSTGRES_DB: stories_collector
-      POSTGRES_INITDB_ARGS: "-E UTF8"
+      POSTGRES_INITDB_ARGS: '-E UTF8'
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5432:5432"
+      - '5432:5432'
     networks:
       - stories_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stories_user -d stories_collector"]
+      test: ['CMD-SHELL', 'pg_isready -U stories_user -d stories_collector']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -60,11 +65,11 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - '6379:6379'
     networks:
       - stories_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,7 +88,7 @@ services:
       - ./package.json:/app/package.json:ro
       - ./package-lock.json:/app/package-lock.json:ro
     ports:
-      - "5555:5555"
+      - '5555:5555'
     depends_on:
       - postgres
     networks:
