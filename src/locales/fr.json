@@ -46,7 +46,9 @@
     "content": "Votre Histoire",
     "contentPlaceholder": "Partagez votre histoire ici...",
     "submitSuccess": "Merci! Votre histoire a été soumise avec succès.",
-    "submitError": "Une erreur s'est produite. Veuillez réessayer."
+    "submitError": "Une erreur s'est produite. Veuillez réessayer.",
+    "contactInfo": "Informations de Contact",
+    "contactInfoHint": "Veuillez fournir une adresse email ou un numéro de téléphone pour vérification. L'email est préféré."
   },
   "stories": {
     "title": "Toutes les Histoires",
@@ -54,7 +56,8 @@
     "noStories": "Aucune histoire trouvée",
     "loadMore": "Charger Plus",
     "verifiedPhone": "Vérifié",
-    "unverifiedPhone": "Non vérifié"
+    "unverifiedPhone": "Non vérifié",
+    "readMore": "Lire la Suite"
   },
   "validation": {
     "required": "Ce champ est obligatoire",

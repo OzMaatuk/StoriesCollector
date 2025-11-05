@@ -46,7 +46,9 @@
     "content": "Your Story",
     "contentPlaceholder": "Share your story here...",
     "submitSuccess": "Thank you! Your story has been submitted successfully.",
-    "submitError": "Something went wrong. Please try again."
+    "submitError": "Something went wrong. Please try again.",
+    "contactInfo": "Contact Information",
+    "contactInfoHint": "Please provide either an email address or phone number for verification. Email is preferred."
   },
   "stories": {
     "title": "All Stories",
@@ -54,7 +56,8 @@
     "noStories": "No stories found",
     "loadMore": "Load More",
     "verifiedPhone": "Verified",
-    "unverifiedPhone": "Unverified"
+    "unverifiedPhone": "Unverified",
+    "readMore": "Read More"
   },
   "validation": {
     "required": "This field is required",

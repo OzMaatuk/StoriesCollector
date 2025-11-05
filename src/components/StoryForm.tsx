@@ -362,11 +362,10 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
         {/* Contact Information Section */}
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-lg font-medium text-blue-900 mb-3">Contact Information</h3>
-          <p className="text-sm text-blue-700 mb-4">
-            Please provide either an email address or phone number for verification. Email is
-            preferred.
-          </p>
+          <h3 className="text-lg font-medium text-blue-900 mb-3">
+            {translations.form.contactInfo}
+          </h3>
+          <p className="text-sm text-blue-700 mb-4">{translations.form.contactInfoHint}</p>
 
           {/* Email - Preferred */}
           <div className="mb-4">

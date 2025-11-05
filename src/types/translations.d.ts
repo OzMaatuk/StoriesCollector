@@ -15,8 +15,11 @@ export interface Translations {
     verifiedPhone: string;
     allLanguages: string;
     noStories: string;
+    readMore: string;
   };
   form: {
+    contactInfo: ReactNode;
+    contactInfoHint: ReactNode;
     title: string;
     submitSuccess: string;
     submitError: string;

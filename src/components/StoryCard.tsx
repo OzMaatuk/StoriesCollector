@@ -70,7 +70,7 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
         <div className="flex items-center justify-between text-sm text-gray-500 mt-auto pt-3 border-t border-gray-100">
           <span className="text-gray-500">{formatDate(story.createdAt)}</span>
           <span className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-            Read more →
+            {translations.readMore} →
           </span>
         </div>
       </div>

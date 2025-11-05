@@ -46,7 +46,9 @@
     "content": "הסיפור שלך",
     "contentPlaceholder": "שתף את הסיפור שלך כאן...",
     "submitSuccess": "תודה! הסיפור שלך נשלח בהצלחה.",
-    "submitError": "משהו השתבש. אנא נסה שוב."
+    "submitError": "משהו השתבש. אנא נסה שוב.",
+    "contactInfo": "פרטי יצירת קשר",
+    "contactInfoHint": "אנא ספק כתובת אימייל או מספר טלפון לאימות. עדיף אימייל."
   },
   "stories": {
     "title": "כל הסיפורים",
@@ -54,7 +56,8 @@
     "noStories": "לא נמצאו סיפורים",
     "loadMore": "טען עוד",
     "verifiedPhone": "מאומת",
-    "unverifiedPhone": "לא מאומת"
+    "unverifiedPhone": "לא מאומת",
+    "readMore": "קרא עוד"
   },
   "validation": {
     "required": "שדה זה נדרש",
