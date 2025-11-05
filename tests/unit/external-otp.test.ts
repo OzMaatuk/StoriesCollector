@@ -1,28 +1,61 @@
-import { jest } from '@jest/globals';
-import { verifyToken } from '@/lib/jwt';
+// tests/unit/external-otp.test.ts
 
-// Mock fetch globally with proper typing
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+import { webcrypto } from 'crypto';
+
+// Set up global crypto BEFORE importing jwt module
+global.crypto = webcrypto as Crypto;
+
+// NOW import after setting up global crypto
+import { verifyToken } from '../../src/lib/jwt';
+
+// Helper function to create a test JWT token
+function base64UrlEncode(input: string | ArrayBuffer): string {
+  let buffer: Buffer;
+
+  if (typeof input === 'string') {
+    buffer = Buffer.from(input);
+  } else {
+    buffer = Buffer.from(input);
+  }
+
+  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function createTestToken(payload: any, secret: string): Promise<string> {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const headerB64 = base64UrlEncode(JSON.stringify(header));
+  const payloadB64 = base64UrlEncode(JSON.stringify(payload));
+
+  const data = `${headerB64}.${payloadB64}`;
+  const dataBuffer = Buffer.from(data, 'utf-8');
+  const secretBuffer = Buffer.from(secret, 'utf-8');
+
+  const key = await webcrypto.subtle.importKey(
+    'raw',
+    secretBuffer,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await webcrypto.subtle.sign('HMAC', key, dataBuffer);
+
+  const signatureB64 = base64UrlEncode(signature);
+
+  return `${data}.${signatureB64}`;
+}
 
 describe('External OTP Service Integration', () => {
-  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('JWT Token Verification', () => {
-    it('should verify valid JWT tokens with environment secret', () => {
-      // This tests the JWT utility that replaces the old OtpService
-      const jwt = require('jsonwebtoken');
+    it('should verify valid JWT tokens with environment secret', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
-      
-      const token = jwt.sign(
-        { recipient: '+1234567890', channel: 'sms', verified: true },
-        secret
-      );
+      const payload = {
+        recipient: '+1234567890',
+        channel: 'sms',
+      };
 
-      const result = verifyToken(token);
+      const token = await createTestToken(payload, secret);
+      const result = await verifyToken(token);
 
       expect(result).toEqual({
         recipient: '+1234567890',
@@ -30,85 +63,29 @@ describe('External OTP Service Integration', () => {
       });
     });
 
-    it('should return null for invalid tokens', () => {
-      const result = verifyToken('invalid-token');
+    it('should return null for invalid tokens', async () => {
+      const result = await verifyToken('invalid-token');
       expect(result).toBeNull();
     });
-  });
 
-  describe('External OTP Service Configuration', () => {
-    it('should use correct OTP service URL from environment', () => {
-      const originalUrl = process.env.OTP_SERVICE_URL;
-      process.env.OTP_SERVICE_URL = 'https://external-otp.example.com';
+    it('should return null for tokens with invalid signature', async () => {
+      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      const payload = {
+        recipient: '+1234567890',
+        channel: 'sms',
+      };
 
-      // Test that the environment variable is properly configured
-      expect(process.env.OTP_SERVICE_URL).toBe('https://external-otp.example.com');
+      const token = await createTestToken(payload, secret);
+      // Tamper with the token
+      const tamperedToken = token.slice(0, -5) + 'xxxxx';
+      const result = await verifyToken(tamperedToken);
 
-      // Restore original env
-      process.env.OTP_SERVICE_URL = originalUrl;
+      expect(result).toBeNull();
     });
 
-    it('should fallback to localhost when OTP_SERVICE_URL is not set', () => {
-      const originalUrl = process.env.OTP_SERVICE_URL;
-      delete process.env.OTP_SERVICE_URL;
-
-      const defaultUrl = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
-      expect(defaultUrl).toBe('http://localhost:3000');
-
-      // Restore original env
-      process.env.OTP_SERVICE_URL = originalUrl;
-    });
-  });
-
-  describe('Fetch Integration', () => {
-    it('should make correct fetch calls for OTP send', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ expiresIn: 300 }),
-      } as Response);
-
-      // Simulate the fetch call that would be made by the API route
-      const response = await fetch('http://localhost:3000/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient: '+1234567890', channel: 'sms' }),
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/otp/send',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ recipient: '+1234567890', channel: 'sms' }),
-        }
-      );
-
-      expect(response.ok).toBe(true);
-    });
-
-    it('should make correct fetch calls for OTP verify', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ token: 'jwt-token-here' }),
-      } as Response);
-
-      // Simulate the fetch call that would be made by the API route
-      const response = await fetch('http://localhost:3000/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipient: '+1234567890', code: '123456' }),
-      });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3000/otp/verify',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ recipient: '+1234567890', code: '123456' }),
-        }
-      );
-
-      expect(response.ok).toBe(true);
+    it('should return null for malformed tokens', async () => {
+      const result = await verifyToken('not.a.valid.jwt');
+      expect(result).toBeNull();
     });
   });
 });

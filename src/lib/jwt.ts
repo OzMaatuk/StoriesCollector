@@ -1,4 +1,9 @@
+import { webcrypto } from 'crypto';
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// Use webcrypto directly to avoid global crypto issues in Node.js
+const cryptoSubtle = webcrypto.subtle;
 
 function base64UrlDecode(str: string): ArrayBuffer {
   str = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -9,16 +14,21 @@ function base64UrlDecode(str: string): ArrayBuffer {
 
 async function verifySignature(token: string, secret: string): Promise<boolean> {
   const [headerB64, payloadB64, signatureB64] = token.split('.');
-  const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+  if (!headerB64 || !payloadB64 || !signatureB64) return false;
+
+  const data = Buffer.from(`${headerB64}.${payloadB64}`, 'utf-8');
   const signature = base64UrlDecode(signatureB64);
-  const key = await crypto.subtle.importKey(
+  const secretBuffer = Buffer.from(secret, 'utf-8');
+
+  const key = await cryptoSubtle.importKey(
     'raw',
-    new TextEncoder().encode(secret),
+    secretBuffer,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['verify']
   );
-  return crypto.subtle.verify('HMAC', key, signature, data);
+
+  return cryptoSubtle.verify('HMAC', key, signature, data);
 }
 
 export async function verifyToken(
@@ -26,16 +36,21 @@ export async function verifyToken(
 ): Promise<{ recipient: string; channel: string } | null> {
   try {
     const [, payloadB64] = token.split('.');
+    if (!payloadB64) return null;
+
     const isValid = await verifySignature(token, JWT_SECRET);
     if (!isValid) return null;
 
-    const decodedPayload = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
+    // Decode base64url properly
+    const payloadStr = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const decodedPayload = JSON.parse(Buffer.from(payloadStr, 'base64').toString());
 
     return {
       recipient: decodedPayload.recipient,
       channel: decodedPayload.channel,
     };
-  } catch {
+  } catch (error) {
+    console.error('Token verification error:', error);
     return null;
   }
 }
