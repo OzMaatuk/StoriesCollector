@@ -1,122 +1,105 @@
 // src/components/StoryList.tsx
-
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import StoryCard from './StoryCard';
-import Pagination from './Pagination';
 import { Story, PaginatedResponse, Language } from '@/types';
-import { languages, languageNames } from '@/lib/i18n';
 import { Translations } from '@/types/translations';
 
 interface StoryListProps {
-  initialData: PaginatedResponse<Story>;
   lang: Language;
   translations: Translations;
 }
 
-export default function StoryList({ initialData, lang, translations }: StoryListProps) {
-  const isMounted = useRef(false);
-  const [data, setData] = useState<PaginatedResponse<Story>>(initialData);
-  const [loading, setLoading] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+export default function StoryList({ lang, translations }: StoryListProps) {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedLanguage] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-    // window is only available in the browser; guard to avoid errors during SSR/build
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, []);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted.current) return;
-    const controller = new AbortController();
-    const fetchStories = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          page: String(currentPage),
-          pageSize: '10',
-        });
-
-        if (selectedLanguage) {
-          params.append('language', selectedLanguage);
-        }
-
-        const response = await fetch(`/api/stories?${params}`, {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch stories');
-
-        const result: PaginatedResponse<Story> = await response.json();
-        if (isMounted.current) {
-          setData(result);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        console.error('Error fetching stories:', error);
-      } finally {
-        if (isMounted.current) {
-          setLoading(false);
-        }
+  const fetchStories = async (page: number, language: string, append: boolean = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
       }
-    };
 
-    fetchStories();
-    return () => controller.abort();
-  }, [currentPage, selectedLanguage]);
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: '10',
+      });
 
-  const handleLanguageFilter = useCallback((lang: string) => {
-    setSelectedLanguage(lang);
-    setCurrentPage(1);
-  }, []);
+      if (language) {
+        params.append('language', language);
+      }
+
+      const response = await fetch(`/api/stories?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch stories');
+      }
+
+      const result: PaginatedResponse<Story> = await response.json();
+
+      if (append) {
+        setStories((prev) => [...prev, ...result.data]);
+      } else {
+        setStories(result.data);
+      }
+
+      setHasMore(result.pagination.hasMore);
+      setCurrentPage(page);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching stories:', err);
+      setError(translations.common.error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchStories(1, selectedLanguage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLanguage]);
+
+  const handleLoadMore = () => {
+    fetchStories(currentPage + 1, selectedLanguage, true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Language Filter */}
-      <div className="bg-white shadow-sm rounded-lg p-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {translations.stories.filterByLanguage}
-        </label>
-        <select
-          value={selectedLanguage}
-          onChange={(e) => handleLanguageFilter(e.target.value)}
-          className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        >
-          <option value="">{translations.stories.allLanguages}</option>
-          {languages.map((l) => (
-            <option key={l} value={l}>
-              {languageNames[l]}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Stories Grid */}
-      {loading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : data.data.length === 0 ? (
+      {stories.length === 0 ? (
         <div className="bg-white shadow-sm rounded-lg p-12 text-center">
           <p className="text-gray-600">{translations.stories.noStories}</p>
         </div>
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {data.data.map((story) => (
+            {stories.map((story) => (
               <StoryCard
                 key={story.id}
                 story={story}
@@ -126,13 +109,24 @@ export default function StoryList({ initialData, lang, translations }: StoryList
             ))}
           </div>
 
-          {/* Pagination */}
-          {data.pagination.totalPages > 1 && (
-            <Pagination
-              currentPage={data.pagination.page}
-              totalPages={data.pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="flex justify-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {loadingMore ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {translations.common.loading}
+                  </span>
+                ) : (
+                  translations.common.loadMore
+                )}
+              </button>
+            </div>
           )}
         </>
       )}
