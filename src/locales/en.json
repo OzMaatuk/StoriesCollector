@@ -50,7 +50,6 @@
   },
   "stories": {
     "title": "All Stories",
-    "filterByLanguage": "Filter by language",
     "allLanguages": "All Languages",
     "noStories": "No stories found",
     "loadMore": "Load More",

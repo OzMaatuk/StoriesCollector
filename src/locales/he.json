@@ -50,7 +50,6 @@
   },
   "stories": {
     "title": "כל הסיפורים",
-    "filterByLanguage": "סנן לפי שפה",
     "allLanguages": "כל השפות",
     "noStories": "לא נמצאו סיפורים",
     "loadMore": "טען עוד",

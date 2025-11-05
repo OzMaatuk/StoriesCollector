@@ -31,7 +31,7 @@ A simple, secure, and multilingual web application for collecting and displaying
 - `POST /api/phone/request` – Request OTP via TextBee  
 - `POST /api/phone/verify` – Verify OTP and issue short-lived server-side token or mark phone verified  
 - `POST /api/stories` – Submit story (phone must already be verified)  
-- `GET /api/stories` – List stories (pagination + language filter)  
+- `GET /api/stories` – List stories (load more)  
 - `GET /api/stories/:id` – Get story detail
 
 ## 🗃️ Database Schema (Prisma)

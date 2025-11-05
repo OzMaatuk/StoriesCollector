@@ -6,7 +6,7 @@ A secure, multilingual, and scalable web application for collecting and displayi
 
 - **Story Submission**: Complete form with validation for guest stories
 - **Multilingual Support**: English 🇬🇧, Hebrew 🇮🇱 (RTL), French 🇫🇷
-- **Stories Listing**: Paginated stories with language filtering
+- **Stories Listing**: dynamic loading list
 - **Phone Verification**: Architecture ready for OTP integration (deferred)
 - **Responsive Design**: Mobile-first, accessible UI
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection

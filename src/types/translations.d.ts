@@ -13,7 +13,6 @@ export interface Translations {
   stories: {
     title: string;
     verifiedPhone: string;
-    filterByLanguage: string;
     allLanguages: string;
     noStories: string;
   };

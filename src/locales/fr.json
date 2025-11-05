@@ -50,7 +50,6 @@
   },
   "stories": {
     "title": "Toutes les Histoires",
-    "filterByLanguage": "Filtrer par langue",
     "allLanguages": "Toutes les Langues",
     "noStories": "Aucune histoire trouvée",
     "loadMore": "Charger Plus",
