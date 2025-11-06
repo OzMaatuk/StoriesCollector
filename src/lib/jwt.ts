@@ -1,10 +1,7 @@
 import { webcrypto } from 'crypto';
 
+// Read at module scope but do not throw during build; validate at use-time
 const JWT_SECRET = process.env.JWT_SECRET;
-
-if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
-  throw new Error('JWT_SECRET must be set in production');
-}
 
 // Use webcrypto directly to avoid global crypto issues in Node.js
 const cryptoSubtle = webcrypto.subtle;
@@ -40,6 +37,11 @@ export async function verifyToken(
   token: string
 ): Promise<{ recipient: string; channel: string } | null> {
   try {
+    if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
+      // In production without a secret, treat as invalid token
+      console.error('JWT verification attempted without JWT_SECRET set.');
+      return null;
+    }
     const [, payloadB64] = token.split('.');
     if (!payloadB64) return null;
 
