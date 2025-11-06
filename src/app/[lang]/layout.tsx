@@ -9,19 +9,20 @@ import LanguageSwitcherWrapper from '@/components/LanguageSwitcherWrapper';
 
 interface LayoutProps {
   children: ReactNode;
-  params: { lang: Language };
+  params: Promise<{ lang: string }>;
 }
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 export const revalidate = 0;
 
-export async function generateMetadata({ params }: { params: { lang: Language } }) {
-  if (!languages.includes(params.lang)) {
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
+  if (!languages.includes(lang as Language)) {
     return {};
   }
 
-  const translations = getTranslations(params.lang);
+  const translations = getTranslations(lang as Language);
 
   return {
     title: {
@@ -35,46 +36,48 @@ export async function generateMetadata({ params }: { params: { lang: Language } 
   };
 }
 
-export default function LocaleLayout({ children, params }: LayoutProps) {
-  if (!languages.includes(params.lang)) {
+export default async function LocaleLayout({ children, params }: LayoutProps) {
+  const { lang } = await params;
+  const typedLang = lang as Language;
+
+  if (!languages.includes(typedLang)) {
     notFound();
   }
 
-  const dir = isRTL(params.lang) ? 'rtl' : 'ltr';
-  const translations = getTranslations(params.lang);
+  const dir = isRTL(typedLang) ? 'rtl' : 'ltr';
+  const translations = getTranslations(typedLang);
 
   return (
-    <html lang={params.lang} dir={dir} className={dir === 'rtl' ? 'rtl' : 'ltr'}>
+    <html lang={lang} dir={dir} className={dir === 'rtl' ? 'rtl' : 'ltr'}>
       <body className="min-h-screen bg-gray-50" suppressHydrationWarning>
         <nav className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-8">
-                <a href={`/${params.lang}`} className="text-xl font-bold text-primary-600">
+                <a href={`/${lang}`} className="text-xl font-bold text-primary-600">
                   {translations.common.appName}
                 </a>
                 <div className="hidden md:flex space-x-6">
                   <a
-                    href={`/${params.lang}`}
+                    href={`/${lang}`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.home}
                   </a>
                   <a
-                    href={`/${params.lang}/stories`}
+                    href={`/${lang}/stories`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.stories}
                   </a>
                   <a
-                    href={`/${params.lang}/submit`}
+                    href={`/${lang}/submit`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.submit}
                   </a>
                 </div>
               </div>
-              {/* Use the client-only wrapper */}
               <LanguageSwitcherWrapper />
             </div>
           </div>
