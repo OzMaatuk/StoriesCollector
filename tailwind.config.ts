@@ -1,27 +1,29 @@
-import type { Config } from 'tailwindcss';
-import colors from 'tailwindcss/colors';
-
-const config: Config = {
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: ['./src/**/*.{js,ts,jsx,tsx}', './app/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {
-      colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-        },
-        gray: colors.gray,
-      },
-    },
+    extend: {},
   },
-  plugins: [],
+  plugins: [
+    function ({ addComponents }: { addComponents: (components: Record<string, any>) => void }) {
+      addComponents({
+        '.prose': {
+          color: '#374151', // text-gray-700
+          '& p': {
+            marginBottom: '1rem',
+          },
+          '& strong': {
+            fontWeight: '600',
+            color: '#1f2937', // text-gray-900
+          },
+          '& em': {
+            fontStyle: 'italic',
+          },
+          '& u': {
+            textDecoration: 'underline',
+          },
+        },
+      });
+    },
+  ],
 };
-
-export default config;

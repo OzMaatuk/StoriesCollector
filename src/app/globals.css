@@ -1,5 +1,3 @@
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 :root {
@@ -47,25 +45,4 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-/* Prose styles for story content */
-.prose {
-  @apply text-gray-800;
-}
-
-.prose p {
-  @apply mb-4;
-}
-
-.prose strong {
-  @apply font-semibold text-gray-900;
-}
-
-.prose em {
-  @apply italic;
-}
-
-.prose u {
-  @apply underline;
 }
