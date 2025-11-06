@@ -1,6 +1,10 @@
 import { webcrypto } from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
+  throw new Error('JWT_SECRET must be set in production');
+}
 
 // Use webcrypto directly to avoid global crypto issues in Node.js
 const cryptoSubtle = webcrypto.subtle;
@@ -12,7 +16,8 @@ function base64UrlDecode(str: string): ArrayBuffer {
   return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 }
 
-async function verifySignature(token: string, secret: string): Promise<boolean> {
+async function verifySignature(token: string, secret: string | undefined): Promise<boolean> {
+  if (!secret) return false;
   const [headerB64, payloadB64, signatureB64] = token.split('.');
   if (!headerB64 || !payloadB64 || !signatureB64) return false;
 

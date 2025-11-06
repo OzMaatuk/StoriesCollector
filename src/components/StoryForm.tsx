@@ -5,10 +5,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Translations } from '@/types/translations';
+import { Language } from '@/types';
 
 interface StoryFormProps {
   translations: Translations;
-  lang: string;
+  lang: Language;
 }
 
 interface FormData {

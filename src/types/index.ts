@@ -11,7 +11,6 @@ export interface Story {
   content: string;
   language: string;
   verifiedPhone: boolean;
-  unverifiedphone?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +26,7 @@ export interface StoryCreateInput {
   title?: string;
   content: string;
   language: string;
+  verifiedPhone?: boolean;
 }
 
 export interface PaginatedResponse<T> {

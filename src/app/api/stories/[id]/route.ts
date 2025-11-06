@@ -3,10 +3,9 @@ import { StoryService } from '@/services/story.service';
 
 const storyService = new StoryService();
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const resolvedParams = await params;
-    const story = await storyService.getStoryById(resolvedParams.id);
+    const story = await storyService.getStoryById(params.id);
 
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });

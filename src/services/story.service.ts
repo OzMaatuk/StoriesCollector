@@ -38,17 +38,15 @@ export class StoryService {
           throw new Error('Verification token does not match provided contact information');
         }
 
-        // Mark as verified
+        // Build payload without verificationToken
+        const { verificationToken: _omit, ...validatedWithoutToken } = validated;
+        void _omit;
         const storyData = {
-          ...validated,
+          ...validatedWithoutToken,
           verifiedPhone: tokenData.channel === 'sms',
-          verifiedEmail: tokenData.channel === 'email',
           phone: validated.phone ?? '',
           email: validated.email ?? '',
         };
-
-        // Remove the token before saving
-        delete storyData.verificationToken;
 
         return await this.repository.create(storyData);
       } else {

@@ -28,7 +28,7 @@ export function sanitizeStoryInput(
   return {
     name: sanitizeString(input.name),
     phone: sanitizeString(input.phone),
-    email: sanitizeString(input.email),
+    email: sanitizeString(input.email)?.toLowerCase(),
     city: sanitizeString(input.city),
     country: sanitizeString(input.country),
     tellerBackground: sanitizeString(input.tellerBackground),

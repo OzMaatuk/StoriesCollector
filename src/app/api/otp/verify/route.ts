@@ -10,6 +10,12 @@ const verifyOtpSchema = z.object({
 const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production' && !process.env.OTP_SERVICE_URL) {
+    return NextResponse.json(
+      { error: 'OTP service is not configured' },
+      { status: 500 }
+    );
+  }
   // Rate limiting
   const rateLimitResult = rateLimit(request);
   if (!rateLimitResult.success) {

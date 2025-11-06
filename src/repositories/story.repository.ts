@@ -16,7 +16,7 @@ export class StoryRepository {
         title: data.title || null,
         content: data.content,
         language: data.language,
-        verifiedPhone: false,
+        verifiedPhone: data.verifiedPhone ?? false,
       },
     });
     return story;
