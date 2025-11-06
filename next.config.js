@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify: true,
   // Disable Pages Router error page fallbacks
   useFileSystemPublicRoutes: true,
   // Disable static optimization to prevent client hooks during prerender
