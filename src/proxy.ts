@@ -1,11 +1,8 @@
-// src/middleware.ts
-
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+// src/proxy.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { languages } from '@/lib/i18n';
 import { Language } from './types';
 
-// Get the preferred language from headers
 function getPreferredLanguage(request: NextRequest): string {
   const acceptLanguage = request.headers.get('accept-language');
   if (!acceptLanguage) return 'en';
@@ -19,28 +16,22 @@ function getPreferredLanguage(request: NextRequest): string {
   return matchedLanguage ?? 'en';
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Exclude API routes and static files
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon.ico')
-  ) {
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
     return NextResponse.next();
   }
 
-  // Check if the pathname starts with a supported language
+  // Check if the pathname already has a supported language
   const pathnameHasLanguage = languages.some(
     (lang) => pathname.startsWith(`/${lang}/`) || pathname === `/${lang}`
   );
 
-  if (pathnameHasLanguage) {
-    return NextResponse.next();
-  }
+  if (pathnameHasLanguage) return NextResponse.next();
 
-  // Redirect to the preferred language
+  // Redirect to preferred language
   const language = getPreferredLanguage(request);
   return NextResponse.redirect(
     new URL(`/${language}${pathname === '/' ? '' : pathname}`, request.url)
