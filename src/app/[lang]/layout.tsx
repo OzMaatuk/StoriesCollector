@@ -1,16 +1,11 @@
 // src/app/[lang]/layout.tsx
 import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { default as dynamicImport } from 'next/dynamic';
 import { languages, isRTL } from '@/lib/i18n';
 import { Language } from '@/types';
 import { getTranslations } from '@/lib/translations';
 import '../globals.css';
-
-const LanguageSwitcher = dynamicImport(() => import('@/components/LanguageSwitcher'), {
-  ssr: false,
-  loading: () => <div style={{ width: '120px' }} />,
-});
+import LanguageSwitcherWrapper from '@/components/LanguageSwitcherWrapper';
 
 interface LayoutProps {
   children: ReactNode;
@@ -50,7 +45,7 @@ export default function LocaleLayout({ children, params }: LayoutProps) {
 
   return (
     <html lang={params.lang} dir={dir} className={dir === 'rtl' ? 'rtl' : 'ltr'}>
-      <body className="min-h-screen bg-gray-50" suppressHydrationWarning={true}>
+      <body className="min-h-screen bg-gray-50" suppressHydrationWarning>
         <nav className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
@@ -79,7 +74,8 @@ export default function LocaleLayout({ children, params }: LayoutProps) {
                   </a>
                 </div>
               </div>
-              <LanguageSwitcher />
+              {/* Use the client-only wrapper */}
+              <LanguageSwitcherWrapper />
             </div>
           </div>
         </nav>
