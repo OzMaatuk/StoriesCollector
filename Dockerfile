@@ -1,75 +1,42 @@
-# Production Dockerfile
+# syntax=docker/dockerfile:1
 ARG NODE_VERSION=20
 
-# ================================
-# Base stage
-# ================================
 FROM node:${NODE_VERSION}-alpine AS base
-WORKDIR /app
+RUN npm install -g npm@latest
+WORKDIR /workspace
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl ca-certificates libstdc++
-
-# ================================
-# Dependencies stage
-# ================================
-FROM base AS deps
+# Install OpenSSL (required for Prisma on Alpine)
+RUN apk add --no-cache openssl
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --ommit=dev
-RUN npm cache clean --force
+# Copy Prisma schema BEFORE running generate
+COPY prisma ./prisma
 
-# ================================
-# Build stage
-# ================================
-FROM base AS builder
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy all source files
-COPY . .
-
-# Generate Prisma Client
+# Manually run prisma generate (bypass postinstall issues)
 RUN npx prisma generate
 
-# Build Next.js application
-ENV NEXT_TELEMETRY_DISABLED=1
+# Install ONLY production dependencies
+# --omit=dev skips dev deps, but postinstall still runs
+# RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts
 
+WORKDIR /workspace/src/app
 RUN npm run build
 
-# ================================
-# Runner stage
-# ================================
-FROM base AS runner
-WORKDIR /app
+# Copy built app (from your build process)
+# Adjust path if your build output is different
+# COPY dist ./dist
 
-ENV NEXT_TELEMETRY_DISABLED=1
+# Optional: Copy other necessary files
+# COPY .env.production ./.env
 
-# The node user already exists in Alpine node images
+ENV NODE_ENV=production \
+    PRISMA_CLIENT_ENGINE_TYPE=binary
+
 USER node
 
-# Copy built application
-COPY --from=builder --chown=node:node /app/public ./public
-COPY --from=builder --chown=node:node /app/.next/standalone ./
-COPY --from=builder --chown=node:node /app/.next/static ./.next/static
-
-# Copy Prisma files for runtime
-COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=node:node /app/prisma ./prisma
-
-# Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start application
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["node", "dist/index.js"]
