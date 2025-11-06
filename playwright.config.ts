@@ -34,7 +34,9 @@ export default defineConfig({
     timeout: 120 * 1000,
     env: {
       // Ensure test environment variables are available
-      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://test_user:test_pass@localhost:5432/test_db?schema=public',
+      DATABASE_URL:
+        process.env.DATABASE_URL ||
+        'postgresql://test_user:test_pass@localhost:5432/test_db?schema=public',
       JWT_SECRET: process.env.JWT_SECRET || 'test-jwt-secret-32chars-for-testing-only',
       OTP_SERVICE_URL: process.env.OTP_SERVICE_URL || 'http://localhost:3000',
     },

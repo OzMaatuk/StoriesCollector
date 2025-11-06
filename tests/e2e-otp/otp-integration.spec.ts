@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('OTP Integration E2E', () => {
   const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
-  
+
   test.beforeEach(async () => {
     // Skip these tests in CI if OTP service is not available
     if (process.env.CI && !process.env.RUN_OTP_E2E) {
@@ -14,8 +14,8 @@ test.describe('OTP Integration E2E', () => {
     const response = await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
         recipient: '+15555550123',
-        channel: 'sms'
-      }
+        channel: 'sms',
+      },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -28,8 +28,8 @@ test.describe('OTP Integration E2E', () => {
     const response = await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
         recipient: 'test@example.com',
-        channel: 'email'
-      }
+        channel: 'email',
+      },
     });
 
     expect(response.ok()).toBeTruthy();
@@ -42,8 +42,8 @@ test.describe('OTP Integration E2E', () => {
     const response = await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
         recipient: 'invalid-phone',
-        channel: 'sms'
-      }
+        channel: 'sms',
+      },
     });
 
     expect(response.status()).toBe(400);
@@ -53,21 +53,21 @@ test.describe('OTP Integration E2E', () => {
     // This test assumes the external OTP service has a test mode
     // or you have a known test code for development
     const testCode = process.env.TEST_OTP_CODE || '123456';
-    
+
     // First send OTP
     await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
         recipient: '+15555550123',
-        channel: 'sms'
-      }
+        channel: 'sms',
+      },
     });
 
     // Then verify (this would work if the external service has a test mode)
     const verifyResponse = await request.post(`${OTP_SERVICE_URL}/otp/verify`, {
       data: {
         recipient: '+15555550123',
-        code: testCode
-      }
+        code: testCode,
+      },
     });
 
     // In a real external service, this might fail unless it's in test mode
