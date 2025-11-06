@@ -1,1 +1,12 @@
-text=auto
+# Set the default behavior for all text files
+* text=auto
+
+# Explicitly ensure all shell scripts use LF internally
+*.sh text eol=lf
+
+# Explicitly ensure binary files are treated as such (no line ending changes)
+*.png binary
+*.jpg binary
+*.bin binary
+*.exe binary
+# Add any other binary file types here
