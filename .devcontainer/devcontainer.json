@@ -25,18 +25,10 @@
         "editor.tabSize": 2,
         "typescript.tsdk": "node_modules/typescript/lib",
         "typescript.enablePromptUseWorkspaceTsdk": true,
-        "[typescript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[typescriptreact]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[javascript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
-        "[json]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode"
-        },
+        "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
         "files.exclude": {
           "**/.git": true,
           "**/.DS_Store": true,
@@ -54,29 +46,12 @@
   },
 
   "forwardPorts": [3000, 5432, 6379, 5555],
-
   "portsAttributes": {
-    "3000": {
-      "label": "Next.js App",
-      "onAutoForward": "notify",
-      "protocol": "http"
-    },
-    "5432": {
-      "label": "PostgreSQL",
-      "onAutoForward": "silent"
-    },
-    "6379": {
-      "label": "Redis",
-      "onAutoForward": "silent"
-    },
-    "5555": {
-      "label": "Prisma Studio",
-      "onAutoForward": "notify",
-      "protocol": "http"
-    }
+    "3000": { "label": "Next.js App", "onAutoForward": "notify", "protocol": "http" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
+    "6379": { "label": "Redis", "onAutoForward": "silent" },
+    "5555": { "label": "Prisma Studio", "onAutoForward": "notify", "protocol": "http" }
   },
 
-  "postCreateCommand": "npm install && npx prisma generate",
-
-  "remoteUser": "node"
+  "postCreateCommand": "sudo chown -R node:node /workspace && npm install && npx prisma generate"
 }
