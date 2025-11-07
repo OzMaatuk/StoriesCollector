@@ -9,7 +9,8 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "sendVerificationCode": "Send Verification Code"
   },
   "nav": {
     "home": "Home",

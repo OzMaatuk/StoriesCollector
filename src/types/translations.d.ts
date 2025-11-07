@@ -9,6 +9,7 @@ export interface Translations {
     error: string;
     success: string;
     loadMore: string;
+    sendVerificationCode: string;
   };
   stories: {
     title: string;

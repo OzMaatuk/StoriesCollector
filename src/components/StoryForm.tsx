@@ -540,7 +540,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
           {loading
             ? translations.common.loading
             : otpStep === 'form'
-            ? 'Send Verification Code'
+            ? translations.common.sendVerificationCode
             : translations.common.submit}
         </button>
       </div>
