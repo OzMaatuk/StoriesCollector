@@ -11,23 +11,23 @@ import { Translations } from '@/types/translations';
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 export const revalidate = 0;
-// export const runtime = 'edge';
 export const dynamicParams = true;
 
 interface PageProps {
-  params: { lang: Language };
+  params: Promise<{ lang: Language }>;
 }
 
-export default function SubmitPage({ params }: PageProps) {
+export default async function SubmitPage({ params }: PageProps) {
+  const { lang } = await params;
   const translationsMap: Record<Language, Translations> = { en, fr, he };
-  const translations = translationsMap[params.lang] ?? en;
+  const translations = translationsMap[lang] ?? en;
 
   return (
     <div>
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{translations.nav.submit}</h1>
       </div>
-      <ClientStoryForm translations={translations} lang={params.lang} />
+      <ClientStoryForm translations={translations} lang={lang} />
     </div>
   );
 }

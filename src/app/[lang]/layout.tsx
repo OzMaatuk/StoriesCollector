@@ -9,7 +9,7 @@ import LanguageSwitcherWrapper from '@/components/LanguageSwitcherWrapper';
 
 interface LayoutProps {
   children: ReactNode;
-  params: Promise<{ lang: string }>;
+  params: Promise<{ lang: string }>; // Next.js always gives string
 }
 
 export const dynamic = 'force-dynamic';
@@ -18,60 +18,54 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
-  if (!languages.includes(lang as Language)) {
-    return {};
-  }
+  const safeLang = lang as Language;
+  if (!languages.includes(safeLang)) return {};
 
-  const translations = getTranslations(lang as Language);
-
+  const translations = getTranslations(safeLang);
   return {
     title: {
       template: `%s | ${translations.common.appName}`,
       default: translations.common.appName,
     },
     description: 'Share your stories with the world',
-    icons: {
-      icon: '/favicon.ico',
-    },
+    icons: { icon: '/favicon.ico' },
   };
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {
   const { lang } = await params;
-  const typedLang = lang as Language;
+  const safeLang = lang as Language;
 
-  if (!languages.includes(typedLang)) {
-    notFound();
-  }
+  if (!languages.includes(safeLang)) notFound();
 
-  const dir = isRTL(typedLang) ? 'rtl' : 'ltr';
-  const translations = getTranslations(typedLang);
+  const dir = isRTL(safeLang) ? 'rtl' : 'ltr';
+  const translations = getTranslations(safeLang);
 
   return (
-    <html lang={lang} dir={dir} className={dir === 'rtl' ? 'rtl' : 'ltr'}>
+    <html lang={safeLang} dir={dir} suppressHydrationWarning>
       <body className="min-h-screen bg-gray-50" suppressHydrationWarning>
         <nav className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-8">
-                <a href={`/${lang}`} className="text-xl font-bold text-primary-600">
+                <a href={`/${safeLang}`} className="text-xl font-bold text-primary-600">
                   {translations.common.appName}
                 </a>
                 <div className="hidden md:flex space-x-6">
                   <a
-                    href={`/${lang}`}
+                    href={`/${safeLang}`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.home}
                   </a>
                   <a
-                    href={`/${lang}/stories`}
+                    href={`/${safeLang}/stories`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.stories}
                   </a>
                   <a
-                    href={`/${lang}/submit`}
+                    href={`/${safeLang}/submit`}
                     className="text-gray-700 hover:text-primary-600 transition-colors"
                   >
                     {translations.nav.submit}

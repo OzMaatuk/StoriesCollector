@@ -1,32 +1,28 @@
+// src/app/[lang]/page.tsx
 import Link from 'next/link';
 import { Language } from '@/types';
 import { getTranslations } from '@/lib/translations';
 
 interface PageProps {
-  params: { lang: Language };
+  params: Promise<{ lang: Language }>;
 }
 
-// Opt out of all static optimization to prevent client hooks during prerender
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
 export const revalidate = 0;
-// export const runtime = 'edge';
 
-export default function HomePage({ params }: PageProps) {
-  if (!params?.lang) {
+export default async function HomePage({ params }: PageProps) {
+  const { lang } = await params;
+
+  if (!lang) {
     console.error('Language parameter is missing');
     return null;
   }
 
-  const translations = getTranslations(params.lang);
+  const translations = getTranslations(lang);
 
-  if (!translations) {
-    console.error('Translations are missing for language:', params.lang);
-    return null;
-  }
-
-  if (!translations.home) {
-    console.error('Home translations are missing for language:', params.lang, translations);
+  if (!translations?.home) {
+    console.error('Translations are missing for language:', lang);
     return null;
   }
 
@@ -40,13 +36,13 @@ export default function HomePage({ params }: PageProps) {
 
       <div className="flex justify-center space-x-4">
         <Link
-          href={`/${params.lang}/submit`}
+          href={`/${lang}/submit`}
           className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium text-lg"
         >
           {translations.home.cta}
         </Link>
         <Link
-          href={`/${params.lang}/stories`}
+          href={`/${lang}/stories`}
           className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg hover:bg-primary-50 transition-colors font-medium text-lg"
         >
           {translations.home.viewStories}
@@ -55,17 +51,17 @@ export default function HomePage({ params }: PageProps) {
 
       <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">📝</div>
+          <div className="text-4xl mb-4">Write</div>
           <h3 className="text-lg font-semibold mb-2">Share Your Story</h3>
           <p className="text-gray-600">Submit your personal experiences and connect with others</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">🌐</div>
+          <div className="text-4xl mb-4">Globe</div>
           <h3 className="text-lg font-semibold mb-2">Multilingual Support</h3>
           <p className="text-gray-600">Read and write stories in English, Hebrew, or French</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">🔒</div>
+          <div className="text-4xl mb-4">Lock</div>
           <h3 className="text-lg font-semibold mb-2">Secure & Private</h3>
           <p className="text-gray-600">
             Your information is protected with industry-standard security

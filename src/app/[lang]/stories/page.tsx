@@ -12,19 +12,20 @@ export const fetchCache = 'force-no-store';
 export const revalidate = 0;
 
 interface PageProps {
-  params: { lang: Language };
+  params: Promise<{ lang: Language }>;
 }
 
-export default function StoriesPage({ params }: PageProps) {
+export default async function StoriesPage({ params }: PageProps) {
+  const { lang } = await params;
   const translationsMap: Record<Language, Translations> = { en, fr, he };
-  const translations = translationsMap[params.lang] ?? en;
+  const translations = translationsMap[lang] ?? en;
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">{translations.stories.title}</h1>
       </div>
-      <StoryList lang={params.lang} translations={translations} />
+      <StoryList lang={lang} translations={translations} />
     </div>
   );
 }

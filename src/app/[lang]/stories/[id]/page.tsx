@@ -10,21 +10,22 @@ import fr from '@/locales/fr.json';
 import { Translations } from '@/types/translations';
 
 interface PageProps {
-  params: { lang: Language; id: string };
+  params: Promise<{ lang: Language; id: string }>;
 }
 
 export default async function SubmitPage({ params }: PageProps) {
+  const { lang, id } = await params;
   const translationsMap: Record<Language, Translations> = { en, fr, he };
-  const translations = translationsMap[params.lang] ?? en;
+  const translations = translationsMap[lang] ?? en;
   const storyService = new StoryService();
-  const story = await storyService.getStoryById(params.id);
+  const story = await storyService.getStoryById(id);
 
   if (!story) {
     notFound();
   }
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat(params.lang, {
+    return new Intl.DateTimeFormat(lang, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -36,7 +37,7 @@ export default async function SubmitPage({ params }: PageProps) {
   return (
     <div className="max-w-4xl mx-auto">
       <Link
-        href={`/${params.lang}/stories`}
+        href={`/${lang}/stories`}
         className="inline-flex items-center text-primary-600 hover:text-primary-700 mb-6"
       >
         ← {translations.common.back}
@@ -44,7 +45,7 @@ export default async function SubmitPage({ params }: PageProps) {
 
       <article className="bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-8">
+        <div className="bg-linear-to-r from-primary-600 to-primary-700 text-white p-8">
           {story.title && <h1 className="text-4xl font-bold mb-4">{story.title}</h1>}
           <div className="flex items-center justify-between">
             <div>
