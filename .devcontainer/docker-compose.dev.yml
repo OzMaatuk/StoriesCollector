@@ -13,6 +13,7 @@ services:
     working_dir: /workspace
     command: sleep infinity
     environment:
+      DATABASE_URL: postgres://stories_user:stories_pass@postgres:5432/stories_collector
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
@@ -50,6 +51,7 @@ services:
 
 networks:
   dev_network:
+    external: true
     driver: bridge
     enable_ipv6: true
     ipam:
@@ -59,3 +61,4 @@ networks:
 
 volumes:
   postgres_dev_data:
+    driver: local
