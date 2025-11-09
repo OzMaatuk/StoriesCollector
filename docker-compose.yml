@@ -11,12 +11,9 @@ services:
       - '3000:3000'
     environment:
       DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
-      REDIS_URL: redis://redis:6379
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - stories_network
@@ -57,24 +54,6 @@ services:
       retries: 5
       start_period: 10s
 
-  redis:
-    image: redis:7-alpine
-    container_name: stories_collector_redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
-    volumes:
-      - redis_data:/data
-    ports:
-      - '6379:6379'
-    networks:
-      - stories_network
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   # Optional: Prisma Studio for database management
   prisma-studio:
     image: node:20-alpine
@@ -102,6 +81,4 @@ networks:
 
 volumes:
   postgres_data:
-    driver: local
-  redis_data:
     driver: local

@@ -1,26 +1,26 @@
 # 📖 Stories Collector
 
-A secure, multilingual, and scalable web application for collecting and displaying guest stories.
+A secure, multilingual, and scalable web application for collecting and displaying guest stories with OTP verification.
 
 ## 🌟 Features
 
 - **Story Submission**: Complete form with validation for guest stories
 - **Multilingual Support**: English 🇬🇧, Hebrew 🇮🇱 (RTL), French 🇫🇷
-- **Stories Listing**: dynamic loading list
-- **Phone Verification**: Architecture ready for OTP integration (deferred)
-- **Responsive Design**: Mobile-first, accessible UI
+- **Stories Listing**: Paginated stories with language filtering
+- **OTP Verification**: Email and SMS verification via external OTP service
+- **JWT Security**: Token-based verification system
+- **Responsive Design**: Mobile-first, accessible UI with Tailwind CSS
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection
 
 ## 🧰 Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS 4
 - **Backend**: Next.js API Routes
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: PostgreSQL 16 with Prisma ORM
+- **Rate Limiting**: In-memory store (per-instance)
 - **Testing**: Jest (unit/integration), Playwright (E2E)
 - **CI/CD**: GitHub Actions
-- **Deployment**: Netlify (Frontend/API), Railway (Database)
-
-# TODO: update using new hosting services for dbs.
+- **Containerization**: Docker & Docker Compose
 
 ## 🚀 Getting Started
 
@@ -28,40 +28,45 @@ A secure, multilingual, and scalable web application for collecting and displayi
 
 - Node.js 20+
 - PostgreSQL 16+
-- npm or yarn
+- npm
+- Docker & Docker Compose (optional, for containerized setup)
 
 ### Installation
 
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/your-org/stories-collector.git](https://github.com/your-org/stories-collector.git)
-    cd stories-collector
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Set up environment variables:
-    ```bash
-    # Create environment files from example
-    cp .env.example .env
-    cp .env.example .env.test
-    ```
-    Edit `.env` for development and `.env.test` for testing with your configuration.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-org/stories-collector.git
+   cd stories-collector
+   ```
 
-4.  Run database migrations:
-    ```bash
-    npx prisma migrate dev
-    ```
-5.  Generate Prisma Client:
-    ```bash
-    npx prisma generate
-    ```
-6.  Start the development server:
-    ```bash
-    npm run dev
-    ```
-    Visit http://localhost:3000
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   # Create environment files from example
+   cp .env.example .env
+   cp .env.example .env.test
+   ```
+   Edit `.env` for development and `.env.test` for testing with your configuration.
+
+4. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+
+5. Generate Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
+
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   Visit http://localhost:3000
 
 ### 🐳 Docker Setup
 
@@ -69,13 +74,13 @@ Run the entire stack with Docker Compose:
 
 ```bash
 docker-compose up -d
-````
+```
 
 This will start:
+- PostgreSQL database on port 5432
+- Application on port 3000
+- Prisma Studio on port 5555 (optional, use `docker-compose --profile tools up -d`)
 
-  - PostgreSQL database on port 5432
-  - Redis on port 6379
-  - Application on port 3000
 
 ### 🧪 Testing
 
@@ -122,162 +127,162 @@ See [Testing Guide](docs/testing.md) for detailed information.
 ```text
 stories-collector/
 ├── src/
-│   ├── app/              # Next.js app directory
-│   │   ├── [lang]/       # Internationalized routes
-│   │   └── api/          # API routes
-│   ├── components/       # React components
-│   ├── lib/              # Utility functions
-│   ├── services/         # Business logic
-│   ├── repositories/     # Data access layer
-│   ├── types/            # TypeScript types
-│   └── locales/          # Translation files
-├── prisma/               # Database schema and migrations
-├── tests/                # Test files
-└── public/               # Static assets
+│   ├── app/
+│   │   ├── [lang]/           # Internationalized routes
+│   │   │   ├── stories/      # Stories listing page
+│   │   │   └── submit/       # Story submission page
+│   │   └── api/
+│   │       ├── stories/      # Story CRUD endpoints
+│   │       ├── otp/          # OTP send/verify endpoints
+│   │       └── phone/        # Phone verification endpoints
+│   ├── components/           # React components
+│   │   ├── StoryForm.tsx
+│   │   ├── StoryList.tsx
+│   │   ├── StoryCard.tsx
+│   │   └── LanguageSwitcher.tsx
+│   ├── lib/                  # Utility functions
+│   │   ├── validation.ts     # Zod schemas
+│   │   ├── sanitization.ts   # DOMPurify wrapper
+│   │   ├── rate-limit.ts     # Rate limiting
+│   │   ├── jwt.ts            # JWT utilities
+│   │   └── prisma.ts         # Prisma client
+│   ├── services/             # Business logic
+│   │   └── story.service.ts
+│   ├── repositories/         # Data access layer
+│   │   └── story.repository.ts
+│   ├── types/                # TypeScript types
+│   └── locales/              # Translation files (en, he, fr)
+├── prisma/                   # Database schema and migrations
+├── tests/
+│   ├── unit/                 # Unit tests
+│   ├── integration/          # Integration tests
+│   ├── e2e/                  # E2E tests (no external deps)
+│   └── e2e-otp/              # E2E tests with OTP service
+├── .devcontainer/            # VS Code dev container config
+├── docker-compose.yml        # Docker Compose configuration
+└── Dockerfile                # Production Docker image
 ```
 
 ### 🔐 Security Features
 
-  - **Input Validation**: Zod schemas for all inputs
-  - **Sanitization**: DOMPurify for XSS prevention
-  - **Rate Limiting**: Per-IP request throttling
-  - **CSRF Protection**: Built into Next.js
-  - **Phone Verification**: OTP and JWT-based verification system
-  - **JWT Security**: Secure token-based verification system
+- **Input Validation**: Zod schemas for all inputs
+- **Sanitization**: DOMPurify for XSS prevention
+- **Rate Limiting**: Per-IP request throttling
+- **CSRF Protection**: Built into Next.js
+- **Phone Verification**: OTP and JWT-based verification system
+- **JWT Security**: Secure token-based verification system
+- **SQL Injection Prevention**: Prisma parameterized queries
+- **Security Headers**: Custom security headers (X-Content-Type-Options, X-Frame-Options, etc.)
 
 ### 🔑 JWT & OTP Configuration
 
-The application uses JWT (JSON Web Tokens) for secure verification tokens and OTP (One-Time Passwords) for phone verification. Here's how to set it up:
+The application uses JWT (JSON Web Tokens) for secure verification tokens and OTP (One-Time Passwords) for phone verification.
 
-1. Configure JWT in your environment file:
-   ```bash
-   # Required - at least 32 characters long, keep this secret!
-   JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-   
-   # Optional - defaults to 15m (15 minutes)
-   JWT_EXPIRES_IN=15m
-   ```
-   
-   ⚠️ **Important Security Notes**:
-   - Generate a strong JWT secret (at least 32 characters)
-   - Never commit your JWT secret to version control
-   - Use different secrets for development and production
-   - Rotate your JWT secret periodically in production
+#### JWT Configuration
 
-2. Configure external OTP service:
-   ```bash
-   # External OTP Service URL
-   OTP_SERVICE_URL=http://localhost:3000
-   ```
+Configure JWT in your environment file:
 
-3. Generate a secure JWT secret:
-   ```bash
-   # Using openssl (recommended for production)
-   openssl rand -base64 32
-   
-   # Or using Node.js
-   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-   ```
+```bash
+# Required - at least 32 characters long, keep this secret!
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 
-4. Token Security Best Practices:
-   - Store tokens securely (e.g., HttpOnly cookies)
-   - Use short expiration times (default: 15 minutes)
-   - Implement token refresh mechanism for longer sessions
-   - Monitor for suspicious activity (multiple failed attempts)
+# Optional - defaults to 15m (15 minutes)
+JWT_EXPIRES_IN=15m
+```
 
-### 📨 External OTP Service
+⚠️ **Important Security Notes**:
+- Generate a strong JWT secret (at least 32 characters)
+- Never commit your JWT secret to version control
+- Use different secrets for development and production
+- Rotate your JWT secret periodically in production
 
-The application uses an external OTP service for sending verification codes via email and SMS. Configure the service URL:
+Generate a secure JWT secret:
+
+```bash
+# Using openssl (recommended for production)
+openssl rand -base64 32
+
+# Or using Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+#### External OTP Service
+
+The application uses an external OTP service for sending verification codes via email and SMS:
 
 ```bash
 # External OTP Service Configuration
 OTP_SERVICE_URL=http://localhost:3000
 ```
 
-#### 🔄 OTP Service Integration
+**OTP Service Integration:**
 
 The application makes HTTP requests to the external OTP service:
 
-**Send OTP:**
+Send OTP:
 ```bash
 curl -X POST "$OTP_SERVICE_URL/otp/send" \
   -H "Content-Type: application/json" \
   -d '{"recipient": "+15555550123", "channel": "sms"}'
 ```
 
-**Verify OTP:**
+Verify OTP:
 ```bash
 curl -X POST "$OTP_SERVICE_URL/otp/verify" \
   -H "Content-Type: application/json" \
   -d '{"recipient": "+15555550123", "code": "123456"}'
 ```
 
-#### 🧪 Development Mode
+#### Quick Development Setup
 
-For development without an external OTP service, the service should log OTP codes to console when provider keys aren't configured.
+For local development without setting a production-grade JWT_SECRET:
 
-### ⚡ Quick dev & test (JWT / OTP)
-
-You can run the app and tests in development without setting a production-grade `JWT_SECRET` because JWT verification falls back to a default secret for convenience. However, this is insecure for anything beyond local experimentation.
-
-Recommended quick commands (zsh):
-
-- Start dev server with a temporary secure secret:
 ```bash
+# Start dev server with a temporary secure secret
 JWT_SECRET=$(openssl rand -base64 32) npm run dev
-```
 
-- Run tests with a deterministic secret (recommended for CI/local test runs):
-```bash
+# Run tests with a deterministic secret
 JWT_SECRET=test-jwt-secret-32chars npm test
-# or run a single test file:
-JWT_SECRET=test-jwt-secret-32chars npx jest tests/unit/otp.service.test.ts --runInBand
 ```
 
 Best practices:
-- Add `JWT_SECRET` to your local `.env.development` while developing (never commit it).
-- Use a secrets manager for production secrets.
-
-### 🌐 Internationalization
-
-The app supports three languages:
-
-  - **English (en)** - Default
-  - **Hebrew (he)** - RTL support
-  - **French (fr)**
-
-Language files are in `src/locales/`.
-
-### 📱 Phone Verification (Future)
-
-The architecture includes an abstracted verification provider interface:
-
-```typescript
-interface IVerificationProvider {
-  requestCode(phone: string): Promise<void>;
-  verifyCode(phone: string, code: string): Promise<boolean>;
-}
-```
-
-Currently using `NoOpVerificationProvider` as a placeholder. Future implementations can use:
-
-  - TextBee
-  - Twilio
-  - AWS SNS
-  - Or any other SMS gateway
+- Add `JWT_SECRET` to your local `.env` file while developing (never commit it)
+- Use a secrets manager for production secrets
 
 ### 🔄 API Endpoints
 
 #### Stories
 
-  - **`POST /api/stories`** - Submit a new story
-  - **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated stories
-  - **`GET /api/stories/:id`** - Get story by ID
+- **`POST /api/stories`** - Submit a new story
+  - Body: `{ name, phone, email?, city?, country?, tellerBackground?, storyBackground?, title?, content, language, verificationToken? }`
+  - Returns: Created story object
+
+- **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated stories
+  - Query params: `page`, `pageSize`, `language`
+  - Returns: Paginated response with stories
+
+- **`GET /api/stories/:id`** - Get story by ID
+  - Returns: Story object or 404
 
 #### OTP Verification
 
-  - **`POST /api/otp/send`** - Send OTP code via email or SMS
-  - **`POST /api/otp/verify`** - Verify OTP code and get JWT token
+- **`POST /api/otp/send`** - Send OTP code via email or SMS
+  - Body: `{ recipient, channel: "email" | "sms" }`
+  - Returns: `{ message, recipient, channel, expiresIn }`
+
+- **`POST /api/otp/verify`** - Verify OTP code and get JWT token
+  - Body: `{ recipient, code, channel }`
+  - Returns: `{ success, token, expiresIn }`
+
+### 🌐 Internationalization
+
+The app supports three languages:
+
+- **English (en)** - Default
+- **Hebrew (he)** - RTL support
+- **French (fr)**
+
+Language files are in `src/locales/`. The app uses `next-intl` for internationalization with automatic locale detection and routing.
 
 ### 🚀 Deployment
 
@@ -287,45 +292,64 @@ Required for production:
 
 ```bash
 DATABASE_URL=your_postgres_connection_string
-NEXT_PUBLIC_APP_URL=[https://your-domain.com](https://your-domain.com)
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+JWT_SECRET=your-production-jwt-secret-min-32-chars
+OTP_SERVICE_URL=https://your-otp-service.com
 ```
 
-#### Deploy to Netlify
+Optional:
 
-1.  Connect your GitHub repository to Netlify
-2.  Set environment variables in Netlify dashboard
-3.  Deploy command: `npm run build`
-4.  Publish directory: `.next`
+```bash
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=10   # Max requests per window
+```
 
-#### Database on Railway
+#### Build & Deploy
 
-1.  Create a PostgreSQL database on Railway
-2.  Copy the connection string
-3.  Run migrations: `npx prisma migrate deploy`
+```bash
+# Build the application
+npm run build
+
+# Start production server
+npm start
+```
+
+#### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t stories-collector:latest .
+
+# Run container
+docker run -p 3000:3000 \
+  -e DATABASE_URL="your_connection_string" \
+  -e JWT_SECRET="your_secret" \
+  stories-collector:latest
+```
 
 ### 🤝 Contributing
 
-1.  Fork the repository
-2.  Create a feature branch: `git checkout -b feature/amazing-feature`
-3.  Commit your changes: `git commit -m 'Add amazing feature'`
-4.  Push to the branch: `git push origin feature/amazing-feature`
-5.  Open a Pull Request
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ### 📝 Development Workflow
 
-1.  Create a feature branch from `develop`
-2.  Write tests for new features
-3.  Ensure all tests pass: `npm test && npm run test:e2e`
-4.  Run linter: `npm run lint`
-5.  Submit PR to `develop` branch
-6.  After review, merge to `main` for production deployment
+1. Create a feature branch from `develop`
+2. Write tests for new features
+3. Ensure all tests pass: `npm test && npm run test:e2e`
+4. Run linter: `npm run lint`
+5. Submit PR to `develop` branch
+6. After review, merge to `main` for production deployment
 
 ### 📊 Code Quality
 
-  - **Type Safety**: Strict TypeScript mode
-  - **Linting**: ESLint with Next.js config
-  - **Formatting**: Prettier
-  - **Testing**: 80%+ code coverage target
+- **Type Safety**: Strict TypeScript mode
+- **Linting**: ESLint with Next.js config
+- **Formatting**: Prettier
+- **Testing**: 80%+ code coverage target
 
 ### 🐛 Troubleshooting
 
@@ -357,7 +381,10 @@ npx prisma migrate reset
 #### Port Already in Use
 
 ```bash
-# Kill process on port 3000
+# Windows (PowerShell)
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process
+
+# Linux/Mac
 lsof -ti:3000 | xargs kill -9
 ```
 
@@ -365,433 +392,15 @@ lsof -ti:3000 | xargs kill -9
 
 This project is licensed under the MIT License.
 
-### 👥 Authors
-
-  - Your Team Name
-
 ### 🙏 Acknowledgments
 
-  - Next.js team for the amazing framework
-  - Prisma team for the excellent ORM
-  - Tailwind CSS for the utility-first CSS framework
-
-### 📞 Support
-
-For support, email support@yourdomain.com or open an issue on GitHub.
-
------
-
-### **ARCHITECTURE.md**
-
-````markdown
-# Architecture Documentation
-
-## Overview
-
-Stories Collector follows a layered architecture pattern with clear separation of concerns.
-
-## Layers
-
-### 1. Presentation Layer
-- **Location**: `src/app/[lang]/**` and `src/components/**`
-- **Responsibility**: UI rendering, user interactions, i18n
-- **Technologies**: Next.js App Router, React Server Components, Tailwind CSS
-
-### 2. API Layer
-- **Location**: `src/app/api/**`
-- **Responsibility**: HTTP request handling, validation, response formatting
-- **Technologies**: Next.js API Routes, Zod for validation
-
-### 3. Service Layer
-- **Location**: `src/services/**`
-- **Responsibility**: Business logic, orchestration
-- **Pattern**: Service classes with dependency injection
-
-### 4. Repository Layer
-- **Location**: `src/repositories/**`
-- **Responsibility**: Data access, database operations
-- **Pattern**: Repository pattern with Prisma ORM
-
-### 5. Infrastructure Layer
-- **Location**: `src/lib/**`
-- **Responsibility**: Cross-cutting concerns (validation, sanitization, rate limiting)
-
-## Design Patterns
-
-### Dependency Injection
-Used for verification provider abstraction:
-
-```typescript
-class StoryService {
-  constructor(private verificationProvider: IVerificationProvider) {}
-}
-````
-
-### Repository Pattern
-
-Abstracts database operations:
-
-```typescript
-class StoryRepository {
-  async create(data: StoryCreateInput): Promise<Story> { }
-  async findById(id: string): Promise<Story | null> { }
-}
-```
-
-### Adapter Pattern
-
-For future SMS gateway integrations:
-
-```typescript
-interface IVerificationProvider {
-  requestCode(phone: string): Promise<void>;
-  verifyCode(phone: string, code: string): Promise<boolean>;
-}
-```
-
-### Factory Pattern
-
-Provider instantiation:
-
-```typescript
-function getVerificationProvider(): IVerificationProvider {
-  // Return appropriate provider based on environment
-}
-```
-
-### Data Flow
-
-```text
-User Request
-    ↓
-Presentation Layer (React Component)
-    ↓
-API Route (validation, rate limiting)
-    ↓
-Service Layer (business logic)
-    ↓
-Repository Layer (data access)
-    ↓
-Database (PostgreSQL)
-```
-
-### Security Architecture
-
-#### Defense in Depth
-
-  - **Input Validation**: Zod schemas at API layer
-  - **Sanitization**: DOMPurify for XSS prevention
-  - **Rate Limiting**: IP-based throttling
-  - **CSRF Protection**: Next.js built-in
-  - **SQL Injection Prevention**: Prisma parameterized queries
-  - **Header Security**: Custom security headers
-
-### Phone Verification (Future)
-
-```text
-User submits story with phone
-    ↓
-Story stored with verifiedPhone=false
-    ↓
-User requests verification code
-    ↓
-IVerificationProvider.requestCode()
-    ↓
-Code sent via SMS gateway
-    ↓
-User enters code
-    ↓
-IVerificationProvider.verifyCode()
-    ↓
-Story updated with verifiedPhone=true
-```
-
-### Database Schema
-
-#### Stories Table
-
-```sql
-CREATE TABLE stories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  phone VARCHAR(20) NOT NULL,
-  email VARCHAR(255),
-  city VARCHAR(100),
-  country VARCHAR(100),
-  teller_background TEXT,
-  story_background TEXT,
-  title VARCHAR(500),
-  content TEXT NOT NULL,
-  language VARCHAR(5) NOT NULL,
-  verified_phone BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX idx_stories_language ON stories(language);
-CREATE INDEX idx_stories_created_at ON stories(created_at);
-CREATE INDEX idx_stories_verified_phone ON stories(verified_phone);
-```
-
-### Scalability Considerations
-
-  - **Horizontal Scaling**: Stateless API routes enable multiple instances
-  - **Database connection pooling** via Prisma
-  - **Redis** for session management (future)
-
-#### Caching Strategy
-
-  - Static page generation for public routes
-  - ISR (Incremental Static Regeneration) for stories list
-  - Client-side caching with SWR (future)
-
-#### Performance Optimizations
-
-  - Database indexes on frequently queried fields
-  - Pagination for large datasets
-  - Image optimization via Next.js Image component
-  - Code splitting and lazy loading
-
-### Monitoring & Observability
-
-#### Logging
-
-  - Structured logging with Winston (future)
-  - Error tracking with Sentry (future)
-  - Request logging middleware
-
-#### Metrics
-
-  - API response times
-  - Database query performance
-  - Rate limit hits
-  - Story submission success/failure rates
-
-#### Health Checks
-
-  - `/api/health` endpoint (future)
-  - Database connection status
-  - External service status
-
-### Future Enhancements
-
-#### Short Term
-
-  - Implement real OTP verification with TextBee
-  - Add Redis for rate limiting and OTP storage
-  - Implement email notifications
-  - Add story moderation workflow
-
-#### Long Term
-
-  - Full-text search with Elasticsearch
-  - Story analytics dashboard
-  - User accounts and authentication
-  - Story comments and reactions
-  - Export stories to PDF
-  - Admin panel for content management
-
-### Testing Strategy
-
-  - **Unit Tests**: Service layer business logic, Validation schemas, Utility functions
-  - **Integration Tests**: API routes with database, Repository operations, Service orchestration
-  - **E2E Tests**: Complete user flows, Multi-language support, Form validation, Story browsing
-
-### Deployment Architecture
-
-```text
-GitHub → GitHub Actions → Build & Test → Deploy
-        |
-        └→ Docker Image
-                  ↓
-        ┌─────────┴─────────┐
-        ↓                   ↓
-    Netlify              Railway
-  (Frontend/API)        (PostgreSQL)
-```
-
-### Code Organization Principles
-
-  - **Single Responsibility**: Each module has one clear purpose
-  - **DRY**: Reusable utilities and components
-  - **SOLID**: Especially Interface Segregation and Dependency Inversion
-  - **Type Safety**: Strict TypeScript throughout
-  - **Testability**: Mockable dependencies, pure functions where possible
-
-<!-- end list -->
-
-````
+- Next.js team for the amazing framework
+- Prisma team for the excellent ORM
+- Tailwind CSS for the utility-first CSS framework
 
 ---
 
-### **17. Migration Script**
-
-### **scripts/seed.ts**
-
-```typescript
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-async function main() {
-  console.log('Starting database seed...');
-
-  const stories = [
-    {
-      name: 'John Smith',
-      phone: '+12025551234',
-      email: 'john.smith@example.com',
-      city: 'New York',
-      country: 'USA',
-      title: 'My Journey to Success',
-      content: 'This is a story about perseverance and determination. It all started when I was young...',
-      language: 'en',
-      verifiedPhone: true,
-    },
-    {
-      name: 'Sarah Johnson',
-      phone: '+14155552345',
-      email: 'sarah.j@example.com',
-      city: 'San Francisco',
-      country: 'USA',
-      tellerBackground: 'Software engineer with 10 years experience',
-      title: 'Breaking into Tech',
-      content: 'My transition from teaching to software engineering was challenging but rewarding...',
-      language: 'en',
-      verifiedPhone: true,
-    },
-    {
-      name: 'דוד כהן',
-      phone: '+972501234567',
-      email: 'david.cohen@example.com',
-      city: 'תל אביב',
-      country: 'ישראל',
-      title: 'הסיפור שלי',
-      content: 'זהו סיפור על אתגרים והצלחות בחיים. הכל התחיל כאשר...',
-      language: 'he',
-      verifiedPhone: false,
-    },
-    {
-      name: 'Marie Dupont',
-      phone: '+33612345678',
-      email: 'marie.dupont@example.com',
-      city: 'Paris',
-      country: 'France',
-      storyBackground: 'Une histoire d\'amour et de courage',
-      title: 'Mon Histoire',
-      content: 'C\'est une histoire qui parle de courage, d\'amour et de persévérance...',
-      language: 'fr',
-      verifiedPhone: true,
-    },
-    {
-      name: 'Michael Brown',
-      phone: '+442071234567',
-      city: 'London',
-      country: 'UK',
-      content: 'A short story about finding purpose in life through helping others and giving back to the community.',
-      language: 'en',
-      verifiedPhone: false,
-    },
-  ];
-
-  for (const story of stories) {
-    await prisma.story.create({
-      data: story,
-    });
-    console.log(`Created story: ${story.title || 'Untitled'}`);
-}
-
-  console.log('Database seeding completed!');
-}
-
-main()
-  .catch((e) => {
-    console.error('Error seeding database:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
-````
-
-Update `package.json` to add seed script:
-
-```json
-{
-  "scripts": {
-    "prisma:seed": "ts-node scripts/seed.ts"
-  }
-}
-```
-
-### Project Structure
-
-```text
-stories-collector/
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-├── prisma/
-│   ├── schema.prisma
-│   └── migrations/
-├── src/
-│   ├── app/
-│   │   ├── [lang]/
-│   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx
-│   │   │   ├── stories/
-│   │   │   │   ├── page.tsx
-│ D   │   │   └── [id]/
-│   │   │   │       └── page.tsx
-│   │   │   └── submit/
-│   │   │       └── page.tsx
-│   │   └── api/
-│   │       ├── stories/
-│   │       │   ├── route.ts
-│   │       │   └── [id]/
-│   │       │       └── route.ts
-│   │       └── phone/
-│   │           ├── request/
-│   │           │   └── route.ts
-│ 	│         	└── verify/
-│ 	│         	      └── route.ts
-│ 	├── components/
-│ 	│ 	├── StoryForm.tsx
-│ 	│ 	├── StoryList.tsx
-│ 	│ 	├── StoryCard.tsx
-│ 	│ 	├── LanguageSwitcher.tsx
-│ 	│ 	└── Pagination.tsx
-│ 	├── lib/
-│ 	│ 	├── prisma.ts
-│ 	│ 	├── validation.ts
-│ 	│ 	├── sanitization.ts
-│ 	│ 	├── rate-limit.ts
-│ 	│ 	└── i18n.ts
-│ 	├── services/
-│ 	│ 	├── story.service.ts
-│ 	│ 	└── verification/
-│ 	│ 		├── IVerificationProvider.ts
-│ 	│ 		├── NoOpVerificationProvider.ts
-│ 	│ 		└── index.ts
-│ 	├── repositories/
-│ 	│ 	└── story.repository.ts
-│ 	├── types/
-│ 	│ 	└── index.ts
-│ 	└── locales/
-│ 		├── en.json
-│ 		├── he.json
-│ 		└── fr.json
-├── tests/
-│ 	├── unit/
-│ 	├── integration/
-│ 	└── e2e/
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-├── .gitignore
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-├── next.config.js
-└── README.md
-```
+For more detailed documentation, see:
+- [Testing Guide](docs/testing.md)
+- [Database Notes](docs/db_notes.md)
+- [Development Plan](docs/plan.md)

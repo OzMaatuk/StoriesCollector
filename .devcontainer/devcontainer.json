@@ -49,7 +49,6 @@
   "portsAttributes": {
     "3000": { "label": "Next.js App", "onAutoForward": "notify", "protocol": "http" },
     "5432": { "label": "PostgreSQL", "onAutoForward": "silent" },
-    "6379": { "label": "Redis", "onAutoForward": "silent" },
     "5555": { "label": "Prisma Studio", "onAutoForward": "notify", "protocol": "http" }
   },
 

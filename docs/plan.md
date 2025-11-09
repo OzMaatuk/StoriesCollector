@@ -89,9 +89,6 @@ TEXTBEE_DEVICE_ID=your_textbee_device_id  # the Android device ID registered in 
 # OTP / verification
 OTP_CODE_TTL_SECONDS=300     # e.g. 300 seconds (5 min)
 OTP_MAX_ATTEMPTS=5           # optional: max tries per request
-
-# Redis (for OTP state, if using Redis)
-REDIS_URL=redis://localhost:6379
 ```
 
 ### 🔑 Notes on TextBee
