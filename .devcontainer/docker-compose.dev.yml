@@ -13,10 +13,14 @@ services:
     working_dir: /workspace
     command: sleep infinity
     environment:
-      DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'
+    # Use Google DNS and Cloudflare DNS for reliable external resolution
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +51,11 @@ services:
 networks:
   dev_network:
     driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+        - subnet: fd01::/80
 
 volumes:
   postgres_dev_data:
