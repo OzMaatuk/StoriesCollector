@@ -5,7 +5,7 @@ module.exports = {
     extend: {},
   },
   plugins: [
-    function ({ addComponents }: { addComponents: (components: Record<string, any>) => void }) {
+    function ({ addComponents }: { addComponents: (components: Record<string, object>) => void }) {
       addComponents({
         '.prose': {
           color: '#374151', // text-gray-700

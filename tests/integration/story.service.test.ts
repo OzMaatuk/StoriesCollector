@@ -1,6 +1,19 @@
 import { StoryService } from '@/services/story.service';
 import { StoryRepository } from '@/repositories/story.repository';
 
+// Define the assumed Story interface to correctly type mock data
+interface Story {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  content: string;
+  language: string;
+  verifiedPhone: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Mock the repository
 jest.mock('@/repositories/story.repository');
 
@@ -11,7 +24,9 @@ describe('StoryService', () => {
   beforeEach(() => {
     service = new StoryService();
     mockRepository = new StoryRepository() as jest.Mocked<StoryRepository>;
-    (service as any).repository = mockRepository;
+
+    (service as unknown as { repository: jest.Mocked<StoryRepository> }).repository =
+      mockRepository;
   });
 
   describe('createStory', () => {
@@ -24,7 +39,7 @@ describe('StoryService', () => {
         language: 'en',
       };
 
-      const expectedStory = {
+      const expectedStory: Story = {
         id: '123',
         ...input,
         verifiedPhone: false,
@@ -32,7 +47,7 @@ describe('StoryService', () => {
         updatedAt: new Date(),
       };
 
-      mockRepository.create.mockResolvedValue(expectedStory as any);
+      mockRepository.create.mockResolvedValue(expectedStory);
 
       const result = await service.createStory(input);
 
@@ -48,7 +63,18 @@ describe('StoryService', () => {
         language: 'en',
       };
 
-      mockRepository.create.mockResolvedValue({} as any);
+      const mockResult: Story = {
+        id: 'stub-id',
+        name: 'stub',
+        phone: 'stub',
+        content: 'stub',
+        language: 'stub',
+        verifiedPhone: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockRepository.create.mockResolvedValue(mockResult);
 
       await service.createStory(input);
 
@@ -70,7 +96,7 @@ describe('StoryService', () => {
 
   describe('getStories', () => {
     it('should return paginated stories', async () => {
-      const mockStories = [
+      const mockStories: Story[] = [
         {
           id: '1',
           name: 'John',
@@ -83,7 +109,7 @@ describe('StoryService', () => {
         },
       ];
 
-      mockRepository.findMany.mockResolvedValue(mockStories as any);
+      mockRepository.findMany.mockResolvedValue(mockStories);
       mockRepository.count.mockResolvedValue(1);
 
       const result = await service.getStories({ page: 1, pageSize: 10 });

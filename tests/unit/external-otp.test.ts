@@ -1,5 +1,3 @@
-// tests/unit/external-otp.test.ts
-
 import { webcrypto } from 'crypto';
 
 // Set up global crypto BEFORE importing jwt module
@@ -7,6 +5,12 @@ global.crypto = webcrypto as Crypto;
 
 // NOW import after setting up global crypto
 import { verifyToken } from '../../src/lib/jwt';
+
+interface JwtPayload {
+  recipient: string;
+  channel: string;
+  [key: string]: unknown;
+}
 
 // Helper function to create a test JWT token
 function base64UrlEncode(input: string | ArrayBuffer): string {
@@ -21,7 +25,8 @@ function base64UrlEncode(input: string | ArrayBuffer): string {
   return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-async function createTestToken(payload: any, secret: string): Promise<string> {
+// Updated payload type to JwtPayload
+async function createTestToken(payload: JwtPayload, secret: string): Promise<string> {
   const header = { alg: 'HS256', typ: 'JWT' };
   const headerB64 = base64UrlEncode(JSON.stringify(header));
   const payloadB64 = base64UrlEncode(JSON.stringify(payload));
@@ -49,7 +54,7 @@ describe('External OTP Service Integration', () => {
   describe('JWT Token Verification', () => {
     it('should verify valid JWT tokens with environment secret', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
-      const payload = {
+      const payload: JwtPayload = {
         recipient: '+1234567890',
         channel: 'sms',
       };
@@ -70,7 +75,7 @@ describe('External OTP Service Integration', () => {
 
     it('should return null for tokens with invalid signature', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
-      const payload = {
+      const payload: JwtPayload = {
         recipient: '+1234567890',
         channel: 'sms',
       };
