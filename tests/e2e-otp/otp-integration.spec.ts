@@ -82,7 +82,7 @@ test.describe('OTP Integration E2E', () => {
     }
   });
 
-  test('should integrate with story submission flow', async ({ page, request }) => {
+  test('should integrate with story submission flow', async ({ page }) => {
     // This test shows how OTP would integrate with the full story flow
     await page.goto('/en/submit');
 
