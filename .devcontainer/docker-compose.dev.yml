@@ -51,7 +51,8 @@ services:
 
 networks:
   dev_network:
-    external: true
+    # external: true
+    name: dev_network
     driver: bridge
     enable_ipv6: true
     ipam:
