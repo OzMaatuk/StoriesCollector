@@ -51,13 +51,13 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
             )}
           </div>
           <div className="flex-shrink-0">
-            {story.verifiedPhone ? (
+            {story.verifiedEmail ? (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
-                ✓ {translations.verifiedPhone}
+                ✓ {translations.verifiedEmail}
               </span>
             ) : (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
-                {translations.verifiedPhone}
+                {translations.verifiedEmail}
               </span>
             )}
           </div>

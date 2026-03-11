@@ -5,11 +5,11 @@ import { StoryRepository } from '@/repositories/story.repository';
 interface Story {
   id: string;
   name: string;
-  phone: string;
-  email?: string;
+  phone?: string;
+  email: string;
   content: string;
   language: string;
-  verifiedPhone: boolean;
+  verifiedEmail: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,7 +42,7 @@ describe('StoryService', () => {
       const expectedStory: Story = {
         id: '123',
         ...input,
-        verifiedPhone: false,
+        verifiedEmail: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -58,7 +58,7 @@ describe('StoryService', () => {
     it('should sanitize input data', async () => {
       const input = {
         name: 'John<script>alert("xss")</script>Doe',
-        phone: '+1234567890',
+        email: 'john@example.com',
         content: '<p>This is my <strong>story</strong>.</p>',
         language: 'en',
       };
@@ -67,9 +67,10 @@ describe('StoryService', () => {
         id: 'stub-id',
         name: 'stub',
         phone: 'stub',
+        email: 'stub@example.com',
         content: 'stub',
         language: 'stub',
-        verifiedPhone: false,
+        verifiedEmail: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -85,7 +86,7 @@ describe('StoryService', () => {
     it('should throw error for invalid data', async () => {
       const input = {
         name: 'John Doe',
-        phone: 'invalid-phone',
+        email: 'john@example.com',
         content: 'Story',
         language: 'en',
       };
@@ -101,9 +102,10 @@ describe('StoryService', () => {
           id: '1',
           name: 'John',
           phone: '+1234567890',
+          email: 'john@example.com',
           content: 'Story 1',
           language: 'en',
-          verifiedPhone: false,
+          verifiedEmail: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },

@@ -7,7 +7,7 @@ A secure, multilingual, and scalable web application for collecting and displayi
 - **Story Submission**: Complete form with validation for guest stories
 - **Multilingual Support**: English 🇬🇧, Hebrew 🇮🇱 (RTL), French 🇫🇷
 - **Stories Listing**: Paginated stories with language filtering
-- **OTP Verification**: Email and SMS verification via external OTP service
+- **OTP Verification**: Email verification via external OTP service
 - **JWT Security**: Token-based verification system
 - **Responsive Design**: Mobile-first, accessible UI with Tailwind CSS
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection
@@ -208,7 +208,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 #### External OTP Service
 
-The application uses an external OTP service for sending verification codes via email and SMS:
+The application uses an external OTP service for sending verification codes via email:
 
 ```bash
 # External OTP Service Configuration
@@ -223,7 +223,7 @@ Send OTP:
 ```bash
 curl -X POST "$OTP_SERVICE_URL/otp/send" \
   -H "Content-Type: application/json" \
-  -d '{"recipient": "+15555550123", "channel": "sms"}'
+  -d '{"recipient": "user@example.com", "channel": "email"}'
 ```
 
 Verify OTP:
@@ -266,8 +266,8 @@ Best practices:
 
 #### OTP Verification
 
-- **`POST /api/otp/send`** - Send OTP code via email or SMS
-  - Body: `{ recipient, channel: "email" | "sms" }`
+- **`POST /api/otp/send`** - Send OTP code via email
+  - Body: `{ recipient, channel: "email" }`
   - Returns: `{ message, recipient, channel, expiresIn }`
 
 - **`POST /api/otp/verify`** - Verify OTP code and get JWT token

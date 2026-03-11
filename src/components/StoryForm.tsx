@@ -48,7 +48,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
   const [otpStep, setOtpStep] = useState<'form' | 'otp' | 'verified'>('form');
   const [otpCode, setOtpCode] = useState('');
   const [otpRecipient, setOtpRecipient] = useState('');
-  const [otpChannel, setOtpChannel] = useState<'email' | 'sms'>('email');
+  const [otpChannel, setOtpChannel] = useState<'email'>('email');
   const [verificationToken, setVerificationToken] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
@@ -67,11 +67,9 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
   };
 
   const determineOtpMethod = () => {
-    // Priority: email > phone
+    // Only email verification is supported
     if (formData.email && formData.email.trim() !== '') {
       return { recipient: formData.email.trim(), channel: 'email' as const };
-    } else if (formData.phone && formData.phone.trim() !== '') {
-      return { recipient: formData.phone.trim(), channel: 'sms' as const };
     }
     return null;
   };
@@ -79,7 +77,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
   const handleSendOtp = async () => {
     const otpMethod = determineOtpMethod();
     if (!otpMethod) {
-      setError('Please provide either an email address or phone number');
+      setError('Please provide an email address for verification');
       return;
     }
 
@@ -158,12 +156,11 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
     // Check if we need OTP verification first
     if (otpStep === 'form') {
-      // Validate that at least one contact method is provided
-      const hasPhone = formData.phone && formData.phone.trim() !== '';
+      // Validate that email is provided
       const hasEmail = formData.email && formData.email.trim() !== '';
 
-      if (!hasPhone && !hasEmail) {
-        setError('Please provide either an email address or phone number');
+      if (!hasEmail) {
+        setError('Please provide an email address for verification');
         return;
       }
 
@@ -371,7 +368,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
           {/* Email - Preferred */}
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              {translations.form.email} (Preferred)
+              {translations.form.email} *
             </label>
             <input
               type="email"
@@ -380,6 +377,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
               value={formData.email}
               onChange={handleChange}
               placeholder={translations.form.emailPlaceholder}
+              required
               disabled={otpStep === 'verified'}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
@@ -388,10 +386,11 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
             {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email[0]}</p>}
           </div>
 
-          {/* Phone - Alternative */}
+          {/* Phone - Alternative - HIDDEN: SMS verification disabled */}
+          {/*
           <div className="mb-4">
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              {translations.form.phone} (Alternative)
+              {translations.form.phone} (Optional)
             </label>
             <input
               type="tel"
@@ -408,6 +407,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
             <p className="mt-1 text-sm text-gray-500">{translations.form.phoneHint}</p>
             {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone[0]}</p>}
           </div>
+          */}
         </div>
 
         {/* City - Optional */}
@@ -540,8 +540,8 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
           {loading
             ? translations.common.loading
             : otpStep === 'form'
-            ? translations.common.sendVerificationCode
-            : translations.common.submit}
+              ? translations.common.sendVerificationCode
+              : translations.common.submit}
         </button>
       </div>
     </form>

@@ -30,12 +30,9 @@ export class StoryService {
           throw new Error('Invalid or expired verification token');
         }
 
-        // Ensure the verified contact matches the provided contact
-        const hasMatchingEmail = validated.email && validated.email === tokenData.recipient;
-        const hasMatchingPhone = validated.phone && validated.phone === tokenData.recipient;
-
-        if (!hasMatchingEmail && !hasMatchingPhone) {
-          throw new Error('Verification token does not match provided contact information');
+        // Ensure the verified email matches the provided email
+        if (validated.email !== tokenData.recipient) {
+          throw new Error('Verification token does not match provided email address');
         }
 
         // Build payload without verificationToken
@@ -43,9 +40,9 @@ export class StoryService {
         void _omit;
         const storyData = {
           ...validatedWithoutToken,
-          verifiedPhone: tokenData.channel === 'sms',
+          verifiedEmail: true, // Email is verified
           phone: validated.phone ?? '',
-          email: validated.email ?? '',
+          email: validated.email,
         };
 
         return await this.repository.create(storyData);
@@ -56,6 +53,7 @@ export class StoryService {
           ...validated,
           phone: validated.phone ?? '',
           email: validated.email ?? '',
+          verifiedEmail: false,
         });
       }
     } catch (error) {

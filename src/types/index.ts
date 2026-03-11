@@ -1,8 +1,8 @@
 export interface Story {
   id: string;
   name: string;
-  phone: string;
-  email?: string | null;
+  phone?: string | null;
+  email: string;
   city?: string | null;
   country?: string | null;
   tellerBackground?: string | null;
@@ -10,15 +10,15 @@ export interface Story {
   title?: string | null;
   content: string;
   language: string;
-  verifiedPhone: boolean;
+  verifiedEmail: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface StoryCreateInput {
   name: string;
-  phone: string;
-  email?: string;
+  phone?: string;
+  email: string;
   city?: string;
   country?: string;
   tellerBackground?: string;
@@ -26,7 +26,7 @@ export interface StoryCreateInput {
   title?: string;
   content: string;
   language: string;
-  verifiedPhone?: boolean;
+  verifiedEmail?: boolean;
 }
 
 export interface PaginatedResponse<T> {

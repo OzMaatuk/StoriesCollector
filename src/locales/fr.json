@@ -56,8 +56,8 @@
     "allLanguages": "Toutes les Langues",
     "noStories": "Aucune histoire trouvée",
     "loadMore": "Charger Plus",
-    "verifiedPhone": "Vérifié",
-    "unverifiedPhone": "Non vérifié",
+    "verifiedEmail": "Vérifié",
+    "unverifiedEmail": "Non vérifié",
     "readMore": "Lire la Suite"
   },
   "validation": {

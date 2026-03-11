@@ -56,8 +56,8 @@
     "allLanguages": "כל השפות",
     "noStories": "לא נמצאו סיפורים",
     "loadMore": "טען עוד",
-    "verifiedPhone": "מאומת",
-    "unverifiedPhone": "לא מאומת",
+    "verifiedEmail": "מאומת",
+    "unverifiedEmail": "לא מאומת",
     "readMore": "קרא עוד"
   },
   "validation": {

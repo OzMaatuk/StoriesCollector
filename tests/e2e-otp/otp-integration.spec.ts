@@ -13,8 +13,8 @@ test.describe('OTP Integration E2E', () => {
   test('should send OTP via API', async ({ request }) => {
     const response = await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
-        recipient: '+15555550123',
-        channel: 'sms',
+        recipient: 'test@example.com',
+        channel: 'email',
       },
     });
 
@@ -41,8 +41,8 @@ test.describe('OTP Integration E2E', () => {
   test('should handle invalid recipient format', async ({ request }) => {
     const response = await request.post(`${OTP_SERVICE_URL}/otp/send`, {
       data: {
-        recipient: 'invalid-phone',
-        channel: 'sms',
+        recipient: 'invalid-email',
+        channel: 'email',
       },
     });
 

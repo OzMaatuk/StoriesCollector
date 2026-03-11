@@ -10,7 +10,7 @@ export const storySchema = z.object({
     .regex(phoneRegex, 'Invalid phone number format. Use E.164 format (e.g., +1234567890)')
     .optional()
     .or(z.literal('')),
-  email: z.string().email('Invalid email format').optional().or(z.literal('')),
+  email: z.string().email('Invalid email format'),
   city: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   tellerBackground: z.string().max(5000).optional(),
@@ -19,18 +19,7 @@ export const storySchema = z.object({
   content: z.string().min(10, 'Story must be at least 10 characters').max(50000),
   language: z.enum(['en', 'he', 'fr']),
   verificationToken: z.string().optional(), // Token from OTP verification
-}).refine(
-  (data) => {
-    // At least one contact method (phone or email) must be provided
-    const hasPhone = data.phone && data.phone.trim() !== '';
-    const hasEmail = data.email && data.email.trim() !== '';
-    return hasPhone || hasEmail;
-  },
-  {
-    message: 'Either phone number or email address is required',
-    path: ['phone'], // This will show the error on the phone field
-  }
-);
+});
 
 export const verificationRequestSchema = z.object({
   phone: z

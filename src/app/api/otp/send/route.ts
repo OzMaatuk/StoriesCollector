@@ -4,11 +4,9 @@ import { rateLimit } from '@/lib/rate-limit';
 
 const sendOtpSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
-  channel: z
-    .enum(['email', 'sms'])
-    .refine((val) => ['email', 'sms'].includes(val), {
-      message: 'Channel must be either "email" or "sms"',
-    }),
+  channel: z.enum(['email']).refine((val) => val === 'email', {
+    message: 'Channel must be "email"',
+  }),
 });
 
 const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
@@ -37,16 +35,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { recipient, channel } = sendOtpSchema.parse(body);
 
-    if (channel === 'email') {
-      z.string().email('Invalid email format').parse(recipient);
-    } else if (channel === 'sms') {
-      z.string()
-        .regex(
-          /^\+[1-9]\d{1,14}$/,
-          'Invalid phone number format. Use E.164 format (e.g., +1234567890)'
-        )
-        .parse(recipient);
-    }
+    // Validate email format
+    z.string().email('Invalid email format').parse(recipient);
 
     const response = await fetch(`${OTP_SERVICE_URL}/otp/send`, {
       method: 'POST',

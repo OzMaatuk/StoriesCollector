@@ -56,8 +56,8 @@
     "allLanguages": "All Languages",
     "noStories": "No stories found",
     "loadMore": "Load More",
-    "verifiedPhone": "Verified",
-    "unverifiedPhone": "Unverified",
+    "verifiedEmail": "Verified",
+    "unverifiedEmail": "Unverified",
     "readMore": "Read More"
   },
   "validation": {

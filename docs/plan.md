@@ -4,10 +4,10 @@ A simple, secure, and multilingual web application for collecting and displaying
 
 ## 🌟 Features
 - 📝 **Story submission form**  
-  - Required: `name`, `phone`  
+  - Required: `name`, `email`  
   - Optional: `email`, `city`, `country`, `teller background`, `story background`, `title`, `content`  
 - 🌐 **Multi-language UI** (English 🇬🇧, Hebrew 🇮🇱 with RTL, French 🇫🇷)  
-- 📱 **Phone verification** using **TextBee** SMS gateway (external service)  
+- � **Email verification** using external OTP service  
 - 🧾 **Scrollable stories page** with a clean, responsive UI  
 - 🧰 **Secure, stable, maintainable** architecture (validation, sanitization, rate limiting, CSRF/XSS protection)
 
@@ -15,22 +15,22 @@ A simple, secure, and multilingual web application for collecting and displaying
 - **Frontend:** Next.js (React) + TypeScript + Tailwind CSS  
 - **Backend/API:** Next.js API Routes or Express/NestJS  
 - **Database:** Postgres (Railway or other) + Prisma ORM  
-- **OTP / SMS Service:** TextBee (via its REST API) + Redis (for temporary OTP state)  
+- **OTP / Email Service:** External OTP service for email verification  
 - **Testing:** Playwright (E2E, UI)  
 - **CI/CD:** GitHub Actions  
 - **Deployment:** Netlify (frontend/API) + Railway (DB & optional backend)  
 
 ## 🔐 Security & Quality
-- E.164 phone validation and OTP with short TTL  
+- Email validation and OTP with short TTL  
 - Sanitized story content (XSS-safe)  
 - CSRF protection, input validation, rate limiting  
 - Prisma migrations, structured logging, error monitoring  
 - Automated tests (unit, integration, E2E)
 
 ## 🧾 API Overview
-- `POST /api/phone/request` – Request OTP via TextBee  
-- `POST /api/phone/verify` – Verify OTP and issue short-lived server-side token or mark phone verified  
-- `POST /api/stories` – Submit story (phone must already be verified)  
+- `POST /api/otp/send` – Request OTP via email
+- `POST /api/otp/verify` – Verify OTP and issue short-lived server-side token or mark email verified
+- `POST /api/stories` – Submit story (email must already be verified)  
 - `GET /api/stories` – List stories (load more)  
 - `GET /api/stories/:id` – Get story detail
 
@@ -39,7 +39,7 @@ A simple, secure, and multilingual web application for collecting and displaying
 model Story {
   id               String   @id @default(uuid())
   name             String
-  phone            String
+  email           String
   email            String?
   city             String?
   country          String?
@@ -48,7 +48,7 @@ model Story {
   title            String?
   content          String
   language         String
-  verifiedPhone    Boolean  @default(false)
+  verifiedEmail   Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -90,27 +90,6 @@ TEXTBEE_DEVICE_ID=your_textbee_device_id  # the Android device ID registered in 
 OTP_CODE_TTL_SECONDS=300     # e.g. 300 seconds (5 min)
 OTP_MAX_ATTEMPTS=5           # optional: max tries per request
 ```
-
-### 🔑 Notes on TextBee
-
-* TextBee is an open-source SMS gateway that lets you turn an Android device into an SMS sending gateway via a REST API. ([TextBee][1])
-* To send SMS, make a REST call like:
-
-  ```js
-  await axios.post(
-    `${TEXTBEE_BASE_URL}/gateway/devices/${TEXTBEE_DEVICE_ID}/send-sms`,
-    {
-      recipients: ["+1234567890"],
-      message: "Your OTP is 123456"
-    },
-    {
-      headers: {
-        "x-api-key": TEXTBEE_API_KEY
-      }
-    }
-  );
-  ```
-* You’ll need to register a device (your Android phone) in your TextBee dashboard, get its `device_id` and your `api_key`.([TextBee][1])
 
 ## 🪄 Keywords / Hotwords
 

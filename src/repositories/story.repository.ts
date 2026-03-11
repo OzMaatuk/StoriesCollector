@@ -7,8 +7,8 @@ export class StoryRepository {
     const story = await prisma.story.create({
       data: {
         name: data.name,
-        phone: data.phone,
-        email: data.email || null,
+        phone: data.phone || null,
+        email: data.email,
         city: data.city || null,
         country: data.country || null,
         tellerBackground: data.tellerBackground || null,
@@ -16,7 +16,7 @@ export class StoryRepository {
         title: data.title || null,
         content: data.content,
         language: data.language,
-        verifiedPhone: data.verifiedPhone ?? false,
+        verifiedEmail: data.verifiedEmail ?? false,
       },
     });
     return story;
@@ -54,7 +54,7 @@ export class StoryRepository {
   async updateVerificationStatus(id: string, verified: boolean): Promise<Story> {
     return await prisma.story.update({
       where: { id },
-      data: { verifiedPhone: verified },
+      data: { verifiedEmail: verified },
     });
   }
 }

@@ -56,9 +56,9 @@ export default async function SubmitPage({ params }: PageProps) {
                 </p>
               )}
             </div>
-            {story.verifiedPhone && (
+            {story.verifiedEmail && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-20">
-                ✓ {translations.stories.verifiedPhone}
+                ✓ {translations.stories.verifiedEmail}
               </span>
             )}
           </div>

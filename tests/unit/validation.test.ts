@@ -23,7 +23,7 @@ describe('Validation Schemas', () => {
     it('should validate a minimal valid story', () => {
       const minimalStory = {
         name: 'John Doe',
-        phone: '+1234567890',
+        email: 'john@example.com',
         content: 'This is my story.',
         language: 'en',
       };

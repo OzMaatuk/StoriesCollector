@@ -55,16 +55,16 @@ describe('External OTP Service Integration', () => {
     it('should verify valid JWT tokens with environment secret', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
       const payload: JwtPayload = {
-        recipient: '+1234567890',
-        channel: 'sms',
+        recipient: 'test@example.com',
+        channel: 'email',
       };
 
       const token = await createTestToken(payload, secret);
       const result = await verifyToken(token);
 
       expect(result).toEqual({
-        recipient: '+1234567890',
-        channel: 'sms',
+        recipient: 'test@example.com',
+        channel: 'email',
       });
     });
 
@@ -76,8 +76,8 @@ describe('External OTP Service Integration', () => {
     it('should return null for tokens with invalid signature', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
       const payload: JwtPayload = {
-        recipient: '+1234567890',
-        channel: 'sms',
+        recipient: 'test@example.com',
+        channel: 'email',
       };
 
       const token = await createTestToken(payload, secret);

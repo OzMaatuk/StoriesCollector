@@ -21,7 +21,7 @@ prompt.md
 > * UI/UX designed for multilingual support (English 🇬🇧, Hebrew 🇮🇱, French 🇫🇷).
 > * Story submission form + scrollable public stories listing page.
 > * Clean responsive layout with RTL support for Hebrew.
-> * Authentication-free, but phone verification is required before submission (integration with external verification microservice).
+> * Authentication-free, but email verification is required before submission (integration with external verification microservice).
 >
 > ### 🧰 Non-Functional Requirements
 >
@@ -55,9 +55,9 @@ prompt.md
 >
 > * Guest can submit a story with:
 >
->   * Required fields: name, phone
+>   * Required fields: name, email
 >   * Optional fields: email, city, country, teller background, story background, title, content
-> * Story submission blocked until phone number is verified via external microservice API.
+> * Story submission blocked until email address is verified via external microservice API.
 > * Stories saved with:
 >
 >   * Sanitized content

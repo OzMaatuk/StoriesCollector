@@ -6,8 +6,11 @@ test.describe('Story Submission Flow', () => {
 
     // Fill in required fields
     await page.fill('input[name="name"]', 'Test User');
-    await page.fill('input[name="phone"]', '+1234567890');
-    await page.fill('textarea[name="content"]', 'This is a test story with enough content to pass validation.');
+    await page.fill('input[name="email"]', 'test@example.com');
+    await page.fill(
+      'textarea[name="content"]',
+      'This is a test story with enough content to pass validation.'
+    );
 
     // Submit the form
     await page.click('button[type="submit"]');
@@ -27,16 +30,16 @@ test.describe('Story Submission Flow', () => {
     await expect(nameInput).toHaveAttribute('required');
   });
 
-  test('should validate phone number format', async ({ page }) => {
+  test('should validate email format', async ({ page }) => {
     await page.goto('/en/submit');
 
     await page.fill('input[name="name"]', 'Test User');
-    await page.fill('input[name="phone"]', '123'); // Invalid phone
+    await page.fill('input[name="email"]', 'invalid-email'); // Invalid email
     await page.fill('textarea[name="content"]', 'This is a test story.');
 
     await page.click('button[type="submit"]');
 
-    // Check for phone validation error
-    await expect(page.locator('text=/Invalid phone/')).toBeVisible({ timeout: 5000 });
+    // Check for email validation error
+    await expect(page.locator('text=/Invalid email/')).toBeVisible({ timeout: 5000 });
   });
 });
