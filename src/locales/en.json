@@ -49,7 +49,9 @@
     "submitSuccess": "Thank you! Your story has been submitted successfully.",
     "submitError": "Something went wrong. Please try again.",
     "contactInfo": "Contact Information",
-    "contactInfoHint": "Please provide either an email address or phone number for verification. Email is preferred."
+    "contactInfoHint": "Please provide either an email address or phone number for verification.",
+    "contactVerified": "Contact verified! Please complete your story submission.",
+    "provideContact": "Fill out the form and apply the verification code before submitting your story."
   },
   "stories": {
     "title": "All Stories",

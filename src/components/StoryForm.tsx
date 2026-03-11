@@ -303,9 +303,9 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
         <h2 className="text-2xl font-bold mb-6">{translations.form.title}</h2>
         <p className="text-sm text-gray-600 mb-6">
           {otpStep === 'verified' ? (
-            <>Contact verified! Please complete your story submission.</>
+            <>{translations.form.contactVerified}</>
           ) : (
-            <>Please provide either an email address or phone number for verification.</>
+            <>{translations.form.provideContact}</>
           )}
         </p>
 

@@ -49,7 +49,9 @@
     "submitSuccess": "Merci! Votre histoire a été soumise avec succès.",
     "submitError": "Une erreur s'est produite. Veuillez réessayer.",
     "contactInfo": "Informations de Contact",
-    "contactInfoHint": "Veuillez fournir une adresse email ou un numéro de téléphone pour vérification. L'email est préféré."
+    "contactInfoHint": "Veuillez fournir une adresse email ou un numéro de téléphone pour vérification.",
+    "contactVerified": "Contact vérifié ! Veuillez compléter votre soumission d'histoire.",
+    "provideContact": "Remplissez le formulaire et appliquez le code de vérification avant de soumettre votre histoire."
   },
   "stories": {
     "title": "Toutes les Histoires",
