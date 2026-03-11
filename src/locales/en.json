@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Stories Collector",
+    "appName": "Likutei Nesiyot",
     "language": "Language",
     "submit": "Submit",
     "cancel": "Cancel",
@@ -18,9 +18,19 @@
     "submit": "Share Your Story"
   },
   "home": {
-    "title": "Welcome to Stories Collector",
-    "subtitle": "Share your story with the world",
-    "description": "A platform for collecting and sharing meaningful stories from people around the globe.",
+    "title": "Welcome to Likutei Nesiyot",
+    "subtitle": "Share your uman stories with the world",
+    "description": "A platform for collecting and sharing stories from trips to the Tzadik, with the focus on the trips to Rosh Hashanah. Everyone who travels to our Rabbi sometimes goes through upheavals, obstacles, miracles and trials, even with our Rabbi in the Tziun or as part of a visit to Uman. These are your invitations to share your stories with everyone, to strengthen people and to publicize the Tzadik. Feel free to write in any way you want, as long as it is respectful and not offensive. God willing, without a vow, in the future this collection of stories will become a book that will be distributed as part of our Rabbi's activities around the world. There is no need for writing talent or effort to write in a beautiful and interesting way because artificial intelligence tools will be integrated in the future to improve your writing experience and product. But most importantly, it is to maintain credibility, authenticity, and avoid publishing content that does not belong to the site and the purpose.",
+    "whatIsThis": "What is This?",
+    "descriptionPart1": "A platform for collecting and sharing stories from trips to the Tzadik. Whether it's a journey to Rosh Hashanah or a pilgrimage to our Rabbi's grave in Uman, every traveler experiences miracles, obstacles, and spiritual awakenings. This is a sacred space for sharing those transformative experiences with our community.",
+    "yourInvitation": "Your Invitation",
+    "descriptionPart2": "We invite you to share your personal journey and stories. Help strengthen others through your experiences and spread awareness of the Tzadik's blessings around the world. Your unique perspective and authentic voice matter deeply to our community.",
+    "guidelines": "How to Share",
+    "guideWrite": "Write freely in any way you feel comfortable – there's no need for perfect writing.",
+    "guideRespect": "Keep your story respectful, authentic, and relevant to the community's purpose.",
+    "guideAuthentic": "Focus on truth and authenticity; this helps maintain the integrity of our collection.",
+    "futureVision": "Our Vision",
+    "descriptionPart3": "With God's will, this collection of stories will eventually become a published book shared with communities worldwide as part of our Rabbi's mission. AI tools will be integrated to enhance and refine your stories, but the most important thing is maintaining the credibility, authenticity, and spiritual value of your personal narrative.",
     "cta": "Share Your Story",
     "viewStories": "View Stories"
   },

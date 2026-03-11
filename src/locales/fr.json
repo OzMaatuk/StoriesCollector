@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Collecteur d'Histoires",
+    "appName": "Likutei Nesiyot",
     "language": "Langue",
     "submit": "Soumettre",
     "cancel": "Annuler",
@@ -18,9 +18,19 @@
     "submit": "Partagez Votre Histoire"
   },
   "home": {
-    "title": "Bienvenue sur Collecteur d'Histoires",
-    "subtitle": "Partagez votre histoire avec le monde",
-    "description": "Une plateforme pour collecter et partager des histoires significatives de personnes du monde entier.",
+    "title": "Bienvenue sur Likutei Nesiyot",
+    "subtitle": "Partagez votre uman histoire avec le monde",
+    "description": "Une plateforme pour recueillir et partager des récits de voyages auprès du Tsadik, en particulier lors de Rosh Hashanah. Quiconque se rend auprès de notre Rabbi traverse parfois des bouleversements, des obstacles, des miracles et des épreuves, que ce soit à Tziun ou lors d'une visite à Ouman. Nous vous invitons à partager vos histoires afin de fortifier les autres et de faire connaître le Tsadik. Écrivez librement, dans le respect et la bienveillance. Si Dieu le veut, et sans engagement, ce recueil deviendra un jour un livre qui sera diffusé lors des activités de notre Rabbi à travers le monde. Nul besoin d'être un grand écrivain : des outils d'intelligence artificielle seront intégrés ultérieurement pour améliorer votre expérience. L'essentiel est de préserver la crédibilité et l'authenticité de vos récits et de ne publier que des contenus pertinents.",
+    "whatIsThis": "Qu'est-ce que c'est?",
+    "descriptionPart1": "Une plateforme pour recueillir et partager des récits de voyages auprès du Tsadik. Qu'il s'agisse d'un pèlerinage à Rosh Hashanah ou d'une visite à la tombe de notre Rabbi à Ouman, chaque voyageur vit des miracles, des obstacles et des réveils spirituels. C'est un espace sacré pour partager ces expériences transformatrices avec notre communauté.",
+    "yourInvitation": "Votre Invitation",
+    "descriptionPart2": "Nous vous invitons à partager votre voyage personnel et vos histoires. Aidez à renforcer les autres par vos expériences et à sensibiliser à l'importance du Tsadik dans le monde. Votre perspective unique et votre voix authentique sont précieuses pour notre communauté.",
+    "guidelines": "Comment Partager",
+    "guideWrite": "Écrivez librement de la manière qui vous convient le mieux – une écriture parfaite n'est pas nécessaire.",
+    "guideRespect": "Gardez votre histoire respectueuse, authentique et pertinente pour la communauté.",
+    "guideAuthentic": "Concentrez-vous sur la vérité et l'authenticité ; cela maintient l'intégrité de notre collection.",
+    "futureVision": "Notre Vision",
+    "descriptionPart3": "Avec la volonté de Dieu, ce recueil d'histoires deviendra finalement un livre publié et partagé avec des communautés du monde entier dans le cadre de la mission de notre Rabbi. Des outils d'IA seront intégrés pour améliorer vos histoires, mais le plus important reste de maintenir la crédibilité, l'authenticité et la valeur spirituelle de votre récit personnel.",
     "cta": "Partagez Votre Histoire",
     "viewStories": "Voir les Histoires"
   },

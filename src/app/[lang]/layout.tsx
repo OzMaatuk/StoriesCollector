@@ -43,7 +43,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
 
   return (
     <html lang={safeLang} dir={dir} suppressHydrationWarning>
-      <body className="min-h-screen bg-gray-50" suppressHydrationWarning>
+      <body className="flex flex-col min-h-screen bg-gray-50" suppressHydrationWarning>
         <nav className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
@@ -77,9 +77,11 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+        <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+          {children}
+        </main>
 
-        <footer className="bg-white border-t border-gray-200 mt-12">
+        <footer className="bg-white border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <p className="text-center text-gray-600 text-sm">
               © 2024 {translations.common.appName}

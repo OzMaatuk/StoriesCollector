@@ -27,46 +27,78 @@ export default async function HomePage({ params }: PageProps) {
   }
 
   return (
-    <div className="text-center space-y-8">
-      <div className="space-y-4">
-        <h1 className="text-5xl font-bold text-gray-900">{translations.home.title}</h1>
-        <p className="text-xl text-gray-600">{translations.home.subtitle}</p>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">{translations.home.description}</p>
+    <div className="space-y-12">
+      {/* Hero Section */}
+      <div className="text-center space-y-3 pb-8">
+        <div className="space-y-4">
+          <h1 className="text-6xl md:text-7xl font-black text-primary-600 drop-shadow-lg tracking-tight leading-tight">
+            {translations.home.title}
+          </h1>
+          <div className="flex justify-center">
+            <div className="h-1 w-24 bg-gradient-to-r from-primary-600 to-primary-700 rounded-full"></div>
+          </div>
+        </div>
+        <p className="text-2xl font-semibold text-gray-700">{translations.home.subtitle}</p>
       </div>
 
-      <div className="flex justify-center space-x-4">
+      {/* Description Sections */}
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* What is this section */}
+        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{translations.home.whatIsThis}</h2>
+          <p className="text-gray-700 leading-relaxed">{translations.home.descriptionPart1}</p>
+        </div>
+
+        {/* Your Invitation section */}
+        <div className="bg-blue-50 rounded-xl p-8 shadow-sm border border-blue-100">
+          <h2 className="text-2xl font-bold text-blue-900 mb-4">
+            {translations.home.yourInvitation}
+          </h2>
+          <p className="text-blue-800 leading-relaxed">{translations.home.descriptionPart2}</p>
+        </div>
+
+        {/* Guidelines section */}
+        <div className="bg-green-50 rounded-xl p-8 shadow-sm border border-green-100">
+          <h2 className="text-2xl font-bold text-green-900 mb-4">{translations.home.guidelines}</h2>
+          <ul className="space-y-3 text-green-800">
+            <li className="flex items-start gap-3">
+              <span className="text-green-600 font-bold mt-1">✓</span>
+              <span className="leading-relaxed">{translations.home.guideWrite}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-green-600 font-bold mt-1">✓</span>
+              <span className="leading-relaxed">{translations.home.guideRespect}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-green-600 font-bold mt-1">✓</span>
+              <span className="leading-relaxed">{translations.home.guideAuthentic}</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Future Vision section */}
+        <div className="bg-purple-50 rounded-xl p-8 shadow-sm border border-purple-100">
+          <h2 className="text-2xl font-bold text-purple-900 mb-4">
+            {translations.home.futureVision}
+          </h2>
+          <p className="text-purple-800 leading-relaxed">{translations.home.descriptionPart3}</p>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-center gap-4 flex-wrap pt-8">
         <Link
           href={`/${lang}/submit`}
-          className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium text-lg"
+          className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors font-semibold text-lg shadow-md hover:shadow-lg"
         >
           {translations.home.cta}
         </Link>
         <Link
           href={`/${lang}/stories`}
-          className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg hover:bg-primary-50 transition-colors font-medium text-lg"
+          className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg hover:bg-primary-50 transition-colors font-semibold text-lg shadow-md"
         >
           {translations.home.viewStories}
         </Link>
-      </div>
-
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">Write</div>
-          <h3 className="text-lg font-semibold mb-2">Share Your Story</h3>
-          <p className="text-gray-600">Submit your personal experiences and connect with others</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">Globe</div>
-          <h3 className="text-lg font-semibold mb-2">Multilingual Support</h3>
-          <p className="text-gray-600">Read and write stories in English, Hebrew, or French</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <div className="text-4xl mb-4">Lock</div>
-          <h3 className="text-lg font-semibold mb-2">Secure & Private</h3>
-          <p className="text-gray-600">
-            Your information is protected with industry-standard security
-          </p>
-        </div>
       </div>
     </div>
   );
