@@ -8,6 +8,7 @@ const nextConfig = {
   experimental: {
     optimizeCss: false,
   },
+  output: 'standalone',
   async headers() {
     return [
       {

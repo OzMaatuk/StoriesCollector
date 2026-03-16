@@ -534,7 +534,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
 
         <button
           type="submit"
-          disabled={loading || (otpStep === 'form' && !formData.email && !formData.phone)}
+          disabled={loading || (otpStep === 'form' && !formData.email)}
           className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
         >
           {loading

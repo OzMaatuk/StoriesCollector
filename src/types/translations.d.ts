@@ -43,5 +43,7 @@ export interface Translations {
     storyTitlePlaceholder: string;
     content: string;
     contentPlaceholder: string;
+    contactVerified: string;
+    provideContact: string;
   };
 }

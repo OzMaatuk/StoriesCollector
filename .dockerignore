@@ -3,13 +3,18 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# Allow lock file
+!package-lock.json
 
 # Testing
 coverage
 .nyc_output
 test-results
 playwright-report
+tests/
+jest.config.js
+jest.setup.js
+playwright.config.ts
 
 # Next.js
 .next/
@@ -17,10 +22,10 @@ out/
 build/
 dist/
 
-# Development
-.env*.local
-.env.development
-.env.test
+# Environment - be explicit, never copy secrets
+.env
+.env.*
+!.env.example
 
 # Dev Container
 .devcontainer
@@ -40,15 +45,36 @@ Thumbs.db
 .git
 .gitignore
 .gitattributes
+.gitmodules
 
 # Documentation
 *.md
 docs/
+prompt.md
 
 # CI/CD
 .github
 
-# Misc
+# Linting / Formatting (not needed at runtime)
 .prettierrc
+.prettierignore
 .eslintrc.json
+eslint.config.mjs
 .editorconfig
+
+# TypeScript source maps (optional, reduces image size)
+**/*.map
+
+# Docker files themselves
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Temp files
+tmp/
+temp/
+.swc/

@@ -321,10 +321,7 @@ npm start
 docker build -t stories-collector:latest .
 
 # Run container
-docker run -p 3000:3000 \
-  -e DATABASE_URL="your_connection_string" \
-  -e JWT_SECRET="your_secret" \
-  stories-collector:latest
+docker run -p 3000:3000 --env-file .env stories-collector:latest
 ```
 
 ### 🤝 Contributing

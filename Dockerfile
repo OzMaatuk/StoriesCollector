@@ -1,42 +1,45 @@
 # syntax=docker/dockerfile:1
 ARG NODE_VERSION=20
 
-FROM node:${NODE_VERSION}-alpine AS base
+# ── Stage 1: deps + build ──────────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS builder
+
 RUN npm install -g npm@latest
 WORKDIR /workspace
 
-# Install OpenSSL (required for Prisma on Alpine)
 RUN apk add --no-cache openssl
 
-# Copy package files
 COPY package*.json ./
-
-# Copy Prisma schema BEFORE running generate
 COPY prisma ./prisma
 
-# Manually run prisma generate (bypass postinstall issues)
+# Install ALL deps (dev included) for build
+RUN npm ci
+
+RUN npm install @prisma/client@6
 RUN npx prisma generate
 
-# Install ONLY production dependencies
-# --omit=dev skips dev deps, but postinstall still runs
-# RUN npm ci --omit=dev --ignore-scripts
-RUN npm ci --omit=dev --ignore-scripts
-
-WORKDIR /workspace/src/app
+COPY . .
 RUN npm run build
 
-# Copy built app (from your build process)
-# Adjust path if your build output is different
-# COPY dist ./dist
+# ── Stage 2: production image ──────────────────────────────────────
+FROM node:${NODE_VERSION}-alpine AS runner
 
-# Optional: Copy other necessary files
-# COPY .env.production ./.env
+RUN apk add --no-cache openssl
+
+WORKDIR /workspace
+
+# Copy only what's needed to run
+COPY --from=builder /workspace/package*.json ./
+COPY --from=builder /workspace/node_modules ./node_modules
+COPY --from=builder /workspace/.next ./.next
+COPY --from=builder /workspace/prisma ./prisma
+
+# Install only production deps in the clean stage
+RUN npm ci --omit=dev
 
 ENV NODE_ENV=production \
     PRISMA_CLIENT_ENGINE_TYPE=binary
 
 USER node
-
 EXPOSE 3000
-
-CMD ["node", "dist/index.js"]
+CMD ["npm", "start"]

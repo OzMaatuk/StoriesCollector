@@ -54,11 +54,9 @@ networks:
     # external: true
     name: dev_network
     driver: bridge
-    enable_ipv6: true
     ipam:
       config:
         - subnet: 172.21.0.0/16
-        - subnet: fd01::/80
 
 volumes:
   postgres_dev_data:
