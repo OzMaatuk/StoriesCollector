@@ -61,7 +61,8 @@
     "contactInfo": "Informations de Contact",
     "contactInfoHint": "Veuillez fournir une adresse email ou un numéro de téléphone pour vérification.",
     "contactVerified": "Contact vérifié ! Veuillez compléter votre soumission d'histoire.",
-    "provideContact": "Remplissez le formulaire et appliquez le code de vérification avant de soumettre votre histoire."
+    "provideContact": "Remplissez le formulaire et appliquez le code de vérification avant de soumettre votre histoire.",
+    "noEditAfterSubmit": "Veuillez relire votre histoire attentivement. Une fois soumise, elle ne pourra plus être modifiée."
   },
   "stories": {
     "title": "Toutes les Histoires",

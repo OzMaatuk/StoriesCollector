@@ -45,5 +45,6 @@ export interface Translations {
     contentPlaceholder: string;
     contactVerified: string;
     provideContact: string;
+    noEditAfterSubmit: string;
   };
 }

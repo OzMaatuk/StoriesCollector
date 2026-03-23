@@ -61,7 +61,8 @@
     "contactInfo": "Contact Information",
     "contactInfoHint": "Please provide either an email address or phone number for verification.",
     "contactVerified": "Contact verified! Please complete your story submission.",
-    "provideContact": "Fill out the form and apply the verification code before submitting your story."
+    "provideContact": "Fill out the form and apply the verification code before submitting your story.",
+    "noEditAfterSubmit": "Please review your story carefully. Once submitted, it cannot be edited."
   },
   "stories": {
     "title": "All Stories",

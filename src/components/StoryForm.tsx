@@ -261,7 +261,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="Enter 6-digit code"
               maxLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center text-2xl tracking-widest"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest"
             />
           </div>
 
@@ -269,7 +269,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
             <button
               type="submit"
               disabled={otpLoading || otpCode.length !== 6}
-              className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+              className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors cursor-pointer"
             >
               {otpLoading ? 'Verifying...' : 'Verify Code'}
             </button>
@@ -287,7 +287,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
               type="button"
               onClick={handleSendOtp}
               disabled={otpLoading}
-              className="text-sm text-primary-600 hover:text-primary-700 disabled:opacity-50"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-50"
             >
               Resend Code
             </button>
@@ -308,6 +308,12 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
             <>{translations.form.provideContact}</>
           )}
         </p>
+
+        {otpStep === 'verified' && (
+          <div className="mb-6 p-3 bg-amber-50 border border-amber-300 rounded-lg">
+            <p className="text-sm text-amber-800">{translations.form.noEditAfterSubmit}</p>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -535,7 +541,7 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
         <button
           type="submit"
           disabled={loading || (otpStep === 'form' && !formData.email)}
-          className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors"
+          className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 active:bg-blue-800 active:shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-colors cursor-pointer"
         >
           {loading
             ? translations.common.loading
