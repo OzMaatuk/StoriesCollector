@@ -89,13 +89,13 @@ export default async function HomePage({ params }: PageProps) {
       <div className="flex justify-center gap-4 flex-wrap pt-8">
         <Link
           href={`/${lang}/submit`}
-          className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors font-semibold text-lg shadow-md hover:shadow-lg"
+          className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-3 rounded-lg hover:bg-blue-50 active:bg-blue-100 transition-colors font-semibold text-lg shadow-md"
         >
           {translations.home.cta}
         </Link>
         <Link
           href={`/${lang}/stories`}
-          className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-3 rounded-lg hover:bg-primary-50 transition-colors font-semibold text-lg shadow-md"
+          className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-3 rounded-lg hover:bg-blue-50 active:bg-blue-100 transition-colors font-semibold text-lg shadow-md"
         >
           {translations.home.viewStories}
         </Link>
