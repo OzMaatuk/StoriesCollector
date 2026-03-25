@@ -51,10 +51,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(
-      { error: 'Failed to create story' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create story' }, { status: 500 });
   }
 }
 
@@ -65,14 +62,13 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
     const language = searchParams.get('language') || undefined;
 
+    console.log('[DEBUG] Attempting DB query...');
     const result = await storyService.getStories({ page, pageSize, language });
+    console.log('[DEBUG] Query done');
 
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching stories:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch stories' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch stories' }, { status: 500 });
   }
 }
