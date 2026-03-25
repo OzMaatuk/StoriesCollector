@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ recipient, channel }),
+      signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minutes
     });
 
     if (!response.ok) {
