@@ -1,25 +1,19 @@
-import DOMPurify from 'isomorphic-dompurify';
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, '');
+}
+
+function stripHtmlAllowBasic(input: string): string {
+  return input.replace(/<(?!\/?(?:p|br|strong|em|u)(?:\s|\/?>))[^>]*>/gi, '');
+}
 
 export function sanitizeString(input: string | undefined | null): string | undefined {
   if (!input) return undefined;
-
-  // Remove any HTML tags and sanitize
-  const sanitized = DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-  });
-
-  // Trim whitespace
-  return sanitized.trim() || undefined;
+  return stripHtml(input).trim() || undefined;
 }
 
 export function sanitizeContent(content: string | undefined | null): string | undefined {
-  // Allow basic formatting for story content
   if (!content) return undefined;
-  return DOMPurify.sanitize(content, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u'],
-    ALLOWED_ATTR: [],
-  });
+  return stripHtmlAllowBasic(content).trim() || undefined;
 }
 
 export function sanitizeStoryInput(
