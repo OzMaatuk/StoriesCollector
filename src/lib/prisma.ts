@@ -9,7 +9,6 @@ const databaseUrl = process.env.DATABASE_URL;
 if (databaseUrl) {
   // eslint-disable-next-line no-console
   console.log('[Prisma] DATABASE_URL is set');
-  console.log('[DEBUG] DB URL:', process.env.DATABASE_URL);
 } else {
   console.error('[Prisma] DATABASE_URL is not set!');
 }
