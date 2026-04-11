@@ -33,7 +33,7 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
             {story.title ? (
               <>
                 <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{story.title}</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-800">
                   By {story.name}
                   {story.city && story.country && ` • ${story.city}, ${story.country}`}
                 </p>
@@ -43,7 +43,7 @@ export default function StoryCard({ story, lang, translations }: StoryCardProps)
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                   {story.content}
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-800">
                   By {story.name}
                   {story.city && story.country && ` • ${story.city}, ${story.country}`}
                 </p>
