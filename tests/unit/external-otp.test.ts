@@ -51,6 +51,12 @@ async function createTestToken(payload: JwtPayload, secret: string): Promise<str
 }
 
 describe('External OTP Service Integration', () => {
+  beforeAll(() => {
+    if (!process.env.JWT_SECRET) {
+      process.env.JWT_SECRET = 'your-secret-key';
+    }
+  });
+
   describe('JWT Token Verification', () => {
     it('should verify valid JWT tokens with environment secret', async () => {
       const secret = process.env.JWT_SECRET || 'your-secret-key';
