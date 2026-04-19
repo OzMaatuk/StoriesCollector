@@ -23,13 +23,37 @@ export class StoryRepository {
   }
 
   async findById(id: string): Promise<Story | null> {
-    const story = await prisma.story.findUnique({
-      where: { id },
-      include: {
-        generatedContent: true,
-      },
-    });
-    return story as Story | null;
+    try {
+      const story = await prisma.story.findUnique({
+        where: { id },
+        include: {
+          generatedContent: true,
+        },
+      });
+
+      if (!story) return null;
+
+      // Ensure we return a plain object that can be serialized across the server/client boundary
+      return JSON.parse(JSON.stringify(story)) as Story;
+    } catch (error) {
+      console.error('Error fetching story with enrichment:', error);
+      
+      // Fallback: Try to fetch the story without the enrichment relation 
+      // in case the database table or relation doesn't exist (old data structure)
+      try {
+        const story = await prisma.story.findUnique({
+          where: { id },
+        });
+        
+        if (!story) return null;
+        
+        // Return without generatedContent if we couldn't fetch it
+        return JSON.parse(JSON.stringify(story)) as Story;
+      } catch (fallbackError) {
+        console.error('Fatal error fetching story:', fallbackError);
+        return null;
+      }
+    }
   }
 
   async createGeneratedContent(data: {

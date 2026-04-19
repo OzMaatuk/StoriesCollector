@@ -25,7 +25,7 @@ export default async function StoryPage({ params }: PageProps) {
     notFound();
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat(lang, {
       year: 'numeric',
       month: 'long',
