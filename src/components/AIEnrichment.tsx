@@ -44,35 +44,11 @@ export default function AIEnrichment({
 
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">
-        {translations.stories.aiEnrichmentTitle}
-      </h2>
+      <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          {translations.stories.aiEnrichmentTitle}
+        </h2>
 
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg shadow-sm group transition-all duration-300 hover:shadow-md">
-        <div className="flex items-start">
-          <div className="flex-shrink-0 pt-0.5">
-            <svg
-              className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-800 leading-relaxed font-medium italic">
-              {translations.stories.aiEnrichmentDescription}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-primary-50 rounded-lg p-6 border border-primary-100">
         {content?.status === 'pending' || isLoading ? (
           <div className="flex items-center space-x-3 text-primary-700">
             <svg
@@ -107,7 +83,7 @@ export default function AIEnrichment({
               <div className="whitespace-pre-wrap">{content?.generatedText || ''}</div>
             </div>
             {content && (
-              <div className="pt-4 mt-4 border-t border-primary-200 text-sm text-primary-600 italic">
+              <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
                 {translations.stories.aiProducedBy}
               </div>
             )}
