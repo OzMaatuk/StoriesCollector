@@ -21,6 +21,7 @@ export interface Translations {
     aiEnrichmentPending: string;
     aiEnrichmentFailed: string;
     aiProducedBy: string;
+    aiEnrichmentDescription: string;
   };
   form: {
     contactInfo: ReactNode;
