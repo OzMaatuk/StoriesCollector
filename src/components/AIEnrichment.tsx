@@ -41,7 +41,6 @@ export default function AIEnrichment({
     return () => clearInterval(pollInterval);
   }, [storyId, content?.status]);
 
-  if (!content && !isLoading) return null;
 
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
@@ -105,11 +104,13 @@ export default function AIEnrichment({
         ) : (
           <div className="space-y-4">
             <div className="prose prose-primary max-w-none text-gray-800">
-              <div className="whitespace-pre-wrap">{content?.generatedText}</div>
+              <div className="whitespace-pre-wrap">{content?.generatedText || ''}</div>
             </div>
-            <div className="pt-4 mt-4 border-t border-primary-200 text-sm text-primary-600 italic">
-              {translations.stories.aiProducedBy}
-            </div>
+            {content && (
+              <div className="pt-4 mt-4 border-t border-primary-200 text-sm text-primary-600 italic">
+                {translations.stories.aiProducedBy}
+              </div>
+            )}
           </div>
         )}
       </div>

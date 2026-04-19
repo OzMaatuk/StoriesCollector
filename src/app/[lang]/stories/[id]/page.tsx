@@ -14,7 +14,7 @@ interface PageProps {
   params: Promise<{ lang: Language; id: string }>;
 }
 
-export default async function SubmitPage({ params }: PageProps) {
+export default async function StoryPage({ params }: PageProps) {
   const { lang, id } = await params;
   const translationsMap: Record<Language, Translations> = { en, fr, he };
   const translations = translationsMap[lang] ?? en;

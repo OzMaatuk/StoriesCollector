@@ -29,7 +29,7 @@ export class StoryRepository {
         generatedContent: true,
       },
     });
-    return story as any; // Cast as any because the Story type in types/index.ts doesn't have generatedContent yet
+    return story as Story | null;
   }
 
   async createGeneratedContent(data: {
