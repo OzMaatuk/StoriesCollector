@@ -71,7 +71,12 @@
     "loadMore": "טען עוד",
     "verifiedEmail": "מאומת",
     "unverifiedEmail": "לא מאומת",
-    "readMore": "קרא עוד"
+    "readMore": "קרא עוד",
+    "aiEnrichmentTitle": "סיכום והעשרה ע\"י בינה מלאכותית",
+    "aiEnrichmentPending": "מייצר תוכן AI...",
+    "aiEnrichmentFailed": "שגיאה ביצירת תוכן AI",
+    "aiProducedBy": "הופק על ידי Dicta AI",
+    "aiEnrichmentDescription": "על פי כתבי רבי נחמן מברסלב, אנו מספרים מחדש את הסיפור בלשונו, תוך הוספת הקשרים ותוספות מתורתו עם הפניה למקור."
   },
   "validation": {
     "required": "שדה זה נדרש",

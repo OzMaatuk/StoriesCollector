@@ -8,6 +8,7 @@ import en from '@/locales/en.json';
 import he from '@/locales/he.json';
 import fr from '@/locales/fr.json';
 import { Translations } from '@/types/translations';
+import AIEnrichment from '@/components/AIEnrichment';
 
 interface PageProps {
   params: Promise<{ lang: Language; id: string }>;
@@ -87,6 +88,12 @@ export default async function SubmitPage({ params }: PageProps) {
           <div className="prose prose-lg max-w-none">
             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{story.content}</div>
           </div>
+
+          <AIEnrichment
+            storyId={story.id}
+            initialContent={story.generatedContent}
+            translations={translations}
+          />
         </div>
 
         {/* Footer */}

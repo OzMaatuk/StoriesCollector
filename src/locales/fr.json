@@ -71,7 +71,12 @@
     "loadMore": "Charger Plus",
     "verifiedEmail": "Vérifié",
     "unverifiedEmail": "Non vérifié",
-    "readMore": "Lire la Suite"
+    "readMore": "Lire la suite",
+    "aiEnrichmentTitle": "Résumé / Enrichissement généré par l'IA",
+    "aiEnrichmentPending": "Génération de contenu IA...",
+    "aiEnrichmentFailed": "Échec de la génération de contenu IA",
+    "aiProducedBy": "Produit par Dicta AI",
+    "aiEnrichmentDescription": "Selon les écrits de Rabbi Nachman de Breslev, nous racontons l'histoire dans ses propres mots, en ajoutant des contextes et des enseignements de sa pensée avec référence à la source."
   },
   "validation": {
     "required": "Ce champ est obligatoire",

@@ -23,8 +23,43 @@ export class StoryRepository {
   }
 
   async findById(id: string): Promise<Story | null> {
-    return await prisma.story.findUnique({
+    const story = await prisma.story.findUnique({
       where: { id },
+      include: {
+        generatedContent: true,
+      },
+    });
+    return story as any; // Cast as any because the Story type in types/index.ts doesn't have generatedContent yet
+  }
+
+  async createGeneratedContent(data: {
+    storyId: string;
+    providerName: string;
+    modelName: string;
+    status: string;
+  }) {
+    return await prisma.generatedContent.create({
+      data,
+    });
+  }
+
+  async updateGeneratedContent(
+    storyId: string,
+    data: {
+      generatedText?: string;
+      status?: string;
+      errorMessage?: string;
+    }
+  ) {
+    return await prisma.generatedContent.update({
+      where: { storyId },
+      data,
+    });
+  }
+
+  async getGeneratedContentByStoryId(storyId: string) {
+    return await prisma.generatedContent.findUnique({
+      where: { storyId },
     });
   }
 

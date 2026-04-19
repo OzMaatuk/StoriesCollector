@@ -13,6 +13,19 @@ export interface Story {
   verifiedEmail: boolean;
   createdAt: Date;
   updatedAt: Date;
+  generatedContent?: GeneratedContent | null;
+}
+
+export interface GeneratedContent {
+  id: string;
+  storyId: string;
+  providerName: string;
+  modelName: string;
+  generatedText?: string | null;
+  status: 'pending' | 'completed' | 'failed';
+  errorMessage?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface StoryCreateInput {

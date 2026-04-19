@@ -6,6 +6,9 @@ import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
 import { verifyToken } from '@/lib/jwt';
+import { EnrichmentService } from './enrichment.service';
+
+const enrichmentService = new EnrichmentService();
 
 type CreateStoryInput = Record<string, string | undefined>;
 
@@ -45,16 +48,26 @@ export class StoryService {
           email: validated.email,
         };
 
-        return await this.repository.create(storyData);
+        const story = await this.repository.create(storyData);
+        
+        // Trigger enrichment asynchronously
+        void enrichmentService.enrichStory(story);
+
+        return story;
       } else {
         // For backward compatibility, allow stories without verification for now
         // In production, you might want to require verification
-        return await this.repository.create({
+        const story = await this.repository.create({
           ...validated,
           phone: validated.phone ?? '',
           email: validated.email ?? '',
           verifiedEmail: false,
         });
+
+        // Trigger enrichment asynchronously
+        void enrichmentService.enrichStory(story);
+
+        return story;
       }
     } catch (error) {
       if (error instanceof ZodError) {

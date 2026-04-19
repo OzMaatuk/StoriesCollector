@@ -17,6 +17,10 @@ export interface Translations {
     allLanguages: string;
     noStories: string;
     readMore: string;
+    aiEnrichmentTitle: string;
+    aiEnrichmentPending: string;
+    aiEnrichmentFailed: string;
+    aiProducedBy: string;
   };
   form: {
     contactInfo: ReactNode;

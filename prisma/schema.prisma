@@ -23,8 +23,25 @@ model Story {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  generatedContent GeneratedContent?
+
   @@index([language])
   @@index([createdAt])
   @@index([verifiedEmail])
   @@map("stories")
+}
+
+model GeneratedContent {
+  id            String   @id @default(uuid())
+  storyId       String   @unique
+  story         Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  providerName  String   @db.VarChar(100)
+  modelName     String   @db.VarChar(100)
+  generatedText String?  @db.Text
+  status        String   @default("pending") @db.VarChar(20)
+  errorMessage  String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("generated_content")
 }

@@ -11,6 +11,7 @@ A secure, multilingual, and scalable web application for collecting and displayi
 - **JWT Security**: Token-based verification system
 - **Responsive Design**: Mobile-first, accessible UI with Tailwind CSS
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection
+- **AI-Powered Story Enrichment**: Automatically generates summaries and spiritual lessons for uploaded stories.
 
 ## 🧰 Tech Stack
 

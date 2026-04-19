@@ -71,7 +71,12 @@
     "loadMore": "Load More",
     "verifiedEmail": "Verified",
     "unverifiedEmail": "Unverified",
-    "readMore": "Read More"
+    "readMore": "Read More",
+    "aiEnrichmentTitle": "AI Generated Summary / Enrichment",
+    "aiEnrichmentPending": "Generating AI content...",
+    "aiEnrichmentFailed": "Failed to generate AI content",
+    "aiProducedBy": "Produced by Dicta AI",
+    "aiEnrichmentDescription": "According to the writings of Rabbi Nachman of Breslov, we retell the story in his words, including contexts and additions from his teachings with reference to the source."
   },
   "validation": {
     "required": "This field is required",
