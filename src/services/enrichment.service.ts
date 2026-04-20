@@ -62,14 +62,15 @@ export class EnrichmentService {
       });
 
       logger.info(`Successfully enriched story ${story.id}`);
-    } catch (error: any) {
-      logger.error(`Failed to enrich story ${story.id}`, error);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Failed to enrich story ${story.id}`, err);
       
       // Update record with failure
       try {
         await this.repository.updateGeneratedContent(story.id, {
           status: 'failed',
-          errorMessage: error.message,
+          errorMessage: err.message,
         });
       } catch (dbError) {
         logger.error('Failed to update failure status in DB', dbError as Error);

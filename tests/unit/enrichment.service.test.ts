@@ -36,15 +36,19 @@ describe('EnrichmentService', () => {
     process.env.LLM_MODEL_NAME = 'test-model';
 
     service = new EnrichmentService();
-    mockLLMService = (service as any).llmService;
-    mockRepository = (service as any).repository;
+    mockLLMService = (service as unknown as { llmService: LLMService }).llmService as jest.Mocked<LLMService>;
+    mockRepository = (service as unknown as { repository: StoryRepository }).repository as jest.Mocked<StoryRepository>;
   });
 
   it('should successfully enrich a story', async () => {
     const mockedGeneratedText = 'Enriched content from Rabbi Nachman';
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
-    mockRepository.createGeneratedContent.mockResolvedValue({} as any);
-    mockRepository.updateGeneratedContent.mockResolvedValue({} as any);
+    mockRepository.createGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+    );
+    mockRepository.updateGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+    );
 
     await service.enrichStory(mockStory);
 
@@ -69,7 +73,9 @@ describe('EnrichmentService', () => {
   it('should handle LLM failure', async () => {
     const errorMsg = 'API Quota exceeded';
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
-    mockRepository.createGeneratedContent.mockResolvedValue({} as any);
+    mockRepository.createGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+    );
 
     await service.enrichStory(mockStory);
 

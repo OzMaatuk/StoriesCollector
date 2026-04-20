@@ -15,6 +15,12 @@ const compat = new FlatCompat({
 });
 
 export default defineConfig([{
+    ignores: [
+        "coverage/**",
+        ".next/**",
+        "node_modules/**",
+    ]
+}, {
     extends: [
         ...nextCoreWebVitals,
         ...compat.extends("eslint:recommended"),

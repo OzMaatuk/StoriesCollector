@@ -1,24 +1,35 @@
-import { StoryRepository } from '@/repositories/story.repository';
 // Set dummy DATABASE_URL before any imports that use prisma
 process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
 
 jest.mock('@/repositories/story.repository');
-jest.mock('@/services/enrichment.service');
+jest.mock('@/services/enrichment.service', () => ({
+  __esModule: true,
+  EnrichmentService: jest.fn().mockImplementation(() => ({
+    enrichStory: jest.fn(),
+  })),
+}));
+
+import { StoryRepository } from '@/repositories/story.repository';
+import { Story } from '@/types';
+import type { StoryService } from '@/services/story.service';
 
 describe('Enrichment Integration', () => {
-  let storyService: any;
+  let storyService: StoryService;
   let mockRepository: jest.Mocked<StoryRepository>;
-  let EnrichmentService: any;
+  let EnrichmentServiceMock: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.isolateModules(() => {
-      const { StoryService } = require('@/services/story.service');
-      const { EnrichmentService: ES } = require('@/services/enrichment.service');
-      storyService = new StoryService();
-      EnrichmentService = ES;
-    });
-    mockRepository = (storyService as any).repository;
+    jest.resetModules();
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { StoryService } = require('@/services/story.service');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { EnrichmentService } = require('@/services/enrichment.service');
+
+    EnrichmentServiceMock = EnrichmentService as jest.Mock;
+    storyService = new StoryService();
+    mockRepository = (storyService as unknown as { repository: StoryRepository }).repository as jest.Mocked<StoryRepository>;
   });
 
   it('should trigger enrichment when a story is created', async () => {
@@ -29,7 +40,7 @@ describe('Enrichment Integration', () => {
       language: 'en',
     };
 
-    const createdStory = {
+    const createdStory: Story = {
       id: 'new-id',
       ...input,
       verifiedEmail: false,
@@ -37,13 +48,13 @@ describe('Enrichment Integration', () => {
       updatedAt: new Date(),
     };
 
-    mockRepository.create.mockResolvedValue(createdStory as any);
+    mockRepository.create.mockResolvedValue(createdStory);
 
     await storyService.createStory(input);
 
     // Verify that enrichStory was called
-    const mockInstance = EnrichmentService.mock.instances[0];
-    expect(mockInstance.enrichStory).toHaveBeenCalledWith(expect.objectContaining({
+    const mockInstance = EnrichmentServiceMock.mock.results[0]?.value as { enrichStory?: unknown } | undefined;
+    expect((mockInstance as { enrichStory: jest.Mock }).enrichStory).toHaveBeenCalledWith(expect.objectContaining({
       id: 'new-id',
       content: 'Some content'
     }));

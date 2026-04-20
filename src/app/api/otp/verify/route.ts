@@ -8,7 +8,15 @@ const verifyOtpSchema = z.object({
   code: z.string().length(6, 'OTP code must be 6 digits'),
 });
 
-const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:3000';
+const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || 'http://localhost:8080';
+
+function shouldBypassTlsForLocalDev(url: string) {
+  // Some local OTP backends run HTTPS with self-signed certs.
+  // In dev only, allow bypassing TLS validation for localhost/127.0.0.1.
+  if (process.env.NODE_ENV === 'production') return false;
+  if (!url.startsWith('https://')) return false;
+  return /https:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(url);
+}
 
 export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV === 'production' && !process.env.OTP_SERVICE_URL) {
@@ -38,25 +46,39 @@ export async function POST(request: NextRequest) {
     const { recipient, code } = verifyOtpSchema.parse(body);
 
     // Call external OTP service
-    const response = await fetch(`${OTP_SERVICE_URL}/otp/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': process.env.OTP_SERVICE_API_KEY || '',
-      },
-      body: JSON.stringify({ recipient, code }),
-      signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minutes
-    });
+    const url = `${OTP_SERVICE_URL}/otp/verify`;
+    const shouldBypassTls = shouldBypassTlsForLocalDev(OTP_SERVICE_URL);
+    const previousTlsSetting = process.env.NODE_TLS_REJECT_UNAUTHORIZED;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return NextResponse.json(
-        { error: errorData.error || 'Invalid or expired OTP code' },
-        { status: 400 }
-      );
+    if (shouldBypassTls) {
+      process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     }
 
-    await response.json();
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': process.env.OTP_SERVICE_API_KEY || '',
+        },
+        body: JSON.stringify({ recipient, code }),
+        signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minutes
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return NextResponse.json(
+          { error: errorData.error || 'Invalid or expired OTP code' },
+          { status: 400 }
+        );
+      }
+
+      await response.json();
+    } finally {
+      if (shouldBypassTls) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = previousTlsSetting;
+      }
+    }
 
     // Sign a verification token locally for the app to use.
     // This removes dependency on the external service's token format/secret.
@@ -85,6 +107,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.flatten().fieldErrors },
         { status: 400 }
+      );
+    }
+
+    // Network / connectivity / TLS errors talking to the OTP backend
+    if (error instanceof TypeError) {
+      return NextResponse.json(
+        {
+          error: 'Failed to reach OTP service',
+          details: OTP_SERVICE_URL,
+        },
+        { status: 502 }
       );
     }
 

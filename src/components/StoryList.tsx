@@ -65,6 +65,7 @@ export default function StoryList({ lang, translations }: StoryListProps) {
 
   // Initial load
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStories(1, selectedLanguage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLanguage]);

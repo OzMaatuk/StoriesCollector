@@ -6,7 +6,7 @@ import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
 import { verifyToken } from '@/lib/jwt';
-import { EnrichmentService } from './enrichment.service';
+import { EnrichmentService } from '@/services/enrichment.service';
 
 const enrichmentService = new EnrichmentService();
 

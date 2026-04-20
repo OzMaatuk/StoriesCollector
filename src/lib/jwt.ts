@@ -14,7 +14,12 @@ function base64UrlDecode(str: string): ArrayBuffer {
 }
 
 function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | Buffer): string {
-  return Buffer.from(buffer as any)
+  const asBuffer =
+    buffer instanceof ArrayBuffer
+      ? Buffer.from(new Uint8Array(buffer))
+      : Buffer.from(buffer);
+
+  return asBuffer
     .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')

@@ -1,8 +1,8 @@
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
-import { Translations } from '@/types';
+import { GeneratedContent, Translations } from '@/types';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -20,7 +20,7 @@ const mockTranslations: Translations = {
     noStories: '',
     readMore: '',
   },
-} as any;
+} as unknown as Translations;
 
 describe('AIEnrichment Component', () => {
   const storyId = 'test-story-id';
@@ -47,7 +47,7 @@ describe('AIEnrichment Component', () => {
   });
 
   it('renders enrichment content and description when content is present', async () => {
-    const mockContent = {
+    const mockContent: GeneratedContent = {
       id: '1',
       storyId: storyId,
       status: 'completed',
@@ -61,7 +61,7 @@ describe('AIEnrichment Component', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContent={mockContent as any}
+        initialContent={mockContent}
         translations={mockTranslations}
       />
     );
@@ -72,11 +72,17 @@ describe('AIEnrichment Component', () => {
   });
 
   it('polls for content when pending', async () => {
-    const mockPendingContent = {
+    const mockPendingContent: GeneratedContent = {
+      id: 'pending-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
       status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    const mockCompletedContent = {
+    const mockCompletedContent: Partial<GeneratedContent> = {
       status: 'completed',
       generatedText: 'Polled Content',
     };
@@ -92,7 +98,7 @@ describe('AIEnrichment Component', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContent={mockPendingContent as any}
+        initialContent={mockPendingContent}
         translations={mockTranslations}
       />
     );
@@ -100,7 +106,7 @@ describe('AIEnrichment Component', () => {
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
 
     // Get the interval callback and execute it manually
-    const callback = setIntervalSpy.mock.calls[0][0] as Function;
+    const callback = setIntervalSpy.mock.calls[0][0] as () => void | Promise<void>;
     
     await act(async () => {
       await callback();

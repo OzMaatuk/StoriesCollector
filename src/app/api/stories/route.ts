@@ -62,9 +62,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
     const language = searchParams.get('language') || undefined;
 
-    console.log('[DEBUG] Attempting DB query...');
     const result = await storyService.getStories({ page, pageSize, language });
-    console.log('[DEBUG] Query done');
 
     return NextResponse.json(result);
   } catch (error) {

@@ -49,9 +49,14 @@ export class LLMService {
       );
 
       return response.data.choices[0].message.content;
-    } catch (error: any) {
-      logger.error('LLM completion failed', error);
-      throw new Error(`LLM Error: ${error.response?.data?.error?.message || error.message}`);
+    } catch (error: unknown) {
+      const err = error as { message?: unknown; response?: { data?: { error?: { message?: unknown } } } };
+      logger.error('LLM completion failed', error as Error);
+      const upstreamMessage =
+        (typeof err.response?.data?.error?.message === 'string' && err.response?.data?.error?.message) ||
+        (typeof err.message === 'string' && err.message) ||
+        'Unknown error';
+      throw new Error(`LLM Error: ${upstreamMessage}`);
     }
   }
 }
