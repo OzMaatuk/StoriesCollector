@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { rateLimit } from '@/lib/rate-limit';
+import { signToken } from '@/lib/jwt';
 
 const verifyOtpSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
@@ -56,12 +57,16 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json();
 
+    // Sign a verification token locally for the app to use.
+    // This removes dependency on the external service's token format/secret.
+    const localToken = await signToken(recipient, 'email');
+
     return NextResponse.json(
       {
         message: 'OTP verified successfully',
         recipient,
         verified: true,
-        token: result.token, // Short-lived verification token from external service
+        token: localToken,
       },
       {
         status: 200,

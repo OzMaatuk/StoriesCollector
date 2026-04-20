@@ -13,6 +13,14 @@ function base64UrlDecode(str: string): ArrayBuffer {
   return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 }
 
+function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | Buffer): string {
+  return Buffer.from(buffer as any)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
 async function verifySignature(token: string, secret: string | undefined): Promise<boolean> {
   if (!secret) return false;
   const [headerB64, payloadB64, signatureB64] = token.split('.');
@@ -61,4 +69,44 @@ export async function verifyToken(
     console.error('Token verification error:', error);
     return null;
   }
+}
+
+export async function signToken(recipient: string, channel: string): Promise<string> {
+  const secret = getSecret();
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is not configured for production');
+    }
+  }
+
+  // Use a fallback for tests or dev if secret is missing but not in production
+  const finalSecret = secret || 'test-secret';
+
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const payload = {
+    recipient,
+    channel,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour expiration
+  };
+
+  const headerEncoded = base64UrlEncode(Buffer.from(JSON.stringify(header), 'utf-8'));
+  const payloadEncoded = base64UrlEncode(Buffer.from(JSON.stringify(payload), 'utf-8'));
+  const data = `${headerEncoded}.${payloadEncoded}`;
+
+  const key = await cryptoSubtle.importKey(
+    'raw',
+    Buffer.from(finalSecret, 'utf-8'),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await cryptoSubtle.sign(
+    'HMAC',
+    key,
+    Buffer.from(data, 'utf-8')
+  );
+
+  return `${data}.${base64UrlEncode(signature)}`;
 }
