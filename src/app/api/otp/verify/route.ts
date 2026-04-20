@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-API-Key': process.env.OTP_SERVICE_API_KEY || '',
       },
       body: JSON.stringify({ recipient, code }),
       signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minutes
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await response.json();
+    await response.json();
 
     // Sign a verification token locally for the app to use.
     // This removes dependency on the external service's token format/secret.

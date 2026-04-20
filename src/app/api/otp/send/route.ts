@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(`${OTP_SERVICE_URL}/otp/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': process.env.OTP_SERVICE_API_KEY || '',
+      },
       body: JSON.stringify({ recipient, channel }),
       signal: AbortSignal.timeout(5 * 60 * 1000), // 5 minutes
     });

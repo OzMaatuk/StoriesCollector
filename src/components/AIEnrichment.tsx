@@ -41,6 +41,7 @@ export default function AIEnrichment({
     return () => clearInterval(pollInterval);
   }, [storyId, content?.status]);
 
+  if (!content && !isLoading) return null;
 
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
@@ -48,6 +49,11 @@ export default function AIEnrichment({
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
           {translations.stories.aiEnrichmentTitle}
         </h2>
+        {translations.stories.aiEnrichmentDescription && (
+          <p className="text-sm text-gray-600 mb-4">
+            {translations.stories.aiEnrichmentDescription}
+          </p>
+        )}
 
         {content?.status === 'pending' || isLoading ? (
           <div className="flex items-center space-x-3 text-primary-700">
