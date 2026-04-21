@@ -1,62 +1,69 @@
 // src/services/llm.service.ts
 
-import axios from 'axios';
 import { logger } from '@/lib/logger';
 
-export interface LLMConfig {
-  baseUrl: string;
-  apiKey: string;
-  modelName: string;
-  timeout: number;
-}
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000;
+const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 
 export class LLMService {
-  private config: LLMConfig;
+  private modelName: string;
 
   constructor() {
-    this.config = {
-      baseUrl: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-      apiKey: process.env.LLM_API_KEY || '',
-      modelName: process.env.LLM_MODEL_NAME || 'gpt-3.5-turbo',
-      timeout: parseInt(process.env.LLM_TIMEOUT || '30000', 10),
-    };
+    this.modelName =
+      process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16';
   }
 
   async generateCompletion(prompt: string): Promise<string> {
-    if (!this.config.apiKey) {
-      throw new Error('LLM API key is not configured');
-    }
+    const body = {
+      model: this.modelName,
+      messages: [{ role: 'user', content: prompt }],
+    };
 
+    return this.callWithRetry(body);
+  }
+
+  private async callWithRetry(
+    body: object,
+    retryCount = 0
+  ): Promise<string> {
     try {
-      const response = await axios.post(
-        `${this.config.baseUrl}/chat/completions`,
-        {
-          model: this.config.modelName,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: this.config.timeout,
-        }
-      );
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const response = await fetch(`${appUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-      return response.data.choices[0].message.content;
+      // Model still waking up — retry
+      if (RETRYABLE_STATUSES.has(response.status)) {
+        if (retryCount < MAX_RETRIES) {
+          logger.info(`LLM not ready (${response.status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          return this.callWithRetry(body, retryCount + 1);
+        }
+        throw new Error(`LLM unavailable after ${MAX_RETRIES} retries (status ${response.status})`);
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`LLM Error ${response.status}: ${errText}`);
+      }
+
+      const data = (await response.json()) as {
+        choices: { message: { content: string } }[];
+      };
+
+      return data.choices[0].message.content;
     } catch (error: unknown) {
-      const err = error as { message?: unknown; response?: { data?: { error?: { message?: unknown } } } };
+      // Re-throw retry-aware errors directly
+      if (error instanceof Error && error.message.startsWith('LLM')) {
+        logger.error('LLM completion failed', error);
+        throw error;
+      }
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       logger.error('LLM completion failed', error as Error);
-      const upstreamMessage =
-        (typeof err.response?.data?.error?.message === 'string' && err.response?.data?.error?.message) ||
-        (typeof err.message === 'string' && err.message) ||
-        'Unknown error';
-      throw new Error(`LLM Error: ${upstreamMessage}`);
+      throw new Error(`LLM Error: ${msg}`);
     }
   }
 }

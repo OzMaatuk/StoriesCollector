@@ -15,7 +15,7 @@ export class EnrichmentService {
   constructor() {
     this.llmService = new LLMService();
     this.repository = new StoryRepository();
-    
+
     try {
       const promptPath = path.join(process.cwd(), 'prompts', 'story_enrichment.txt');
       this.promptTemplate = fs.readFileSync(promptPath, 'utf8');
@@ -23,6 +23,16 @@ export class EnrichmentService {
       logger.error('Failed to load prompt template', error as Error);
       this.promptTemplate = '';
     }
+  }
+
+  private buildPrompt(story: Story): string {
+    const parts = [this.promptTemplate.trim()];
+
+    if (story.title) parts.push(`\nכותרת: ${story.title}`);
+    if (story.storyBackground) parts.push(`רקע הסיפור: ${story.storyBackground}`);
+    parts.push(`\nתוכן הסיפור:\n${story.content}`);
+
+    return parts.join('\n');
   }
 
   async enrichStory(story: Story) {
@@ -41,18 +51,14 @@ export class EnrichmentService {
       await this.repository.createGeneratedContent({
         storyId: story.id,
         providerName: 'OpenAI-Compatible',
-        modelName: process.env.LLM_MODEL_NAME || 'gpt-3.5-turbo',
+        modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
         status: 'pending',
       });
 
-      // 2. Prepare prompt
-      const prompt = this.promptTemplate
-        .replace('{{title}}', story.title || 'Untitled')
-        .replace('{{tellerBackground}}', story.tellerBackground || 'N/A')
-        .replace('{{storyBackground}}', story.storyBackground || 'N/A')
-        .replace('{{content}}', story.content);
+      // 2. Build prompt: template + story content as a single string
+      const prompt = this.buildPrompt(story);
 
-      // 3. Call LLM
+      // 3. Call LLM (via Netlify proxy in production, directly in local dev)
       const generatedText = await this.llmService.generateCompletion(prompt);
 
       // 4. Update record with success
@@ -65,8 +71,7 @@ export class EnrichmentService {
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error(`Failed to enrich story ${story.id}`, err);
-      
-      // Update record with failure
+
       try {
         await this.repository.updateGeneratedContent(story.id, {
           status: 'failed',
