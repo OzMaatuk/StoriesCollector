@@ -18,6 +18,7 @@ export class LLMService {
     const body = {
       model: this.modelName,
       messages: [{ role: 'user', content: prompt }],
+      max_tokens: 100, // Match working curl and prevent Netlify 10s timeout
     };
 
     return this.callWithRetry(body);
