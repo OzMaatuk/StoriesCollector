@@ -14,7 +14,7 @@ export class LLMService {
   constructor() {
     this.modelName =
       process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16';
-    this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '2040', 10);
+    this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '512', 10);
   }
 
   async generateCompletion(prompt: string): Promise<string> {
