@@ -59,7 +59,9 @@ export class EnrichmentService {
         const template = fs.readFileSync(promptPath, 'utf8');
         this.promptTemplates.set(lang, template);
       } catch (error) {
-        logger.warn(`Failed to load prompt template for language ${lang}`, error as Error);
+        logger.warn(`Failed to load prompt template for language ${lang}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }
