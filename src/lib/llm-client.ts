@@ -1,5 +1,4 @@
 // src/lib/llm-client.ts
-// Internal LLM client — server only. Never imported by browser code.
 
 export interface LLMResponse {
   choices: { message: { content: string } }[];
@@ -19,6 +18,13 @@ export async function callLLM(body: object): Promise<LLMResponse> {
 
   const targetUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
+  // Log exact request details for comparison with working curl
+  console.log('[LLM Client] URL:', targetUrl);
+  console.log('[LLM Client] Model:', (body as any).model);
+  console.log('[LLM Client] Auth header prefix:', `Bearer ${apiKey.slice(0, 8)}...`);
+  console.log('[LLM Client] Auth header length:', `Bearer ${apiKey}`.length);
+  console.log('[LLM Client] Request body:', JSON.stringify(body));
+
   const response = await fetch(targetUrl, {
     method: 'POST',
     headers: {
@@ -30,6 +36,7 @@ export async function callLLM(body: object): Promise<LLMResponse> {
 
   if (!response.ok) {
     const errText = await response.text();
+    console.error('[LLM Client] error response:', errText);
     throw new Error(`LLM Error ${response.status}: ${errText}`);
   }
 

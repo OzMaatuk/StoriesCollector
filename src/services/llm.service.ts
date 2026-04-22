@@ -19,7 +19,7 @@ export class LLMService {
     const body = {
       model: this.modelName,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 100,
+      max_tokens: 10000,
     };
 
     return this.callWithRetry(body);
