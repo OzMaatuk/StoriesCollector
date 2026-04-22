@@ -9,17 +9,19 @@ const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 
 export class LLMService {
   private modelName: string;
+  private maxTokens: number;
 
   constructor() {
     this.modelName =
       process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16';
+    this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '2048', 10);
   }
 
   async generateCompletion(prompt: string): Promise<string> {
     const body = {
       model: this.modelName,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 10000,
+      max_tokens: this.maxTokens,
     };
 
     return this.callWithRetry(body);
