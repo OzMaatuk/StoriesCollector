@@ -1,6 +1,7 @@
 // src/services/llm.service.ts
 
 import { logger } from '@/lib/logger';
+import { callLLM } from '@/lib/llm-client';
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
@@ -18,7 +19,7 @@ export class LLMService {
     const body = {
       model: this.modelName,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 100, // Match working curl and prevent Netlify 10s timeout
+      max_tokens: 100,
     };
 
     return this.callWithRetry(body);
@@ -29,42 +30,25 @@ export class LLMService {
     retryCount = 0
   ): Promise<string> {
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const response = await fetch(`${appUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      // Model still waking up — retry
-      if (RETRYABLE_STATUSES.has(response.status)) {
-        if (retryCount < MAX_RETRIES) {
-          logger.info(`LLM not ready (${response.status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-          return this.callWithRetry(body, retryCount + 1);
-        }
-        throw new Error(`LLM unavailable after ${MAX_RETRIES} retries (status ${response.status})`);
-      }
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`LLM Error ${response.status}: ${errText}`);
-      }
-
-      const data = (await response.json()) as {
-        choices: { message: { content: string } }[];
-      };
-
+      const data = await callLLM(body);
       return data.choices[0].message.content;
     } catch (error: unknown) {
-      // Re-throw retry-aware errors directly
-      if (error instanceof Error && error.message.startsWith('LLM')) {
-        logger.error('LLM completion failed', error);
-        throw error;
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      // Retry on 502/503/504
+      const statusMatch = err.message.match(/LLM Error (\d+):/);
+      const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+
+      if (RETRYABLE_STATUSES.has(status) && retryCount < MAX_RETRIES) {
+        logger.info(
+          `LLM not ready (${status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        return this.callWithRetry(body, retryCount + 1);
       }
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('LLM completion failed', error as Error);
-      throw new Error(`LLM Error: ${msg}`);
+
+      logger.error('LLM completion failed', err);
+      throw new Error(`LLM Error: ${err.message}`);
     }
   }
 }
