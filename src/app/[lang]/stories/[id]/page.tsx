@@ -89,9 +89,14 @@ export default async function StoryPage({ params }: PageProps) {
             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{story.content}</div>
           </div>
 
-          {/* Note about enrichment time */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-6 rounded text-yellow-900">
-            {translations.stories.enrichmentNote}
+          {/* AI Enrichment UI */}
+          <div className="my-6">
+            {/* Client component handles its own UI and polling */}
+            <AIEnrichment
+              storyId={story.id}
+              initialContent={story.generatedContent}
+              translations={translations}
+            />
           </div>
         </div>
 
