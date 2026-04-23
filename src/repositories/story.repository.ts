@@ -72,7 +72,8 @@ export class StoryRepository {
     data: {
       generatedText?: string;
       status?: string;
-      errorMessage?: string;
+      errorMessage?: string | null;
+      retryCount?: number;
     }
   ) {
     return await prisma.generatedContent.update({

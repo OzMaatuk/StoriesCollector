@@ -6,6 +6,7 @@ import { Story } from '@/types';
 import { LLMService } from './llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
 import { logger } from '@/lib/logger';
+import { ENRICHMENT } from '@/lib/constants';
 
 type Language = 'en' | 'he' | 'fr';
 
@@ -91,7 +92,7 @@ export class EnrichmentService {
     return parts.join('\n');
   }
 
-  async enrichStory(story: Story) {
+  async enrichStory(story: Story, isRetry = false) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -106,13 +107,36 @@ export class EnrichmentService {
     }
 
     try {
-      // 1. Create pending record
-      await this.repository.createGeneratedContent({
-        storyId: story.id,
-        providerName: 'OpenAI-Compatible',
-        modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
-        status: 'pending',
-      });
+      // 1. Create or update pending record
+      if (isRetry) {
+        // Reset status to pending and increment retry count
+        const existingContent = await this.repository.getGeneratedContentByStoryId(story.id);
+        if (!existingContent) {
+          logger.error(`Cannot retry: generated content not found for story ${story.id}`);
+          return;
+        }
+
+        // Check if retry limit exceeded
+        if (existingContent.retryCount >= ENRICHMENT.MAX_RETRIES) {
+          logger.warn(`Retry limit exceeded for story ${story.id}`);
+          throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
+        }
+
+        // Reset to pending and increment retry count
+        await this.repository.updateGeneratedContent(story.id, {
+          status: 'pending',
+          retryCount: existingContent.retryCount + 1,
+          errorMessage: null,
+        });
+      } else {
+        // Create initial pending record
+        await this.repository.createGeneratedContent({
+          storyId: story.id,
+          providerName: 'OpenAI-Compatible',
+          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+          status: 'pending',
+        });
+      }
 
       // 2. Build prompt: template + story content as a single string
       const prompt = this.buildPrompt(story);
@@ -126,10 +150,10 @@ export class EnrichmentService {
         status: 'completed',
       });
 
-      logger.info(`Successfully enriched story ${story.id}`);
+      logger.info(`Successfully enriched story ${story.id}${isRetry ? ' (retry)' : ''}`);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(`Failed to enrich story ${story.id}`, err);
+      logger.error(`Failed to enrich story ${story.id}${isRetry ? ' (retry)' : ''}`, err);
 
       try {
         await this.repository.updateGeneratedContent(story.id, {

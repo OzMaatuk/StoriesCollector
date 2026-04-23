@@ -54,6 +54,7 @@ describe('AIEnrichment Component', () => {
       generatedText: 'Enriched Text',
       providerName: 'Test',
       modelName: 'Model',
+      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -78,6 +79,7 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
+      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

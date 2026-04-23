@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { GeneratedContent, Translations } from '@/types';
+import { ENRICHMENT } from '@/lib/constants';
 
 interface AIEnrichmentProps {
   storyId: string;
@@ -18,6 +19,7 @@ export default function AIEnrichment({
     initialContent
   );
   const [isLoading, setIsLoading] = useState(content?.status === 'pending');
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     if (content?.status !== 'pending') return;
@@ -40,6 +42,34 @@ export default function AIEnrichment({
 
     return () => clearInterval(pollInterval);
   }, [storyId, content?.status]);
+
+  const handleRetry = async () => {
+    if (!content || content.retryCount >= ENRICHMENT.MAX_RETRIES) {
+      return;
+    }
+
+    try {
+      setIsRetrying(true);
+      const response = await fetch(`/api/stories/${storyId}/enrichment`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setContent(data);
+        setIsLoading(true); // Start polling again
+      } else {
+        console.error('Failed to retry enrichment:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error triggering retry:', error);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  const canRetry = content && content.retryCount < ENRICHMENT.MAX_RETRIES;
+  const retriesExhausted = content && content.retryCount >= ENRICHMENT.MAX_RETRIES && content.status === 'failed';
 
   if (!content && !isLoading) return null;
 
@@ -80,8 +110,27 @@ export default function AIEnrichment({
             <span>{translations.stories.aiEnrichmentPending}</span>
           </div>
         ) : content?.status === 'failed' ? (
-          <div className="text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
-            {translations.stories.aiEnrichmentFailed}
+          <div className="space-y-4">
+            <div className="text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
+              {translations.stories.aiEnrichmentFailed}
+            </div>
+            {retriesExhausted ? (
+              <div className="text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200 text-sm">
+                Retries exhausted. Maximum {ENRICHMENT.MAX_RETRIES} attempts reached.
+              </div>
+            ) : (
+              <button
+                onClick={handleRetry}
+                disabled={isRetrying || !canRetry}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isRetrying || !canRetry
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
+              >
+                {isRetrying ? 'Retrying...' : `Retry (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -89,9 +138,24 @@ export default function AIEnrichment({
               <div className="whitespace-pre-wrap">{content?.generatedText || ''}</div>
             </div>
             {content && (
-              <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
-                {translations.stories.aiProducedBy}
-              </div>
+              <>
+                <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
+                  {translations.stories.aiProducedBy}
+                </div>
+                {canRetry && (
+                  <button
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isRetrying
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
+                    }`}
+                  >
+                    {isRetrying ? 'Retrying...' : `Regenerate (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

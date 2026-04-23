@@ -26,6 +26,10 @@ export const RATE_LIMIT = {
   MAX_REQUESTS: 10,
 };
 
+export const ENRICHMENT = {
+  MAX_RETRIES: 3,
+};
+
 export const SUPPORTED_LANGUAGES = ['en', 'he', 'fr'] as const;
 
 export const HTTP_STATUS = {

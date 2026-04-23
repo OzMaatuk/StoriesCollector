@@ -25,6 +25,7 @@ export interface GeneratedContent {
   generatedText?: string | null;
   status: 'pending' | 'completed' | 'failed';
   errorMessage?: string | null;
+  retryCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
