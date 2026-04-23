@@ -11,7 +11,7 @@ A secure, multilingual, and scalable web application for collecting and displayi
 - **JWT Security**: Token-based verification system
 - **Responsive Design**: Mobile-first, accessible UI with Tailwind CSS
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection
-- **AI-Powered Story Enrichment**: Automatically generates summaries and spiritual lessons for uploaded stories.
+ - **AI-Powered Story Enrichment**: Automatically generates summaries and spiritual lessons for uploaded stories. The enrichment uses language-specific prompts (prompts/story_enrichment_en.txt, prompts/story_enrichment_he.txt, prompts/story_enrichment_fr.txt) and is triggered asynchronously after story creation. Language is taken from the story `language` field (required: `en` | `he` | `fr`).
 
 ## 🧰 Tech Stack
 
@@ -256,6 +256,10 @@ Best practices:
 
 - **`POST /api/stories`** - Submit a new story
   - Body: `{ name, phone, email?, city?, country?, tellerBackground?, storyBackground?, title?, content, language, verificationToken? }`
+  - Notes:
+    - `language` is required and must be one of `en`, `he`, or `fr`. The enrichment service uses this value to choose the prompt language.
+    - `verificationToken` is optional. If provided, the server verifies the token (JWT) and sets `verifiedEmail: true` on the created story. If omitted, the story is accepted but `verifiedEmail` will be `false`.
+    - LLM enrichment is triggered asynchronously after creation when enabled (see environment variables below). If enrichment fails, the story is still created and a generated content record is stored with status `failed`.
   - Returns: Created story object
 
 - **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated stories
@@ -264,6 +268,36 @@ Best practices:
 
 - **`GET /api/stories/:id`** - Get story by ID
   - Returns: Story object or 404
+
+#### Enrichment (Generated AI Content)
+
+- **`GET /api/stories/:id/enrichment`** - Get generated content for a story
+  - Returns the generated content record (if any): `{ id, storyId, providerName, modelName, generatedText?, status, errorMessage?, createdAt, updatedAt }`.
+  - Status codes: `200` (found), `404` (not found), `500` (server error).
+
+- **`POST /api/stories/:id/enrichment`** - Trigger a retry of enrichment for an existing story
+  - Purpose: Retry a failed enrichment. The endpoint enforces a maximum retry limit to avoid excessive LLM calls.
+  - Behavior:
+    - Validates the story exists and that a generated content record exists for the story.
+    - If `retryCount` >= configured max retries, returns `429` with details.
+    - Otherwise it triggers an asynchronous retry and returns the current enrichment record.
+  - Returns: Updated enrichment record and `200` on success, `404` if no record, `429` when retry limit exceeded.
+
+#### Chat / LLM Proxy
+
+- **`POST /api/chat`** - Server-side proxy to call the configured LLM backend
+  - Body: Pass-through to the LLM client (e.g., `{ model, messages, max_tokens }`). The server forwards the request to the LLM backend using `LVM_API_KEY`/server-side credentials.
+  - Notes: This endpoint is intended for internal use only and never exposes LLM secrets to the browser.
+  - Returns: The LLM backend response or `500` for proxy errors.
+
+#### Common behaviors & headers
+
+- Rate limiting headers are included on responses where rate limiting applies:
+  - `X-RateLimit-Limit` — configured max requests per window
+  - `X-RateLimit-Remaining` — remaining requests in the window
+  - `X-RateLimit-Reset` — timestamp when the window resets
+- Typical status codes used across APIs: `200`, `201`, `400` (validation), `401` (auth), `404`, `429` (rate limit / retry limits), `500` (server error).
+
 
 #### OTP Verification
 
@@ -285,6 +319,14 @@ The app supports three languages:
 
 Language files are in `src/locales/`. The app uses `next-intl` for internationalization with automatic locale detection and routing.
 
+### AI Enrichment (LLM)
+
+- Prompt files live in the `prompts/` folder and are language-specific: `prompts/story_enrichment_en.txt`, `prompts/story_enrichment_he.txt`, `prompts/story_enrichment_fr.txt`.
+- Enrichment is triggered asynchronously after a story is created when `ENABLE_LLM_ENRICHMENT` is set to `true`.
+- The service selects the prompt by the story `language` field. If a language-specific prompt file is missing, the service falls back to the Hebrew prompt.
+- Retry behavior: the LLM client retries on HTTP 502/503/504 responses up to 5 times with a 5 second delay between retries. Failures are recorded in the generated content record (`status: failed`).
+- Note: the application currently expects the `language` value to be provided by the client when submitting a story. Automatic language detection is not enabled by default; implementors can add a language-detection step (for example using a small NPM library) before persisting the story if they prefer auto-detection.
+
 ### 🚀 Deployment
 
 #### Environment Variables
@@ -296,6 +338,11 @@ DATABASE_URL=your_postgres_connection_string
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 JWT_SECRET=your-production-jwt-secret-min-32-chars
 OTP_SERVICE_URL=https://your-otp-service.com
+
+# AI / LLM Configuration
+ENABLE_LLM_ENRICHMENT=true # Set to 'true' to enable asynchronous enrichment (default: disabled in repo)
+LLM_MODEL_NAME=dicta-il/DictaLM-3.0-24B-Thinking-W4A16 # Optional model override
+LLM_MAX_TOKENS=2048 # Optional override for max tokens
 ```
 
 Optional:
