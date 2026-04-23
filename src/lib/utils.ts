@@ -84,6 +84,35 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 /**
  * Format date relative to now
  */
+export function detectStoryLanguage(
+  content: string | undefined,
+  title?: string | undefined,
+  storyBackground?: string | undefined
+): 'en' | 'he' | 'fr' {
+  const combined = [content, title, storyBackground]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
+  if (!combined) {
+    return 'en';
+  }
+
+  const hebrewRegex = /[\u0590-\u05FF\uFB1D-\uFB4F]/;
+  const frenchAccentsRegex = /[àâæçéèêëîïôœùûüÿÀÂÆÇÉÈÊËÎÏÔŒÙÛÜŸ]/;
+  const frenchWordsRegex = /\b(?:le|la|les|et|un|une|des|dans|pour|avec|que|qui|mais|est|suis|été|histoire|merci|bonjour|oui|non)\b/i;
+
+  if (hebrewRegex.test(combined)) {
+    return 'he';
+  }
+
+  if (frenchAccentsRegex.test(combined) || frenchWordsRegex.test(combined)) {
+    return 'fr';
+  }
+
+  return 'en';
+}
+
 export function formatRelativeTime(date: Date, locale: string = 'en'): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);

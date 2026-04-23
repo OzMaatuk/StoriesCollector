@@ -1,12 +1,13 @@
 // src/services/story.service.ts
 
 import { StoryRepository } from '@/repositories/story.repository';
-import { Story, PaginatedResponse } from '@/types';
+import { Story, PaginatedResponse, Language } from '@/types';
 import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
 import { verifyToken } from '@/lib/jwt';
 import { EnrichmentService } from '@/services/enrichment.service';
+import { detectStoryLanguage } from '@/lib/utils';
 
 const enrichmentService = new EnrichmentService();
 
@@ -21,10 +22,18 @@ export class StoryService {
 
   async createStory(input: CreateStoryInput): Promise<Story> {
     const sanitized = sanitizeStoryInput(input);
+    const detectedLanguage: Language = detectStoryLanguage(
+      sanitized.content,
+      sanitized.title,
+      sanitized.storyBackground
+    );
 
     // Validate
     try {
-      const validated = storySchema.parse(sanitized);
+      const validated = storySchema.parse({
+        ...sanitized,
+        language: detectedLanguage,
+      });
 
       // Verify OTP token if provided
       if (validated.verificationToken) {

@@ -83,6 +83,29 @@ describe('StoryService', () => {
       expect(callArg.name).not.toContain('<script>');
     });
 
+    it('should detect the story language from content and ignore UI locale language', async () => {
+      const input = {
+        name: 'Sara',
+        email: 'sara@example.com',
+        content: 'זהו הסיפור שלי בעברית',
+        language: 'en',
+      };
+
+      mockRepository.create.mockResolvedValue({
+        id: '123',
+        ...input,
+        language: 'he',
+        verifiedEmail: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await service.createStory(input);
+
+      const callArg = mockRepository.create.mock.calls[0][0];
+      expect(callArg.language).toBe('he');
+    });
+
     it('should throw error for invalid data', async () => {
       const input = {
         name: 'John Doe',

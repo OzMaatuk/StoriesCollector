@@ -22,7 +22,6 @@ interface FormData {
   storyBackground: string;
   title: string;
   content: string;
-  language: string;
 }
 
 export default function StoryForm({ translations, lang }: StoryFormProps) {
@@ -40,7 +39,6 @@ export default function StoryForm({ translations, lang }: StoryFormProps) {
     storyBackground: '',
     title: '',
     content: '',
-    language: lang,
   });
 
   const [errors, setErrors] = useState<Record<string, string[]>>({});
