@@ -4,7 +4,7 @@ import { webcrypto } from 'crypto';
 global.crypto = webcrypto as Crypto;
 
 // NOW import after setting up global crypto
-import { verifyToken } from '../../src/lib/jwt';
+import { verifyToken, signToken } from '../../src/lib/jwt';
 
 interface JwtPayload {
   recipient: string;
@@ -12,42 +12,18 @@ interface JwtPayload {
   [key: string]: unknown;
 }
 
-// Helper function to create a test JWT token
-function base64UrlEncode(input: string | ArrayBuffer): string {
-  let buffer: Buffer;
-
-  if (typeof input === 'string') {
-    buffer = Buffer.from(input);
-  } else {
-    buffer = Buffer.from(input);
+function tamperSignature(token: string): string {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return token;
   }
 
-  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
+  const signature = parts[2];
+  const firstChar = signature.charAt(0);
+  const replacement = firstChar === 'A' ? 'B' : 'A';
+  parts[2] = replacement + signature.slice(1);
 
-// Updated payload type to JwtPayload
-async function createTestToken(payload: JwtPayload, secret: string): Promise<string> {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const headerB64 = base64UrlEncode(JSON.stringify(header));
-  const payloadB64 = base64UrlEncode(JSON.stringify(payload));
-
-  const data = `${headerB64}.${payloadB64}`;
-  const dataBuffer = Buffer.from(data, 'utf-8');
-  const secretBuffer = Buffer.from(secret, 'utf-8');
-
-  const key = await webcrypto.subtle.importKey(
-    'raw',
-    secretBuffer,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const signature = await webcrypto.subtle.sign('HMAC', key, dataBuffer);
-
-  const signatureB64 = base64UrlEncode(signature);
-
-  return `${data}.${signatureB64}`;
+  return parts.join('.');
 }
 
 describe('External OTP Service Integration', () => {
@@ -65,7 +41,7 @@ describe('External OTP Service Integration', () => {
         channel: 'email',
       };
 
-      const token = await createTestToken(payload, secret);
+      const token = await signToken(payload.recipient, payload.channel);
       const result = await verifyToken(token);
 
       expect(result).toEqual({
@@ -80,15 +56,13 @@ describe('External OTP Service Integration', () => {
     });
 
     it('should return null for tokens with invalid signature', async () => {
-      const secret = process.env.JWT_SECRET || 'your-secret-key';
       const payload: JwtPayload = {
         recipient: 'test@example.com',
         channel: 'email',
       };
 
-      const token = await createTestToken(payload, secret);
-      // Tamper with the token
-      const tamperedToken = token.slice(0, -5) + 'xxxxx';
+      const token = await signToken(payload.recipient, payload.channel);
+      const tamperedToken = tamperSignature(token);
       const result = await verifyToken(tamperedToken);
 
       expect(result).toBeNull();
