@@ -76,7 +76,8 @@
     "aiEnrichmentPending": "Generating AI content...",
     "aiEnrichmentFailed": "Failed to generate AI content",
     "aiProducedBy": "Produced by Dicta AI",
-    "aiEnrichmentDescription": "According to the writings of Rabbi Nachman of Breslov, we retell the story in his words, including contexts and additions from his teachings with reference to the source."
+    "aiEnrichmentDescription": "According to the writings of Rabbi Nachman of Breslov, we retell the story in his words, including contexts and additions from his teachings with reference to the source.",
+    "enrichmentNote": "Note: The generation of the story summary and enrichment may take a few seconds."
   },
   "validation": {
     "required": "This field is required",
