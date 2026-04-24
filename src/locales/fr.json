@@ -76,6 +76,8 @@
     "aiEnrichmentPending": "Génération de contenu IA...",
     "aiEnrichmentFailed": "Échec de la génération de contenu IA",
     "aiProducedBy": "Produit par Dicta AI",
+    "aiRetrying": "Nouvel essai...",
+    "aiRegenerate": "Réessayer",
     "aiEnrichmentDescription": "Selon les écrits de Rabbi Nachman de Breslev, nous racontons l'histoire dans ses propres mots, en ajoutant des contextes et des enseignements de sa pensée avec référence à la source.",
     "enrichmentNote": "Remarque : la génération du résumé et de l'enrichissement de l'histoire peut prendre quelques secondes."
   },

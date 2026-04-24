@@ -76,6 +76,8 @@
     "aiEnrichmentPending": "מייצר תוכן AI...",
     "aiEnrichmentFailed": "שגיאה ביצירת תוכן AI",
     "aiProducedBy": "הופק על ידי Dicta AI",
+    "aiRetrying": "מנסה שוב...",
+    "aiRegenerate": "נסה שוב",
     "aiEnrichmentDescription": "על פי כתבי רבי נחמן מברסלב, אנו מספרים מחדש את הסיפור במילותיו, כולל הקשרים ותוספות מהוראותיו עם הפניה למקור.",
     "enrichmentNote": "הערה: יצירת הסיכום והעשרה של הסיפור עשויה להימשך מספר שניות."
   },

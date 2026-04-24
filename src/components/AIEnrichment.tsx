@@ -128,7 +128,7 @@ export default function AIEnrichment({
                     : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                {isRetrying ? 'Retrying...' : `Retry (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
               </button>
             )}
           </div>
@@ -152,7 +152,7 @@ export default function AIEnrichment({
                         : 'bg-primary-600 text-white hover:bg-primary-700'
                     }`}
                   >
-                    {isRetrying ? 'Retrying...' : `Regenerate (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
                   </button>
                 )}
               </>

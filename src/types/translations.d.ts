@@ -21,6 +21,8 @@ export interface Translations {
     aiEnrichmentPending: string;
     aiEnrichmentFailed: string;
     aiProducedBy: string;
+    aiRetrying: string;
+    aiRegenerate: string;
     aiEnrichmentDescription: string;
   };
   form: {
