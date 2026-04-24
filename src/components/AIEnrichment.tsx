@@ -6,32 +6,39 @@ import { ENRICHMENT } from '@/lib/constants';
 
 interface AIEnrichmentProps {
   storyId: string;
-  initialContent: GeneratedContent | null | undefined;
+  initialContents: GeneratedContent[];
+  selectedEnrichmentId?: string | null;
   translations: Translations;
 }
 
 export default function AIEnrichment({
   storyId,
-  initialContent,
+  initialContents = [],
+  selectedEnrichmentId,
   translations,
 }: AIEnrichmentProps) {
-  const [content, setContent] = useState<GeneratedContent | null | undefined>(
-    initialContent
-  );
-  const [isLoading, setIsLoading] = useState(content?.status === 'pending');
+  const [contents, setContents] = useState<GeneratedContent[]>(initialContents);
+  const [selectedId, setSelectedId] = useState<string | null>(selectedEnrichmentId || null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  // Get the currently selected content
+  const selectedContent = contents.find(c => c.id === selectedId) || contents[0];
+
   useEffect(() => {
-    if (content?.status !== 'pending') return;
+    // Poll for updates when there are pending enrichments
+    const hasPending = contents.some(c => c.status === 'pending');
+    if (!hasPending) return;
 
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/stories/${storyId}/enrichment`);
         if (response.ok) {
           const data = await response.json();
-          setContent(data);
-          if (data.status !== 'pending') {
-            setIsLoading(false);
+          setContents(data);
+          const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
+          if (!stillPending) {
+            setIsGenerating(false);
             clearInterval(pollInterval);
           }
         }
@@ -41,51 +48,145 @@ export default function AIEnrichment({
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [storyId, content?.status]);
+  }, [storyId, contents]);
 
-  const handleRetry = async () => {
-    if (!content || content.retryCount >= ENRICHMENT.MAX_RETRIES) {
-      return;
-    }
+  const handleGenerateNew = async () => {
+    if (isGenerating) return;
 
     try {
-      setIsRetrying(true);
+      setIsGenerating(true);
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
         method: 'POST',
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setContent(data);
-        setIsLoading(true); // Start polling again
+        // Start polling for updates
+        const pollInterval = setInterval(async () => {
+          try {
+            const pollResponse = await fetch(`/api/stories/${storyId}/enrichment`);
+            if (pollResponse.ok) {
+              const data = await pollResponse.json();
+              setContents(data);
+              const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
+              if (!stillPending) {
+                setIsGenerating(false);
+                clearInterval(pollInterval);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to poll after generate:', error);
+          }
+        }, 3000);
       } else {
-        console.error('Failed to retry enrichment:', response.statusText);
+        console.error('Failed to generate new enrichment');
+        setIsGenerating(false);
       }
     } catch (error) {
-      console.error('Error triggering retry:', error);
+      console.error('Error generating new enrichment:', error);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveCurrent = async () => {
+    if (!selectedContent || selectedContent.status !== 'completed') return;
+
+    try {
+      const response = await fetch(`/api/stories/${storyId}/enrichment`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrichmentId: selectedContent.id }),
+      });
+
+      if (response.ok) {
+        setSelectedId(selectedContent.id);
+      } else {
+        console.error('Failed to save enrichment');
+      }
+    } catch (error) {
+      console.error('Error saving enrichment:', error);
+    }
+  };
+
+  const handleSelectEnrichment = (enrichmentId: string) => {
+    setSelectedId(enrichmentId);
+  };
+
+  const handleRetry = async (enrichmentId: string) => {
+    const enrichment = contents.find(c => c.id === enrichmentId);
+    if (!enrichment || enrichment.retryCount >= ENRICHMENT.MAX_RETRIES) {
+      return;
+    }
+
+    try {
+      setIsRetrying(true);
+      // For now, we'll create a new enrichment instead of retrying the old one
+      // This keeps the implementation simple
+      await handleGenerateNew();
+    } catch (error) {
+      console.error('Error retrying enrichment:', error);
     } finally {
       setIsRetrying(false);
     }
   };
 
-  const canRetry = content && content.retryCount < ENRICHMENT.MAX_RETRIES;
-  const retriesExhausted = content && content.retryCount >= ENRICHMENT.MAX_RETRIES && content.status === 'failed';
+  const canRetry = selectedContent && selectedContent.retryCount < ENRICHMENT.MAX_RETRIES;
+  const retriesExhausted = selectedContent && selectedContent.retryCount >= ENRICHMENT.MAX_RETRIES && selectedContent.status === 'failed';
 
-  if (!content && !isLoading) return null;
+  if (!contents || contents.length === 0) {
+    return (
+      <div className="mt-8 pt-8 border-t border-gray-200">
+        <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            {translations.stories.aiEnrichmentTitle}
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            {translations.stories.aiEnrichmentDescription}
+          </p>
+          {/* Generate New button removed as per requirement; user can select saved versions */}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
       <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          {translations.stories.aiEnrichmentTitle}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {translations.stories.aiEnrichmentTitle}
+          </h2>
+          <div className="flex items-center space-x-2">
+              {contents.length > 0 && (
+                <select
+                  value={selectedId || ''}
+                  onChange={(e) => handleSelectEnrichment(e.target.value)}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
+                >
+                  {contents.map((content) => (
+                    <option key={content.id} value={content.id}>
+                      Version {contents.length - contents.indexOf(content)} - {content.status}
+                    </option>
+                  ))}
+                </select>
+              )}
+            {selectedContent?.status === 'completed' && selectedContent.id !== selectedEnrichmentId && (
+              <button
+                onClick={handleSaveCurrent}
+                className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                Save
+              </button>
+            )}
+              {/* Generate New button removed as per requirement */}
+          </div>
+        </div>
         {translations.stories.aiEnrichmentDescription && (
           <p className="text-sm text-gray-600 mb-4">
             {translations.stories.aiEnrichmentDescription}
           </p>
         )}
 
-        {content?.status === 'pending' || isLoading ? (
+        {selectedContent?.status === 'pending' || isGenerating ? (
           <div className="flex items-center space-x-3 text-primary-700">
             <svg
               className="animate-spin h-5 w-5 text-primary-600"
@@ -109,7 +210,7 @@ export default function AIEnrichment({
             </svg>
             <span>{translations.stories.aiEnrichmentPending}</span>
           </div>
-        ) : content?.status === 'failed' ? (
+        ) : selectedContent?.status === 'failed' ? (
           <div className="space-y-4">
             <div className="text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
               {translations.stories.aiEnrichmentFailed}
@@ -120,7 +221,7 @@ export default function AIEnrichment({
               </div>
             ) : (
               <button
-                onClick={handleRetry}
+                onClick={() => handleRetry(selectedContent.id)}
                 disabled={isRetrying || !canRetry}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   isRetrying || !canRetry
@@ -128,23 +229,23 @@ export default function AIEnrichment({
                     : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
               </button>
             )}
           </div>
         ) : (
           <div className="space-y-4">
             <div className="prose prose-primary max-w-none text-gray-800">
-              <div className="whitespace-pre-wrap">{content?.generatedText || ''}</div>
+              <div className="whitespace-pre-wrap">{selectedContent?.generatedText || ''}</div>
             </div>
-            {content && (
+            {selectedContent && (
               <>
                 <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
                   {translations.stories.aiProducedBy}
                 </div>
                 {canRetry && (
                   <button
-                    onClick={handleRetry}
+                    onClick={() => handleRetry(selectedContent.id)}
                     disabled={isRetrying}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isRetrying
@@ -152,7 +253,7 @@ export default function AIEnrichment({
                         : 'bg-primary-600 text-white hover:bg-primary-700'
                     }`}
                   >
-                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${content?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
                   </button>
                 )}
               </>

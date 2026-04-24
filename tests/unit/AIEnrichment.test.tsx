@@ -14,6 +14,8 @@ const mockTranslations: Translations = {
     aiEnrichmentFailed: 'Failed',
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
+    aiRegenerate: 'Regenerate',
+    aiRetrying: 'Retrying...',
     title: '',
     verifiedEmail: '',
     allLanguages: '',
@@ -34,16 +36,19 @@ describe('AIEnrichment Component', () => {
     jest.useRealTimers();
   });
 
-  it('renders nothing initially when content is null', () => {
+  it('renders component without generate button when no content exists', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContent={null}
+        initialContents={[]}
+        selectedEnrichmentId={null}
         translations={mockTranslations}
       />
     );
 
-    expect(screen.queryByText(mockTranslations.stories.aiEnrichmentTitle)).not.toBeInTheDocument();
+    expect(screen.getByText(mockTranslations.stories.aiEnrichmentTitle)).toBeInTheDocument();
+    // The generate button has been removed per requirement
+    expect(screen.queryByText('Regenerate')).not.toBeInTheDocument();
   });
 
   it('renders enrichment content and description when content is present', async () => {
@@ -62,7 +67,8 @@ describe('AIEnrichment Component', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContent={mockContent}
+        initialContents={[mockContent]}
+        selectedEnrichmentId={null}
         translations={mockTranslations}
       />
     );
@@ -84,10 +90,17 @@ describe('AIEnrichment Component', () => {
       updatedAt: new Date(),
     };
 
-    const mockCompletedContent: Partial<GeneratedContent> = {
+    const mockCompletedContent: GeneratedContent[] = [{
+      id: 'completed-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
       status: 'completed',
       generatedText: 'Polled Content',
-    };
+      retryCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }];
 
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
@@ -100,7 +113,8 @@ describe('AIEnrichment Component', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContent={mockPendingContent}
+        initialContents={[mockPendingContent]}
+        selectedEnrichmentId={null}
         translations={mockTranslations}
       />
     );
