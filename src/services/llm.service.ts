@@ -3,7 +3,7 @@
 import { logger } from '@/lib/logger';
 import { callLLM } from '@/lib/llm-client';
 
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 60; // 60 retries * 5000ms = 5 minutes wait for cold start
 const RETRY_DELAY_MS = 5000;
 const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 

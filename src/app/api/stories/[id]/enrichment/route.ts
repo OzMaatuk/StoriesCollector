@@ -45,7 +45,11 @@ export async function POST(
     // Import lazily to avoid circular dependencies at top level
     const { EnrichmentService } = await import('@/services/enrichment.service');
     const service = new EnrichmentService();
-    await service.enrichStory(story);
+    
+    // Run asynchronously to prevent Netlify serverless timeout
+    service.enrichStory(story).catch((error) => {
+      console.error(`Background enrichment failed for story ${id}:`, error);
+    });
 
     return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
   } catch (error) {
