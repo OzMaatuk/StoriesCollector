@@ -50,7 +50,7 @@ export default async function StoryPage({ params }: PageProps) {
           {story.title && <h1 className="text-4xl font-bold mb-4">{story.title}</h1>}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg opacity-90">By {story.name}</p>
+              <p className="text-lg opacity-90">{story.name}</p>
               {(story.city || story.country) && (
                 <p className="text-sm opacity-80 mt-1">
                   {[story.city, story.country].filter(Boolean).join(', ')}
