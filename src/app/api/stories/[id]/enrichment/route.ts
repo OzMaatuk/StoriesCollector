@@ -25,6 +25,38 @@ export async function GET(
   }
 }
 
+// POST endpoint to trigger generation of a new enrichment
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    // Validate story exists
+    const story = await repository.findById(id);
+    if (!story) {
+      return NextResponse.json(
+        { error: 'Story not found' },
+        { status: HTTP_STATUS.NOT_FOUND }
+      );
+    }
+
+    // Trigger enrichment generation (service will create a new record)
+    // Import lazily to avoid circular dependencies at top level
+    const { EnrichmentService } = await import('@/services/enrichment.service');
+    const service = new EnrichmentService();
+    await service.enrichStory(story);
+
+    return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
+  } catch (error) {
+    console.error('Error generating enrichment:', error);
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
