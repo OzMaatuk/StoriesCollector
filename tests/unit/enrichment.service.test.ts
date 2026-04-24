@@ -45,6 +45,8 @@ describe('EnrichmentService', () => {
     const mockEnrichmentId = 'enrichment-123';
     
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
+    // No existing draft — service should create a new record
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
@@ -81,6 +83,8 @@ describe('EnrichmentService', () => {
     const mockEnrichmentId = 'enrichment-456';
     
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
+    // No existing draft — service should create a new record
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
@@ -90,6 +94,7 @@ describe('EnrichmentService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue({} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>);
 
     await service.enrichStory(mockStory);
 

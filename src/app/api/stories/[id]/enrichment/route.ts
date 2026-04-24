@@ -27,11 +27,20 @@ export async function GET(
 
 // POST endpoint to trigger generation of a new enrichment
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+
+    let enrichmentId: string | undefined;
+    try {
+      const body = await request.json();
+      enrichmentId = body.enrichmentId;
+    } catch (e) {
+      console.warn(e)
+    }
+
     // Validate story exists
     const story = await repository.findById(id);
     if (!story) {
@@ -41,13 +50,13 @@ export async function POST(
       );
     }
 
-    // Trigger enrichment generation (service will create a new record)
+    // Trigger enrichment generation (service will create a new record or update existing)
     // Import lazily to avoid circular dependencies at top level
     const { EnrichmentService } = await import('@/services/enrichment.service');
     const service = new EnrichmentService();
-    
+
     // Run asynchronously to prevent Netlify serverless timeout
-    service.enrichStory(story).catch((error) => {
+    service.enrichStory(story, enrichmentId).catch((error) => {
       console.error(`Background enrichment failed for story ${id}:`, error);
     });
 
@@ -95,7 +104,8 @@ export async function PUT(
       );
     }
 
-    // Update selected enrichment
+    // Saving = mark this enrichment as the selected (published) version for the story.
+    // The poll loop in the UI will re-fetch and reflect the saved state.
     await repository.updateSelectedEnrichment(id, enrichmentId);
 
     return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
