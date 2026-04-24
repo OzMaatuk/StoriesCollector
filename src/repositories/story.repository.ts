@@ -27,7 +27,9 @@ export class StoryRepository {
       const story = await prisma.story.findUnique({
         where: { id },
         include: {
-          generatedContent: true,
+          generatedContents: {
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
 
@@ -36,7 +38,7 @@ export class StoryRepository {
       // Ensure we return a plain object that can be serialized across the server/client boundary
       return JSON.parse(JSON.stringify(story)) as Story;
     } catch (error) {
-      console.error('Error fetching story with enrichment:', error);
+      console.error('Error fetching story with enrichments:', error);
       
       // Fallback: Try to fetch the story without the enrichment relation 
       // in case the database table or relation doesn't exist (old data structure)
@@ -47,7 +49,7 @@ export class StoryRepository {
         
         if (!story) return null;
         
-        // Return without generatedContent if we couldn't fetch it
+        // Return without generatedContents if we couldn't fetch it
         return JSON.parse(JSON.stringify(story)) as Story;
       } catch (fallbackError) {
         console.error('Fatal error fetching story:', fallbackError);
@@ -68,7 +70,7 @@ export class StoryRepository {
   }
 
   async updateGeneratedContent(
-    storyId: string,
+    id: string,
     data: {
       generatedText?: string;
       status?: string;
@@ -77,14 +79,28 @@ export class StoryRepository {
     }
   ) {
     return await prisma.generatedContent.update({
-      where: { storyId },
+      where: { id },
       data,
     });
   }
 
-  async getGeneratedContentByStoryId(storyId: string) {
-    return await prisma.generatedContent.findUnique({
+  async getGeneratedContentsByStoryId(storyId: string) {
+    return await prisma.generatedContent.findMany({
       where: { storyId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getGeneratedContentById(id: string) {
+    return await prisma.generatedContent.findUnique({
+      where: { id },
+    });
+  }
+
+  async updateSelectedEnrichment(storyId: string, enrichmentId: string | null) {
+    return await prisma.story.update({
+      where: { id: storyId },
+      data: { selectedEnrichmentId: enrichmentId },
     });
   }
 

@@ -12,9 +12,10 @@ export interface Story {
   content: string;
   language: string;
   verifiedEmail: boolean;
+  selectedEnrichmentId?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  generatedContent?: GeneratedContent | null;
+  generatedContents?: GeneratedContent[];
 }
 
 export interface GeneratedContent {

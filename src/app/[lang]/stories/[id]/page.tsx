@@ -94,7 +94,8 @@ export default async function StoryPage({ params }: PageProps) {
             {/* Client component handles its own UI and polling */}
             <AIEnrichment
               storyId={story.id}
-              initialContent={story.generatedContent}
+              initialContents={story.generatedContents || []}
+              selectedEnrichmentId={story.selectedEnrichmentId}
               translations={translations}
             />
           </div>

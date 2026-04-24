@@ -92,7 +92,7 @@ export class EnrichmentService {
     return parts.join('\n');
   }
 
-  async enrichStory(story: Story, isRetry = false) {
+  async enrichStory(story: Story, isRetry = false, enrichmentId?: string) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -106,36 +106,40 @@ export class EnrichmentService {
       return;
     }
 
+    let createdEnrichmentId: string | undefined;
+
     try {
-      // 1. Create or update pending record
-      if (isRetry) {
-        // Reset status to pending and increment retry count
-        const existingContent = await this.repository.getGeneratedContentByStoryId(story.id);
-        if (!existingContent) {
-          logger.error(`Cannot retry: generated content not found for story ${story.id}`);
+      let enrichmentRecord;
+
+      if (isRetry && enrichmentId) {
+        // Retry existing enrichment
+        enrichmentRecord = await this.repository.getGeneratedContentById(enrichmentId);
+        if (!enrichmentRecord) {
+          logger.error(`Cannot retry: generated content not found for id ${enrichmentId}`);
           return;
         }
 
         // Check if retry limit exceeded
-        if (existingContent.retryCount >= ENRICHMENT.MAX_RETRIES) {
-          logger.warn(`Retry limit exceeded for story ${story.id}`);
+        if (enrichmentRecord.retryCount >= ENRICHMENT.MAX_RETRIES) {
+          logger.warn(`Retry limit exceeded for enrichment ${enrichmentId}`);
           throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
         }
 
         // Reset to pending and increment retry count
-        await this.repository.updateGeneratedContent(story.id, {
+        await this.repository.updateGeneratedContent(enrichmentId, {
           status: 'pending',
-          retryCount: existingContent.retryCount + 1,
+          retryCount: enrichmentRecord.retryCount + 1,
           errorMessage: null,
         });
       } else {
-        // Create initial pending record
-        await this.repository.createGeneratedContent({
+        // Create new enrichment record
+        enrichmentRecord = await this.repository.createGeneratedContent({
           storyId: story.id,
           providerName: 'OpenAI-Compatible',
           modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
           status: 'pending',
         });
+        createdEnrichmentId = enrichmentRecord.id;
       }
 
       // 2. Build prompt: template + story content as a single string
@@ -145,7 +149,7 @@ export class EnrichmentService {
       const generatedText = await this.llmService.generateCompletion(prompt);
 
       // 4. Update record with success
-      await this.repository.updateGeneratedContent(story.id, {
+      await this.repository.updateGeneratedContent(enrichmentRecord.id, {
         generatedText,
         status: 'completed',
       });
@@ -156,10 +160,13 @@ export class EnrichmentService {
       logger.error(`Failed to enrich story ${story.id}${isRetry ? ' (retry)' : ''}`, err);
 
       try {
-        await this.repository.updateGeneratedContent(story.id, {
-          status: 'failed',
-          errorMessage: err.message,
-        });
+        const idToUpdate = enrichmentId || createdEnrichmentId;
+        if (idToUpdate) {
+          await this.repository.updateGeneratedContent(idToUpdate, {
+            status: 'failed',
+            errorMessage: err.message,
+          });
+        }
       } catch (dbError) {
         logger.error('Failed to update failure status in DB', dbError as Error);
       }

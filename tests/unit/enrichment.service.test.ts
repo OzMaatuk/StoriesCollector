@@ -42,13 +42,19 @@ describe('EnrichmentService', () => {
 
   it('should successfully enrich a story', async () => {
     const mockedGeneratedText = 'Enriched content from Rabbi Nachman';
+    const mockEnrichmentId = 'enrichment-123';
+    
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
-    mockRepository.createGeneratedContent.mockResolvedValue(
-      {} as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
-    );
-    mockRepository.updateGeneratedContent.mockResolvedValue(
-      {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
-    );
+    mockRepository.createGeneratedContent.mockResolvedValue({
+      id: mockEnrichmentId,
+      storyId: mockStory.id,
+      providerName: 'OpenAI-Compatible',
+      modelName: 'test-model',
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue({} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>);
 
     await service.enrichStory(mockStory);
 
@@ -64,7 +70,7 @@ describe('EnrichmentService', () => {
       expect.stringContaining(mockStory.title!)
     );
 
-    expect(mockRepository.updateGeneratedContent).toHaveBeenCalledWith(mockStory.id, {
+    expect(mockRepository.updateGeneratedContent).toHaveBeenCalledWith(mockEnrichmentId, {
       generatedText: mockedGeneratedText,
       status: 'completed',
     });
@@ -72,14 +78,22 @@ describe('EnrichmentService', () => {
 
   it('should handle LLM failure', async () => {
     const errorMsg = 'API Quota exceeded';
+    const mockEnrichmentId = 'enrichment-456';
+    
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
-    mockRepository.createGeneratedContent.mockResolvedValue(
-      {} as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
-    );
+    mockRepository.createGeneratedContent.mockResolvedValue({
+      id: mockEnrichmentId,
+      storyId: mockStory.id,
+      providerName: 'OpenAI-Compatible',
+      modelName: 'test-model',
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
 
     await service.enrichStory(mockStory);
 
-    expect(mockRepository.updateGeneratedContent).toHaveBeenCalledWith(mockStory.id, {
+    expect(mockRepository.updateGeneratedContent).toHaveBeenCalledWith(mockEnrichmentId, {
       status: 'failed',
       errorMessage: errorMsg,
     });

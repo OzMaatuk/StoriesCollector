@@ -19,11 +19,12 @@ export async function callLLM(body: object): Promise<LLMResponse> {
   const targetUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
   // Log exact request details for comparison with working curl
-  console.log('[LLM Client] URL:', targetUrl);
-  console.log('[LLM Client] Model:', (body as any).model);
-  console.log('[LLM Client] Auth header prefix:', `Bearer ${apiKey.slice(0, 8)}...`);
-  console.log('[LLM Client] Auth header length:', `Bearer ${apiKey}`.length);
-  console.log('[LLM Client] Request body:', JSON.stringify(body));
+  const bodyModel = (body as Record<string, unknown>).model;
+  console.warn('[LLM Client] URL:', targetUrl);
+  console.warn('[LLM Client] Model:', bodyModel);
+  console.warn('[LLM Client] Auth header prefix:', `Bearer ${apiKey.slice(0, 8)}...`);
+  console.warn('[LLM Client] Auth header length:', `Bearer ${apiKey}`.length);
+  console.warn('[LLM Client] Request body:', JSON.stringify(body));
 
   const response = await fetch(targetUrl, {
     method: 'POST',

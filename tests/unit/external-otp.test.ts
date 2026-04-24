@@ -3,7 +3,13 @@ import { webcrypto } from 'crypto';
 // Set up global crypto BEFORE importing jwt module
 global.crypto = webcrypto as Crypto;
 
-// NOW import after setting up global crypto
+// Set JWT_SECRET before importing JWT module to ensure consistent behavior
+// This prevents test isolation issues where different tests use different secrets
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'test-secret-key-for-external-otp-tests';
+}
+
+// NOW import after setting up global crypto and env var
 import { verifyToken, signToken } from '../../src/lib/jwt';
 
 interface JwtPayload {
@@ -27,15 +33,27 @@ function tamperSignature(token: string): string {
 }
 
 describe('External OTP Service Integration', () => {
+  // Store the original JWT_SECRET value to restore after tests
+  const originalJwtSecret = process.env.JWT_SECRET;
+
   beforeAll(() => {
-    if (!process.env.JWT_SECRET) {
-      process.env.JWT_SECRET = 'your-secret-key';
+    // ALWAYS set JWT_SECRET to a consistent value for these tests
+    // This ensures signing and verification use the same secret
+    // regardless of what other tests may have set
+    process.env.JWT_SECRET = 'consistent-test-secret-for-external-otp';
+  });
+
+  afterAll(() => {
+    // Restore the original value to prevent test pollution
+    if (originalJwtSecret !== undefined) {
+      process.env.JWT_SECRET = originalJwtSecret;
+    } else {
+      delete process.env.JWT_SECRET;
     }
   });
 
   describe('JWT Token Verification', () => {
     it('should verify valid JWT tokens with environment secret', async () => {
-      const secret = process.env.JWT_SECRET || 'your-secret-key';
       const payload: JwtPayload = {
         recipient: 'test@example.com',
         channel: 'email',
