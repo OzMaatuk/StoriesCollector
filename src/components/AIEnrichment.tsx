@@ -50,13 +50,15 @@ export default function AIEnrichment({
     return () => clearInterval(pollInterval);
   }, [storyId, contents]);
 
-  const handleGenerateNew = async () => {
+  const handleGenerateNew = async (enrichmentId?: string) => {
     if (isGenerating) return;
 
     try {
       setIsGenerating(true);
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
         method: 'POST',
+        headers: enrichmentId ? { 'Content-Type': 'application/json' } : undefined,
+        body: enrichmentId ? JSON.stringify({ enrichmentId }) : undefined,
       });
 
       if (response.ok) {
@@ -78,11 +80,11 @@ export default function AIEnrichment({
           }
         }, 3000);
       } else {
-        console.error('Failed to generate new enrichment');
+        console.error('Failed to generate enrichment');
         setIsGenerating(false);
       }
     } catch (error) {
-      console.error('Error generating new enrichment:', error);
+      console.error('Error generating enrichment:', error);
       setIsGenerating(false);
     }
   };
@@ -119,10 +121,10 @@ export default function AIEnrichment({
 
     try {
       setIsRetrying(true);
-      // Reset selection so UI shows the pending state after the new generation starts
+      // Reset selection so UI shows the pending state after the retry starts
       setSelectedId(null);
-      // Trigger a fresh generation (POST) – the API will create a new record
-      await handleGenerateNew();
+      // Trigger a retry (POST) – the API will reuse the existing record
+      await handleGenerateNew(enrichmentId);
     } catch (error) {
       console.error('Error retrying enrichment:', error);
     } finally {
@@ -143,7 +145,16 @@ export default function AIEnrichment({
           <p className="text-sm text-gray-600 mb-4">
             {translations.stories.aiEnrichmentDescription}
           </p>
-          {/* Generate New button removed as per requirement; user can select saved versions */}
+          <button
+            onClick={() => handleGenerateNew()}
+            disabled={isGenerating}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isGenerating
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+              }`}
+          >
+            {isGenerating ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
+          </button>
         </div>
       </div>
     );
@@ -157,19 +168,19 @@ export default function AIEnrichment({
             {translations.stories.aiEnrichmentTitle}
           </h2>
           <div className="flex items-center space-x-2">
-              {contents.length > 0 && (
-                <select
-                  value={selectedId || ''}
-                  onChange={(e) => handleSelectEnrichment(e.target.value)}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
-                >
-                  {contents.map((content) => (
-                    <option key={content.id} value={content.id}>
-                      Version {contents.length - contents.indexOf(content)} - {content.status}
-                    </option>
-                  ))}
-                </select>
-              )}
+            {contents.length > 0 && (
+              <select
+                value={selectedId || ''}
+                onChange={(e) => handleSelectEnrichment(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
+              >
+                {contents.map((content) => (
+                  <option key={content.id} value={content.id}>
+                    Version {contents.length - contents.indexOf(content)} - {content.status}
+                  </option>
+                ))}
+              </select>
+            )}
             {selectedContent?.status === 'completed' && selectedContent.id !== selectedEnrichmentId && (
               <button
                 onClick={handleSaveCurrent}
@@ -178,7 +189,7 @@ export default function AIEnrichment({
                 Save
               </button>
             )}
-              {/* Generate New button removed as per requirement */}
+            {/* Generate New button removed as per requirement */}
           </div>
         </div>
         {translations.stories.aiEnrichmentDescription && (
@@ -224,11 +235,10 @@ export default function AIEnrichment({
               <button
                 onClick={() => handleRetry(selectedContent.id)}
                 disabled={isRetrying || !canRetry}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isRetrying || !canRetry
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying || !canRetry
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-primary-600 text-white hover:bg-primary-700'
-                }`}
+                  }`}
               >
                 {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
               </button>
@@ -248,11 +258,10 @@ export default function AIEnrichment({
                   <button
                     onClick={() => handleRetry(selectedContent.id)}
                     disabled={isRetrying}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isRetrying
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-primary-600 text-white hover:bg-primary-700'
-                    }`}
+                      }`}
                   >
                     {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
                   </button>

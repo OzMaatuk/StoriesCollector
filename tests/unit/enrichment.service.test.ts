@@ -30,7 +30,7 @@ describe('EnrichmentService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (fs.readFileSync as jest.Mock).mockReturnValue('Retell {{title}}: {{content}}');
-    
+
     // Set environment variable
     process.env.ENABLE_LLM_ENRICHMENT = 'true';
     process.env.LLM_MODEL_NAME = 'test-model';
@@ -43,8 +43,10 @@ describe('EnrichmentService', () => {
   it('should successfully enrich a story', async () => {
     const mockedGeneratedText = 'Enriched content from Rabbi Nachman';
     const mockEnrichmentId = 'enrichment-123';
-    
+
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
+    // No existing draft — service should create a new record
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
@@ -79,8 +81,10 @@ describe('EnrichmentService', () => {
   it('should handle LLM failure', async () => {
     const errorMsg = 'API Quota exceeded';
     const mockEnrichmentId = 'enrichment-456';
-    
+
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
+    // No existing draft — service should create a new record
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
@@ -90,6 +94,7 @@ describe('EnrichmentService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue({} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>);
 
     await service.enrichStory(mockStory);
 
@@ -101,7 +106,7 @@ describe('EnrichmentService', () => {
 
   it('should not enrich if disabled', async () => {
     process.env.ENABLE_LLM_ENRICHMENT = 'false';
-    
+
     await service.enrichStory(mockStory);
 
     expect(mockRepository.createGeneratedContent).not.toHaveBeenCalled();

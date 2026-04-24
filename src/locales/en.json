@@ -73,6 +73,7 @@
     "unverifiedEmail": "Unverified",
     "readMore": "Read More",
     "aiEnrichmentTitle": "AI Generated Summary / Enrichment",
+    "aiGenerate": "Generate",
     "aiEnrichmentPending": "Generating AI content...",
     "aiEnrichmentFailed": "Failed to generate AI content",
     "aiProducedBy": "Produced by Dicta AI",

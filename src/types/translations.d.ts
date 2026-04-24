@@ -18,6 +18,7 @@ export interface Translations {
     noStories: string;
     readMore: string;
     aiEnrichmentTitle: string;
+    aiGenerate: string;
     aiEnrichmentPending: string;
     aiEnrichmentFailed: string;
     aiProducedBy: string;
