@@ -25,6 +25,8 @@ export interface Translations {
     aiRetrying: string;
     aiRegenerate: string;
     aiEnrichmentDescription: string;
+    save: string;
+    saved: string;
   };
   form: {
     contactInfo: ReactNode;

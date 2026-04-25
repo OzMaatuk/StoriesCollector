@@ -56,7 +56,11 @@ export async function verifyToken(
       console.error('JWT verification attempted without JWT_SECRET set.');
       return null;
     }
-    const [, payloadB64] = token.split('.');
+    
+    const parts = token.split('.');
+    if (parts.length !== 3) return null; // JWT must have exactly 3 parts
+    
+    const [, payloadB64] = parts;
     if (!payloadB64) return null;
 
     const isValid = await verifySignature(token, secret);
