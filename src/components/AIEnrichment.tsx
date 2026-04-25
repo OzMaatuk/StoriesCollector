@@ -167,11 +167,10 @@ export default function AIEnrichment({
           <button
             onClick={() => handleGenerateNew()}
             disabled={isGenerating}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              isGenerating
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isGenerating
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-primary-600 text-white hover:bg-primary-700'
-            }`}
+              }`}
           >
             {isGenerating ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
           </button>
@@ -188,20 +187,20 @@ export default function AIEnrichment({
             {translations.stories.aiEnrichmentTitle}
           </h2>
           <div className="flex items-center space-x-2">
-              {contents.length > 0 && (
-                <select
-                  value={selectedId || ''}
-                  onChange={(e) => handleSelectEnrichment(e.target.value)}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
-                >
-                  {contents.map((content, index) => (
-                    <option key={content.id} value={content.id}>
-                      v{index + 1}
-                    </option>
-                  ))}
-                </select>
-              )}
-            {selectedContent?.status === 'completed' && newlyGeneratedId === selectedContent?.id && (
+            {contents.length > 0 && (
+              <select
+                value={selectedId || ''}
+                onChange={(e) => handleSelectEnrichment(e.target.value)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
+              >
+                {contents.map((content) => (
+                  <option key={content.id} value={content.id}>
+                    Version {contents.length - contents.indexOf(content)} - {content.status}
+                  </option>
+                ))}
+              </select>
+            )}
+            {selectedContent?.status === 'completed' && selectedContent.id !== selectedEnrichmentId && (
               <button
                 onClick={handleSaveCurrent}
                 disabled={false}
@@ -210,7 +209,7 @@ export default function AIEnrichment({
                 {translations.stories.save}
               </button>
             )}
-              {/* Generate New button removed as per requirement */}
+            {/* Generate New button removed as per requirement */}
           </div>
         </div>
         {translations.stories.aiEnrichmentDescription && (
@@ -256,11 +255,10 @@ export default function AIEnrichment({
               <button
                 onClick={() => handleRetry(selectedContent.id)}
                 disabled={isRetrying || !canRetry}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isRetrying || !canRetry
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying || !canRetry
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-primary-600 text-white hover:bg-primary-700'
-                }`}
+                  }`}
               >
                 {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
               </button>
@@ -280,11 +278,10 @@ export default function AIEnrichment({
                   <button
                     onClick={() => handleRetry(selectedContent.id)}
                     disabled={isRetrying}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isRetrying
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-primary-600 text-white hover:bg-primary-700'
-                    }`}
+                      }`}
                   >
                     {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
                   </button>
