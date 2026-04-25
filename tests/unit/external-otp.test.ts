@@ -1,16 +1,10 @@
 import { webcrypto } from 'crypto';
 
-// Set up global crypto BEFORE importing jwt module
+// Set up global crypto BEFORE any jwt code loads
 global.crypto = webcrypto as Crypto;
 
-// Set JWT_SECRET before importing JWT module to ensure consistent behavior
-// This prevents test isolation issues where different tests use different secrets
-if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'test-secret-key-for-external-otp-tests';
-}
-
-// NOW import after setting up global crypto and env var
-import { verifyToken, signToken } from '../../src/lib/jwt';
+// Do NOT import jwt at the top level — we require it fresh per test
+// to guarantee signToken and verifyToken share the same module instance.
 
 interface JwtPayload {
   recipient: string;
@@ -33,26 +27,21 @@ function tamperSignature(token: string): string {
 }
 
 describe('External OTP Service Integration', () => {
-  // Store the original JWT_SECRET value to restore after tests
-  const originalJwtSecret = process.env.JWT_SECRET;
-
-  beforeAll(() => {
-    // ALWAYS set JWT_SECRET to a consistent value for these tests
-    // This ensures signing and verification use the same secret
-    // regardless of what other tests may have set
-    process.env.JWT_SECRET = 'consistent-test-secret-for-external-otp';
-  });
-
-  afterAll(() => {
-    // Restore the original value to prevent test pollution
-    if (originalJwtSecret !== undefined) {
-      process.env.JWT_SECRET = originalJwtSecret;
-    } else {
-      delete process.env.JWT_SECRET;
-    }
-  });
-
   describe('JWT Token Verification', () => {
+    // Re-require jwt.ts fresh for every test so each test gets its own
+    // module evaluation with a pinned secret. This eliminates races with
+    // other test files that mutate process.env.JWT_SECRET.
+    let signToken: (recipient: string, channel: string) => Promise<string>;
+    let verifyToken: (token: string) => Promise<{ recipient: string; channel: string } | null>;
+
+    beforeEach(() => {
+      jest.resetModules();
+      process.env.JWT_SECRET = 'consistent-test-secret-for-external-otp';
+      const jwt = require('../../src/lib/jwt');
+      signToken = jwt.signToken;
+      verifyToken = jwt.verifyToken;
+    });
+
     it('should verify valid JWT tokens with environment secret', async () => {
       const payload: JwtPayload = {
         recipient: 'test@example.com',

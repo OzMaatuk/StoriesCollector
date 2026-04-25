@@ -21,6 +21,7 @@ export default function AIEnrichment({
   const [selectedId, setSelectedId] = useState<string | null>(selectedEnrichmentId || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null);
 
   // Get the currently selected content
   const selectedContent = contents.find(c => c.id === selectedId) || contents[0];
@@ -38,6 +39,13 @@ export default function AIEnrichment({
           setContents(data);
           const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
           if (!stillPending) {
+            // Find any newly completed content that wasn't the initially selected one
+            const newContent = data.find((c: GeneratedContent) => 
+              c.status === 'completed' && c.id !== selectedEnrichmentId
+            );
+            if (newContent && !newlyGeneratedId) {
+              setNewlyGeneratedId(newContent.id);
+            }
             setIsGenerating(false);
             clearInterval(pollInterval);
           }
@@ -48,7 +56,7 @@ export default function AIEnrichment({
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [storyId, contents]);
+  }, [storyId, contents, selectedEnrichmentId, newlyGeneratedId]);
 
   const handleGenerateNew = async (enrichmentId?: string) => {
     if (isGenerating) return;
@@ -71,6 +79,14 @@ export default function AIEnrichment({
               setContents(data);
               const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
               if (!stillPending) {
+                // Find the newly generated content (not previously saved)
+                const newContent = data.find((c: GeneratedContent) => 
+                  c.status === 'completed' && c.id !== selectedEnrichmentId
+                );
+                if (newContent) {
+                  setNewlyGeneratedId(newContent.id);
+                  setSelectedId(newContent.id);
+                }
                 setIsGenerating(false);
                 clearInterval(pollInterval);
               }
@@ -101,6 +117,7 @@ export default function AIEnrichment({
 
       if (response.ok) {
         setSelectedId(selectedContent.id);
+        setNewlyGeneratedId(null);
       } else {
         console.error('Failed to save enrichment');
       }
@@ -111,6 +128,8 @@ export default function AIEnrichment({
 
   const handleSelectEnrichment = (enrichmentId: string) => {
     setSelectedId(enrichmentId);
+    // Clear newly generated flag when selecting a different enrichment
+    setNewlyGeneratedId(null);
   };
 
   const handleRetry = async (enrichmentId: string) => {
@@ -184,9 +203,10 @@ export default function AIEnrichment({
             {selectedContent?.status === 'completed' && selectedContent.id !== selectedEnrichmentId && (
               <button
                 onClick={handleSaveCurrent}
-                className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                disabled={false}
+                className={`px-3 py-1 text-sm rounded-md transition-colors bg-green-600 text-white hover:bg-green-700`}
               >
-                Save
+                {translations.stories.save}
               </button>
             )}
             {/* Generate New button removed as per requirement */}
