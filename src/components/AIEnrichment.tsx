@@ -193,14 +193,14 @@ export default function AIEnrichment({
                 onChange={(e) => handleSelectEnrichment(e.target.value)}
                 className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
               >
-                {contents.map((content) => (
+                {contents.map((content, index) => (
                   <option key={content.id} value={content.id}>
-                    Version {contents.length - contents.indexOf(content)} - {content.status}
+                    v{index + 1}
                   </option>
                 ))}
               </select>
             )}
-            {selectedContent?.status === 'completed' && selectedContent.id !== selectedEnrichmentId && (
+            {selectedContent?.status === 'completed' && newlyGeneratedId === selectedContent?.id && (
               <button
                 onClick={handleSaveCurrent}
                 disabled={false}

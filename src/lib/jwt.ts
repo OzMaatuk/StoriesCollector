@@ -1,49 +1,33 @@
-import { webcrypto } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 
-// Read at use-time to allow for environment changes (especially in tests)
-const getSecret = () => process.env.JWT_SECRET || (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
+const getSecret = () =>
+  process.env.JWT_SECRET ||
+  (process.env.NODE_ENV === 'test' ? 'test-secret' : undefined);
 
-// Use webcrypto directly to avoid global crypto issues in Node.js
-const cryptoSubtle = webcrypto.subtle;
-
-function base64UrlDecode(str: string): ArrayBuffer {
-  str = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) str += '=';
-  const buffer = Buffer.from(str, 'base64');
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-}
-
-function base64UrlEncode(buffer: ArrayBuffer | Uint8Array | Buffer): string {
-  const asBuffer =
-    buffer instanceof ArrayBuffer
-      ? Buffer.from(new Uint8Array(buffer))
-      : Buffer.from(buffer);
-
-  return asBuffer
+function base64UrlEncode(buffer: Buffer): string {
+  return buffer
     .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
 }
 
-async function verifySignature(token: string, secret: string | undefined): Promise<boolean> {
-  if (!secret) return false;
-  const [headerB64, payloadB64, signatureB64] = token.split('.');
-  if (!headerB64 || !payloadB64 || !signatureB64) return false;
+function base64UrlDecode(str: string): Buffer {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return Buffer.from(str, 'base64');
+}
 
-  const data = Buffer.from(`${headerB64}.${payloadB64}`, 'utf-8');
-  const signature = base64UrlDecode(signatureB64);
-  const secretBuffer = Buffer.from(secret, 'utf-8');
+function hmacSign(data: string, secret: string): string {
+  const sig = createHmac('sha256', secret).update(data).digest();
+  return base64UrlEncode(sig);
+}
 
-  const key = await cryptoSubtle.importKey(
-    'raw',
-    secretBuffer,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-
-  return cryptoSubtle.verify('HMAC', key, signature, data);
+function hmacVerify(data: string, signature: string, secret: string): boolean {
+  const expected = Buffer.from(hmacSign(data, secret));
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
 }
 
 export async function verifyToken(
@@ -51,24 +35,23 @@ export async function verifyToken(
 ): Promise<{ recipient: string; channel: string } | null> {
   try {
     const secret = getSecret();
-    if (process.env.NODE_ENV === 'production' && !secret) {
-      // In production without a secret, treat as invalid token
+    if (!secret) {
       console.error('JWT verification attempted without JWT_SECRET set.');
       return null;
     }
-    
-    const parts = token.split('.');
-    if (parts.length !== 3) return null; // JWT must have exactly 3 parts
-    
-    const [, payloadB64] = parts;
-    if (!payloadB64) return null;
 
-    const isValid = await verifySignature(token, secret);
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+    if (!headerB64 || !payloadB64 || !signatureB64) return null;
+
+    const isValid = hmacVerify(`${headerB64}.${payloadB64}`, signatureB64, secret);
     if (!isValid) return null;
 
-    // Decode base64url properly
-    const payloadStr = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-    const decodedPayload = JSON.parse(Buffer.from(payloadStr, 'base64').toString());
+    const decodedPayload = JSON.parse(
+      base64UrlDecode(payloadB64).toString('utf-8')
+    );
 
     return {
       recipient: decodedPayload.recipient,
@@ -80,42 +63,27 @@ export async function verifyToken(
   }
 }
 
-export async function signToken(recipient: string, channel: string): Promise<string> {
+export async function signToken(
+  recipient: string,
+  channel: string
+): Promise<string> {
   const secret = getSecret();
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('JWT_SECRET is not configured for production');
-    }
+    throw new Error('JWT_SECRET is not configured');
   }
-
-  // Use a fallback for tests or dev if secret is missing but not in production
-  const finalSecret = secret || 'test-secret';
 
   const header = { alg: 'HS256', typ: 'JWT' };
   const payload = {
     recipient,
     channel,
     iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour expiration
+    exp: Math.floor(Date.now() / 1000) + 60 * 60,
   };
 
-  const headerEncoded = base64UrlEncode(Buffer.from(JSON.stringify(header), 'utf-8'));
-  const payloadEncoded = base64UrlEncode(Buffer.from(JSON.stringify(payload), 'utf-8'));
+  const headerEncoded = base64UrlEncode(Buffer.from(JSON.stringify(header)));
+  const payloadEncoded = base64UrlEncode(Buffer.from(JSON.stringify(payload)));
   const data = `${headerEncoded}.${payloadEncoded}`;
+  const signature = hmacSign(data, secret);
 
-  const key = await cryptoSubtle.importKey(
-    'raw',
-    Buffer.from(finalSecret, 'utf-8'),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  const signature = await cryptoSubtle.sign(
-    'HMAC',
-    key,
-    Buffer.from(data, 'utf-8')
-  );
-
-  return `${data}.${base64UrlEncode(signature)}`;
+  return `${data}.${signature}`;
 }
