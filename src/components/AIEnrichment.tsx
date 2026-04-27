@@ -21,6 +21,7 @@ export default function AIEnrichment({
 }: AIEnrichmentProps) {
   const [contents, setContents] = useState<GeneratedContent[]>(initialContents);
   const [selectedId, setSelectedId] = useState<string | null>(selectedEnrichmentId || null);
+  const [savedEnrichmentId, setSavedEnrichmentId] = useState<string | null>(selectedEnrichmentId || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null);
@@ -41,9 +42,9 @@ export default function AIEnrichment({
           setContents(data);
           const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
           if (!stillPending) {
-            // Find any newly completed content that wasn't the initially selected one
+            // Find any newly completed content that wasn't the currently saved version
             const newContent = data.find((c: GeneratedContent) => 
-              c.status === 'completed' && c.id !== selectedEnrichmentId
+              c.status === 'completed' && c.id !== savedEnrichmentId
             );
             if (newContent && !newlyGeneratedId) {
               setNewlyGeneratedId(newContent.id);
@@ -58,19 +59,25 @@ export default function AIEnrichment({
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [storyId, contents, selectedEnrichmentId, newlyGeneratedId]);
+  }, [storyId, contents, savedEnrichmentId, newlyGeneratedId]);
 
   const handleGenerateNew = async () => {
     if (isGenerating) return;
 
     try {
       setIsGenerating(true);
+      setNewlyGeneratedId(null);
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
         method: 'POST',
       });
 
-      if (response.ok) {
-        // Start polling for updates
+      if (!response.ok) {
+        console.error('Failed to generate enrichment');
+        setIsGenerating(false);
+        return;
+      }
+
+      return new Promise<void>((resolve) => {
         const pollInterval = setInterval(async () => {
           try {
             const pollResponse = await fetch(`/api/stories/${storyId}/enrichment`);
@@ -81,7 +88,7 @@ export default function AIEnrichment({
               if (!stillPending) {
                 // Find the newly generated content (not previously saved)
                 const newContent = data.find((c: GeneratedContent) => 
-                  c.status === 'completed' && c.id !== selectedEnrichmentId
+                  c.status === 'completed' && c.id !== savedEnrichmentId
                 );
                 if (newContent) {
                   setNewlyGeneratedId(newContent.id);
@@ -89,16 +96,14 @@ export default function AIEnrichment({
                 }
                 setIsGenerating(false);
                 clearInterval(pollInterval);
+                resolve();
               }
             }
           } catch (error) {
             console.error('Failed to poll after generate:', error);
           }
         }, 3000);
-      } else {
-        console.error('Failed to generate enrichment');
-        setIsGenerating(false);
-      }
+      });
     } catch (error) {
       console.error('Error generating enrichment:', error);
       setIsGenerating(false);
@@ -117,6 +122,7 @@ export default function AIEnrichment({
 
       if (response.ok) {
         setSelectedId(selectedContent.id);
+        setSavedEnrichmentId(selectedContent.id);
         setNewlyGeneratedId(null);
       } else {
         console.error('Failed to save enrichment');
@@ -140,6 +146,7 @@ export default function AIEnrichment({
 
     try {
       setIsRetrying(true);
+      setNewlyGeneratedId(null);
       // Reset selection so UI shows the pending state after the retry starts
       setSelectedId(null);
       // Trigger generation of a new tmp version (not reusing the failed record)
@@ -277,8 +284,8 @@ export default function AIEnrichment({
                 {canRetry && (
                   <button
                     onClick={() => handleRetry(selectedContent.id)}
-                    disabled={isRetrying}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying
+                    disabled={isRetrying || isGenerating}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying || isGenerating
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-primary-600 text-white hover:bg-primary-700'
                       }`}
