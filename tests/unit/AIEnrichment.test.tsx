@@ -42,6 +42,7 @@ describe('AIEnrichment Component', () => {
         storyId={storyId}
         initialContents={[]}
         selectedEnrichmentId={null}
+        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
@@ -69,6 +70,7 @@ describe('AIEnrichment Component', () => {
         storyId={storyId}
         initialContents={[mockContent]}
         selectedEnrichmentId={null}
+        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
@@ -115,6 +117,7 @@ describe('AIEnrichment Component', () => {
         storyId={storyId}
         initialContents={[mockPendingContent]}
         selectedEnrichmentId={null}
+        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
