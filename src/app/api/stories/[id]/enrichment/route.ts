@@ -27,7 +27,7 @@ export async function GET(
 
 // POST endpoint to trigger generation of a new enrichment
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
