@@ -23,6 +23,7 @@ describe('EnrichmentService', () => {
     content: 'Long ago in a land far away...',
     language: 'en',
     verifiedEmail: true,
+    enrichmentRetryCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -38,6 +39,9 @@ describe('EnrichmentService', () => {
     service = new EnrichmentService();
     mockLLMService = (service as unknown as { llmService: LLMService }).llmService as jest.Mocked<LLMService>;
     mockRepository = (service as unknown as { repository: StoryRepository }).repository as jest.Mocked<StoryRepository>;
+    
+    // Mock the incrementEnrichmentRetryCount method
+    mockRepository.incrementEnrichmentRetryCount = jest.fn().mockResolvedValue({});
   });
 
   it('should successfully enrich a story', async () => {
@@ -67,6 +71,8 @@ describe('EnrichmentService', () => {
       modelName: 'test-model',
       status: 'pending',
     });
+
+    expect(mockRepository.incrementEnrichmentRetryCount).toHaveBeenCalledWith(mockStory.id);
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
       expect.stringContaining(mockStory.title!)
@@ -98,6 +104,8 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(mockStory);
 
+    expect(mockRepository.incrementEnrichmentRetryCount).toHaveBeenCalledWith(mockStory.id);
+
     expect(mockRepository.updateGeneratedContent).toHaveBeenCalledWith(mockEnrichmentId, {
       status: 'failed',
       errorMessage: errorMsg,
@@ -108,6 +116,17 @@ describe('EnrichmentService', () => {
     process.env.ENABLE_LLM_ENRICHMENT = 'false';
 
     await service.enrichStory(mockStory);
+
+    expect(mockRepository.createGeneratedContent).not.toHaveBeenCalled();
+    expect(mockLLMService.generateCompletion).not.toHaveBeenCalled();
+  });
+
+  it('should throw error if story retry limit exceeded', async () => {
+    const storyWithMaxRetries = { ...mockStory, enrichmentRetryCount: 5 }; // Assuming MAX_RETRIES is 5
+    
+    await expect(service.enrichStory(storyWithMaxRetries)).rejects.toThrow(
+      'Retry limit'
+    );
 
     expect(mockRepository.createGeneratedContent).not.toHaveBeenCalled();
     expect(mockLLMService.generateCompletion).not.toHaveBeenCalled();

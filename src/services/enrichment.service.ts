@@ -106,6 +106,12 @@ export class EnrichmentService {
       return;
     }
 
+    // Check story-level retry limit
+    if (story.enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES) {
+      logger.warn(`Retry limit exceeded for story ${story.id}`);
+      throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
+    }
+
     let createdEnrichmentId: string | undefined;
 
     try {
@@ -119,16 +125,9 @@ export class EnrichmentService {
           return;
         }
 
-        // Check if retry limit exceeded
-        if (enrichmentRecord.retryCount >= ENRICHMENT.MAX_RETRIES) {
-          logger.warn(`Retry limit exceeded for enrichment ${enrichmentId}`);
-          throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
-        }
-
-        // Reset to pending and increment retry count
+        // Reset to pending (don't increment retryCount on the enrichment itself)
         await this.repository.updateGeneratedContent(enrichmentId, {
           status: 'pending',
-          retryCount: enrichmentRecord.retryCount + 1,
           errorMessage: null,
         });
       } else {
@@ -139,19 +138,14 @@ export class EnrichmentService {
         const draft = allRecords.find(r => r.id !== selectedId);
 
         if (draft) {
-          // Reuse draft, increment retryCount so it tracks total story-level attempts
-          if (draft.retryCount >= ENRICHMENT.MAX_RETRIES) {
-            logger.warn(`Retry limit exceeded for story ${story.id}`);
-            throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
-          }
+          // Reuse draft
           enrichmentRecord = draft;
           await this.repository.updateGeneratedContent(draft.id, {
             status: 'pending',
-            retryCount: draft.retryCount + 1,
             errorMessage: null,
           });
         } else {
-          // No existing draft — create the very first record (retryCount starts at 0)
+          // No existing draft — create the very first record
           enrichmentRecord = await this.repository.createGeneratedContent({
             storyId: story.id,
             providerName: 'OpenAI-Compatible',
@@ -161,6 +155,9 @@ export class EnrichmentService {
           createdEnrichmentId = enrichmentRecord.id;
         }
       }
+
+      // Increment story-level retry count (after validation but before generation)
+      await this.repository.incrementEnrichmentRetryCount(story.id);
 
       // 2. Build prompt: template + story content as a single string
       const prompt = this.buildPrompt(story);

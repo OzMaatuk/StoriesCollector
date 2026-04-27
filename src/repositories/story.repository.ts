@@ -104,6 +104,13 @@ export class StoryRepository {
     });
   }
 
+  async incrementEnrichmentRetryCount(storyId: string) {
+    return await prisma.story.update({
+      where: { id: storyId },
+      data: { enrichmentRetryCount: { increment: 1 } },
+    });
+  }
+
   async findMany(params: {
     skip?: number;
     take?: number;

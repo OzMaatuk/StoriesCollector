@@ -8,6 +8,7 @@ interface AIEnrichmentProps {
   storyId: string;
   initialContents: GeneratedContent[];
   selectedEnrichmentId?: string | null;
+  enrichmentRetryCount: number;
   translations: Translations;
 }
 
@@ -15,6 +16,7 @@ export default function AIEnrichment({
   storyId,
   initialContents = [],
   selectedEnrichmentId,
+  enrichmentRetryCount,
   translations,
 }: AIEnrichmentProps) {
   const [contents, setContents] = useState<GeneratedContent[]>(initialContents);
@@ -134,7 +136,7 @@ export default function AIEnrichment({
 
   const handleRetry = async (enrichmentId: string) => {
     const enrichment = contents.find(c => c.id === enrichmentId);
-    if (!enrichment || enrichment.retryCount >= ENRICHMENT.MAX_RETRIES) {
+    if (!enrichment || enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES) {
       return;
     }
 
@@ -142,9 +144,9 @@ export default function AIEnrichment({
       setIsRetrying(true);
       // Reset selection so UI shows the pending state after the retry starts
       setSelectedId(null);
-      // Trigger a fresh generation (without enrichmentId) – creates a new temporary draft
-      // instead of overwriting the existing version
-      await handleGenerateNew();
+      // Trigger generation with the specific enrichmentId to retry that version
+      // instead of creating a fresh one
+      await handleGenerateNew(enrichmentId);
     } catch (error) {
       console.error('Error retrying enrichment:', error);
     } finally {
@@ -152,8 +154,8 @@ export default function AIEnrichment({
     }
   };
 
-  const canRetry = selectedContent && selectedContent.retryCount < ENRICHMENT.MAX_RETRIES;
-  const retriesExhausted = selectedContent && selectedContent.retryCount >= ENRICHMENT.MAX_RETRIES && selectedContent.status === 'failed';
+  const canRetry = selectedContent && enrichmentRetryCount < ENRICHMENT.MAX_RETRIES;
+  const retriesExhausted = selectedContent && enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES && selectedContent.status === 'failed';
 
   if (!contents || contents.length === 0) {
     return (
@@ -261,7 +263,7 @@ export default function AIEnrichment({
                     : 'bg-primary-600 text-white hover:bg-primary-700'
                   }`}
               >
-                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${enrichmentRetryCount}/${ENRICHMENT.MAX_RETRIES})`}
               </button>
             )}
           </div>
@@ -284,7 +286,7 @@ export default function AIEnrichment({
                         : 'bg-primary-600 text-white hover:bg-primary-700'
                       }`}
                   >
-                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${selectedContent?.retryCount || 0}/${ENRICHMENT.MAX_RETRIES})`}
+                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${enrichmentRetryCount}/${ENRICHMENT.MAX_RETRIES})`}
                   </button>
                 )}
               </>

@@ -21,6 +21,7 @@ model Story {
   language         String   @db.VarChar(5)
   verifiedEmail    Boolean  @default(false)
   selectedEnrichmentId String?
+  enrichmentRetryCount Int @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

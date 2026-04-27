@@ -13,6 +13,7 @@ export interface Story {
   language: string;
   verifiedEmail: boolean;
   selectedEnrichmentId?: string | null;
+  enrichmentRetryCount: number;
   createdAt: Date;
   updatedAt: Date;
   generatedContents?: GeneratedContent[];
