@@ -1,60 +1,15 @@
-import { webcrypto } from 'crypto';
+// No global.crypto assignment needed anymore
 
-// Set up global crypto BEFORE any jwt code loads
-global.crypto = webcrypto as Crypto;
+process.env.JWT_SECRET = 'test-secret';
 
-// Do NOT import jwt at the top level — we require it fresh per test
-// to guarantee signToken and verifyToken share the same module instance.
-
-interface JwtPayload {
-  recipient: string;
-  channel: string;
-  [key: string]: unknown;
-}
-
-function tamperSignature(token: string): string {
-  const parts = token.split('.');
-  if (parts.length !== 3) {
-    return token;
-  }
-
-  const signature = parts[2];
-  const firstChar = signature.charAt(0);
-  const replacement = firstChar === 'A' ? 'B' : 'A';
-  parts[2] = replacement + signature.slice(1);
-
-  return parts.join('.');
-}
+import { verifyToken, signToken } from '../../src/lib/jwt';
 
 describe('External OTP Service Integration', () => {
   describe('JWT Token Verification', () => {
-    // Re-require jwt.ts fresh for every test so each test gets its own
-    // module evaluation with a pinned secret. This eliminates races with
-    // other test files that mutate process.env.JWT_SECRET.
-    let signToken: (recipient: string, channel: string) => Promise<string>;
-    let verifyToken: (token: string) => Promise<{ recipient: string; channel: string } | null>;
-
-    beforeEach(() => {
-      jest.resetModules();
-      process.env.JWT_SECRET = 'consistent-test-secret-for-external-otp';
-      const jwt = require('../../src/lib/jwt');
-      signToken = jwt.signToken;
-      verifyToken = jwt.verifyToken;
-    });
-
-    it('should verify valid JWT tokens with environment secret', async () => {
-      const payload: JwtPayload = {
-        recipient: 'test@example.com',
-        channel: 'email',
-      };
-
-      const token = await signToken(payload.recipient, payload.channel);
+    it('should verify valid JWT tokens', async () => {
+      const token = await signToken('test@example.com', 'email');
       const result = await verifyToken(token);
-
-      expect(result).toEqual({
-        recipient: 'test@example.com',
-        channel: 'email',
-      });
+      expect(result).toEqual({ recipient: 'test@example.com', channel: 'email' });
     });
 
     it('should return null for invalid tokens', async () => {
@@ -63,15 +18,11 @@ describe('External OTP Service Integration', () => {
     });
 
     it('should return null for tokens with invalid signature', async () => {
-      const payload: JwtPayload = {
-        recipient: 'test@example.com',
-        channel: 'email',
-      };
-
-      const token = await signToken(payload.recipient, payload.channel);
-      const tamperedToken = tamperSignature(token);
-      const result = await verifyToken(tamperedToken);
-
+      const token = await signToken('test@example.com', 'email');
+      const parts = token.split('.');
+      // Flip one character in signature — guaranteed mismatch
+      const badSig = parts[2][0] === 'a' ? 'b' + parts[2].slice(1) : 'a' + parts[2].slice(1);
+      const result = await verifyToken(`${parts[0]}.${parts[1]}.${badSig}`);
       expect(result).toBeNull();
     });
 
