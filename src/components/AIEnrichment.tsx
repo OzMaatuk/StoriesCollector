@@ -142,8 +142,9 @@ export default function AIEnrichment({
       setIsRetrying(true);
       // Reset selection so UI shows the pending state after the retry starts
       setSelectedId(null);
-      // Trigger a retry (POST) – the API will reuse the existing record
-      await handleGenerateNew(enrichmentId);
+      // Trigger a fresh generation (without enrichmentId) – creates a new temporary draft
+      // instead of overwriting the existing version
+      await handleGenerateNew();
     } catch (error) {
       console.error('Error retrying enrichment:', error);
     } finally {
