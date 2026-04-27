@@ -92,7 +92,7 @@ export class EnrichmentService {
     return parts.join('\n');
   }
 
-  async enrichStory(story: Story, enrichmentId?: string) {
+  async enrichStory(story: Story) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -117,43 +117,28 @@ export class EnrichmentService {
     try {
       let enrichmentRecord;
 
-      if (enrichmentId) {
-        // Explicit retry: reuse the specified record
-        enrichmentRecord = await this.repository.getGeneratedContentById(enrichmentId);
-        if (!enrichmentRecord) {
-          logger.error(`Cannot retry: generated content not found for id ${enrichmentId}`);
-          return;
-        }
+      // Try to find an existing unsaved draft to reuse
+      const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
+      // Find the most-recent record that is NOT the saved/selected version
+      const selectedId = story.selectedEnrichmentId;
+      const draft = allRecords.find(r => r.id !== selectedId);
 
-        // Reset to pending (don't increment retryCount on the enrichment itself)
-        await this.repository.updateGeneratedContent(enrichmentId, {
+      if (draft) {
+        // Reuse draft
+        enrichmentRecord = draft;
+        await this.repository.updateGeneratedContent(draft.id, {
           status: 'pending',
           errorMessage: null,
         });
       } else {
-        // Fresh generate: try to find an existing unsaved draft to reuse
-        const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
-        // Find the most-recent record that is NOT the saved/selected version
-        const selectedId = story.selectedEnrichmentId;
-        const draft = allRecords.find(r => r.id !== selectedId);
-
-        if (draft) {
-          // Reuse draft
-          enrichmentRecord = draft;
-          await this.repository.updateGeneratedContent(draft.id, {
-            status: 'pending',
-            errorMessage: null,
-          });
-        } else {
-          // No existing draft — create the very first record
-          enrichmentRecord = await this.repository.createGeneratedContent({
-            storyId: story.id,
-            providerName: 'OpenAI-Compatible',
-            modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
-            status: 'pending',
-          });
-          createdEnrichmentId = enrichmentRecord.id;
-        }
+        // No existing draft — create the very first record
+        enrichmentRecord = await this.repository.createGeneratedContent({
+          storyId: story.id,
+          providerName: 'OpenAI-Compatible',
+          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+          status: 'pending',
+        });
+        createdEnrichmentId = enrichmentRecord.id;
       }
 
       // Increment story-level retry count (after validation but before generation)
@@ -171,13 +156,13 @@ export class EnrichmentService {
         status: 'completed',
       });
 
-      logger.info(`Successfully enriched story ${story.id}${enrichmentId ? ' (retry)' : ''}`);
+      logger.info(`Successfully enriched story ${story.id}`);
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(`Failed to enrich story ${story.id}${enrichmentId ? ' (retry)' : ''}`, err);
+      logger.error(`Failed to enrich story ${story.id}`, err);
 
       try {
-        const idToUpdate = enrichmentId || createdEnrichmentId;
+        const idToUpdate = createdEnrichmentId;
         if (idToUpdate) {
           await this.repository.updateGeneratedContent(idToUpdate, {
             status: 'failed',

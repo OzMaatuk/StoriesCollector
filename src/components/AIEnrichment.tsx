@@ -60,15 +60,13 @@ export default function AIEnrichment({
     return () => clearInterval(pollInterval);
   }, [storyId, contents, selectedEnrichmentId, newlyGeneratedId]);
 
-  const handleGenerateNew = async (enrichmentId?: string) => {
+  const handleGenerateNew = async () => {
     if (isGenerating) return;
 
     try {
       setIsGenerating(true);
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
         method: 'POST',
-        headers: enrichmentId ? { 'Content-Type': 'application/json' } : undefined,
-        body: enrichmentId ? JSON.stringify({ enrichmentId }) : undefined,
       });
 
       if (response.ok) {
@@ -144,9 +142,8 @@ export default function AIEnrichment({
       setIsRetrying(true);
       // Reset selection so UI shows the pending state after the retry starts
       setSelectedId(null);
-      // Trigger generation with the specific enrichmentId to retry that version
-      // instead of creating a fresh one
-      await handleGenerateNew(enrichmentId);
+      // Trigger generation of a new tmp version (not reusing the failed record)
+      await handleGenerateNew();
     } catch (error) {
       console.error('Error retrying enrichment:', error);
     } finally {
