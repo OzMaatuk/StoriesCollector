@@ -15,7 +15,8 @@ const mockTranslations: Translations = {
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
     aiRegenerate: 'Regenerate',
-    aiRetrying: 'Retrying...',
+    aiGenerate: 'Generate',
+    save: 'Save',
     title: '',
     verifiedEmail: '',
     allLanguages: '',
@@ -36,23 +37,21 @@ describe('AIEnrichment Component', () => {
     jest.useRealTimers();
   });
 
-  it('renders component without generate button when no content exists', () => {
+  it('renders generate button when no content exists', () => {
     render(
       <AIEnrichment
         storyId={storyId}
         initialContents={[]}
         selectedEnrichmentId={null}
-        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentTitle)).toBeInTheDocument();
-    // The generate button has been removed per requirement
-    expect(screen.queryByText('Regenerate')).not.toBeInTheDocument();
+    expect(screen.getByText('Generate')).toBeInTheDocument();
   });
 
-  it('renders enrichment content and description when content is present', async () => {
+  it('renders enrichment content and description when content is present', () => {
     const mockContent: GeneratedContent = {
       id: '1',
       storyId: storyId,
@@ -60,7 +59,6 @@ describe('AIEnrichment Component', () => {
       generatedText: 'Enriched Text',
       providerName: 'Test',
       modelName: 'Model',
-      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -70,7 +68,6 @@ describe('AIEnrichment Component', () => {
         storyId={storyId}
         initialContents={[mockContent]}
         selectedEnrichmentId={null}
-        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
@@ -87,7 +84,6 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
-      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -99,9 +95,9 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Polled Content',
-      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
+      version: 1,
     }];
 
     (global.fetch as jest.Mock)
@@ -111,31 +107,26 @@ describe('AIEnrichment Component', () => {
       });
 
     const setIntervalSpy = jest.spyOn(global, 'setInterval');
-    
     render(
       <AIEnrichment
         storyId={storyId}
         initialContents={[mockPendingContent]}
         selectedEnrichmentId={null}
-        enrichmentRetryCount={0}
         translations={mockTranslations}
       />
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
 
-    // Get the interval callback and execute it manually
     const callback = setIntervalSpy.mock.calls[0][0] as () => void | Promise<void>;
-    
+
     await act(async () => {
       await callback();
     });
 
-    // Verify the content changed
     expect(screen.getByText('Polled Content')).toBeInTheDocument();
-    
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentDescription)).toBeInTheDocument();
-    
+
     setIntervalSpy.mockRestore();
   });
 });

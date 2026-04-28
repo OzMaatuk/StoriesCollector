@@ -63,6 +63,7 @@ export class StoryRepository {
     providerName: string;
     modelName: string;
     status: string;
+    version?: number | null;
   }) {
     return await prisma.generatedContent.create({
       data,
@@ -75,7 +76,7 @@ export class StoryRepository {
       generatedText?: string;
       status?: string;
       errorMessage?: string | null;
-      retryCount?: number;
+      version?: number | null;
     }
   ) {
     return await prisma.generatedContent.update({
@@ -104,10 +105,33 @@ export class StoryRepository {
     });
   }
 
-  async incrementEnrichmentRetryCount(storyId: string) {
-    return await prisma.story.update({
-      where: { id: storyId },
-      data: { enrichmentRetryCount: { increment: 1 } },
+  async saveGeneratedContentVersion(storyId: string, enrichmentId: string) {
+    const latestVersionResult = await prisma.generatedContent.findFirst({
+      where: {
+        storyId,
+        version: { not: null },
+      },
+      orderBy: {
+        version: 'desc',
+      },
+    });
+
+    const nextVersion = (latestVersionResult?.version ?? 0) + 1;
+
+    return await prisma.$transaction(async (tx) => {
+      const updatedEnrichment = await tx.generatedContent.update({
+        where: { id: enrichmentId },
+        data: {
+          version: nextVersion,
+        },
+      });
+
+      await tx.story.update({
+        where: { id: storyId },
+        data: { selectedEnrichmentId: enrichmentId },
+      });
+
+      return updatedEnrichment;
     });
   }
 

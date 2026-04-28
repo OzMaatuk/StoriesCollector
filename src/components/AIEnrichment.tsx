@@ -1,117 +1,129 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GeneratedContent, Translations } from '@/types';
-import { ENRICHMENT } from '@/lib/constants';
 
 interface AIEnrichmentProps {
   storyId: string;
   initialContents: GeneratedContent[];
   selectedEnrichmentId?: string | null;
-  enrichmentRetryCount: number;
   translations: Translations;
 }
+
+const sortGeneratedContents = (contents: GeneratedContent[]) => {
+  return [...contents].sort((a, b) => {
+    const aVersion = a.version ?? Number.POSITIVE_INFINITY;
+    const bVersion = b.version ?? Number.POSITIVE_INFINITY;
+
+    if (aVersion !== bVersion) {
+      return aVersion - bVersion;
+    }
+
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+};
 
 export default function AIEnrichment({
   storyId,
   initialContents = [],
   selectedEnrichmentId,
-  enrichmentRetryCount,
   translations,
 }: AIEnrichmentProps) {
-  const [contents, setContents] = useState<GeneratedContent[]>(initialContents);
-  const [selectedId, setSelectedId] = useState<string | null>(selectedEnrichmentId || null);
-  const [savedEnrichmentId, setSavedEnrichmentId] = useState<string | null>(selectedEnrichmentId || null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null);
+  const initialSortedContents = sortGeneratedContents(initialContents);
+  const [contents, setContents] = useState<GeneratedContent[]>(initialSortedContents);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    return (
+      selectedEnrichmentId ||
+      initialSortedContents.find((content) => content.version == null)?.id ||
+      initialSortedContents[0]?.id ||
+      null
+    );
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Get the currently selected content
-  const selectedContent = contents.find(c => c.id === selectedId) || contents[0];
+  const sortedContents = useMemo(() => sortGeneratedContents(contents), [contents]);
+
+  const draftContent = useMemo(
+    () => sortedContents.find((content) => content.version == null) || null,
+    [sortedContents]
+  );
+
+  const selectedContent = useMemo(() => {
+    if (selectedId) {
+      return sortedContents.find((content) => content.id === selectedId) || draftContent || sortedContents[0] || null;
+    }
+
+    return draftContent || sortedContents[0] || null;
+  }, [selectedId, sortedContents, draftContent]);
+
+  const hasPending = sortedContents.some((content) => content.status === 'pending');
+  const selectedIsDraft = selectedContent?.version == null;
+
+  const refreshContents = useCallback(async (): Promise<GeneratedContent[] | null> => {
+    try {
+      const response = await fetch(`/api/stories/${storyId}/enrichment`);
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = (await response.json()) as GeneratedContent[];
+      const sortedData = sortGeneratedContents(data);
+      setContents(sortedData);
+
+      if (!selectedId && sortedData.length > 0) {
+        const defaultSelection = selectedEnrichmentId ?? sortedData[0].id;
+        setSelectedId(defaultSelection);
+      }
+
+      return sortedData;
+    } catch (error) {
+      console.error('Failed to refresh enrichment contents:', error);
+      return null;
+    }
+  }, [storyId, selectedId, selectedEnrichmentId]);
 
   useEffect(() => {
-    // Poll for updates when there are pending enrichments
-    const hasPending = contents.some(c => c.status === 'pending');
-    if (!hasPending) return;
+    if (!hasPending) {
+      return;
+    }
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/stories/${storyId}/enrichment`);
-        if (response.ok) {
-          const data = await response.json();
-          setContents(data);
-          const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
-          if (!stillPending) {
-            // Find any newly completed content that wasn't the currently saved version
-            const newContent = data.find((c: GeneratedContent) => 
-              c.status === 'completed' && c.id !== savedEnrichmentId
-            );
-            if (newContent && !newlyGeneratedId) {
-              setNewlyGeneratedId(newContent.id);
-            }
-            setIsGenerating(false);
-            clearInterval(pollInterval);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to poll AI enrichment:', error);
-      }
-    }, 3000); // Poll every 3 seconds
+    const interval = setInterval(refreshContents, 3000);
 
-    return () => clearInterval(pollInterval);
-  }, [storyId, contents, savedEnrichmentId, newlyGeneratedId]);
+    return () => clearInterval(interval);
+  }, [hasPending, refreshContents]);
 
-  const handleGenerateNew = async () => {
-    if (isGenerating) return;
+  const handleGenerate = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
-      setIsGenerating(true);
-      setNewlyGeneratedId(null);
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
         method: 'POST',
       });
 
       if (!response.ok) {
-        console.error('Failed to generate enrichment');
-        setIsGenerating(false);
-        return;
+        throw new Error('Failed to trigger enrichment generation');
       }
 
-      return new Promise<void>((resolve) => {
-        const pollInterval = setInterval(async () => {
-          try {
-            const pollResponse = await fetch(`/api/stories/${storyId}/enrichment`);
-            if (pollResponse.ok) {
-              const data = await pollResponse.json();
-              setContents(data);
-              const stillPending = data.some((c: GeneratedContent) => c.status === 'pending');
-              if (!stillPending) {
-                // Find the newly generated content (not previously saved)
-                const newContent = data.find((c: GeneratedContent) => 
-                  c.status === 'completed' && c.id !== savedEnrichmentId
-                );
-                if (newContent) {
-                  setNewlyGeneratedId(newContent.id);
-                  setSelectedId(newContent.id);
-                }
-                setIsGenerating(false);
-                clearInterval(pollInterval);
-                resolve();
-              }
-            }
-          } catch (error) {
-            console.error('Failed to poll after generate:', error);
-          }
-        }, 3000);
-      });
+      await refreshContents();
     } catch (error) {
+      setErrorMessage('Unable to start enrichment generation. Please try again.');
       console.error('Error generating enrichment:', error);
-      setIsGenerating(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSaveCurrent = async () => {
-    if (!selectedContent || selectedContent.status !== 'completed') return;
+    if (!selectedContent || selectedContent.status !== 'completed' || selectedContent.version != null) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
       const response = await fetch(`/api/stories/${storyId}/enrichment`, {
@@ -120,48 +132,50 @@ export default function AIEnrichment({
         body: JSON.stringify({ enrichmentId: selectedContent.id }),
       });
 
-      if (response.ok) {
-        setSelectedId(selectedContent.id);
-        setSavedEnrichmentId(selectedContent.id);
-        setNewlyGeneratedId(null);
-      } else {
-        console.error('Failed to save enrichment');
+      if (!response.ok) {
+        throw new Error('Failed to save enrichment');
       }
+
+      await refreshContents();
+      setSelectedId(selectedContent.id);
     } catch (error) {
+      setErrorMessage('Unable to save this generated version. Please try again.');
       console.error('Error saving enrichment:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSelectEnrichment = (enrichmentId: string) => {
     setSelectedId(enrichmentId);
-    // Clear newly generated flag when selecting a different enrichment
-    setNewlyGeneratedId(null);
+    setErrorMessage(null);
   };
 
-  const handleRetry = async (enrichmentId: string) => {
-    const enrichment = contents.find(c => c.id === enrichmentId);
-    if (!enrichment || enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES) {
-      return;
-    }
+  const handleRegenerate = async () => {
+    if (isSubmitting || !selectedIsDraft) return;
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
     try {
-      setIsRetrying(true);
-      setNewlyGeneratedId(null);
-      // Reset selection so UI shows the pending state after the retry starts
-      setSelectedId(null);
-      // Trigger generation of a new tmp version (not reusing the failed record)
-      await handleGenerateNew();
+      const response = await fetch(`/api/stories/${storyId}/enrichment`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate enrichment');
+      }
+
+      await refreshContents();
     } catch (error) {
-      console.error('Error retrying enrichment:', error);
+      setErrorMessage('Unable to regenerate the draft version. Please try again.');
+      console.error('Error regenerating enrichment:', error);
     } finally {
-      setIsRetrying(false);
+      setIsSubmitting(false);
     }
   };
 
-  const canRetry = selectedContent && enrichmentRetryCount < ENRICHMENT.MAX_RETRIES;
-  const retriesExhausted = selectedContent && enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES && selectedContent.status === 'failed';
-
-  if (!contents || contents.length === 0) {
+  if (!sortedContents || sortedContents.length === 0) {
     return (
       <div className="mt-8 pt-8 border-t border-gray-200">
         <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
@@ -172,15 +186,18 @@ export default function AIEnrichment({
             {translations.stories.aiEnrichmentDescription}
           </p>
           <button
-            onClick={() => handleGenerateNew()}
-            disabled={isGenerating}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isGenerating
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
+            onClick={handleGenerate}
+            disabled={isSubmitting}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-primary-600 text-white hover:bg-primary-700'
+            }`}
           >
-            {isGenerating ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
+            {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
           </button>
+          {errorMessage && (
+            <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+          )}
         </div>
       </div>
     );
@@ -189,44 +206,67 @@ export default function AIEnrichment({
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
       <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {translations.stories.aiEnrichmentTitle}
-          </h2>
-          <div className="flex items-center space-x-2">
-            {contents.length > 0 && (
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {translations.stories.aiEnrichmentTitle}
+            </h2>
+            {translations.stories.aiEnrichmentDescription && (
+              <p className="text-sm text-gray-600 mt-1">
+                {translations.stories.aiEnrichmentDescription}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {sortedContents.length > 0 && (
               <select
-                value={selectedId || ''}
+                value={selectedContent?.id || ''}
                 onChange={(e) => handleSelectEnrichment(e.target.value)}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white"
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
               >
-                {contents.map((content, index) => (
-                  <option key={content.id} value={content.id}>
-                    v{index + 1}
+                {sortedContents
+                  .filter((content) => content.version != null)
+                  .map((content) => (
+                    <option key={content.id} value={content.id}>
+                      v{content.version}
+                    </option>
+                  ))}
+                {draftContent && (
+                  <option key={draftContent.id} value={draftContent.id}>
+                    Draft{draftContent.status === 'pending' ? ' (pending)' : ''}
                   </option>
-                ))}
+                )}
               </select>
             )}
-            {selectedContent?.status === 'completed' && newlyGeneratedId === selectedContent?.id && (
+            {!draftContent && (
+              <button
+                onClick={handleGenerate}
+                disabled={isSubmitting}
+                className={`px-3 py-2 text-sm rounded-md transition-colors ${isSubmitting
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
+              >
+                {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
+              </button>
+            )}
+            {selectedIsDraft && selectedContent?.status === 'completed' && (
               <button
                 onClick={handleSaveCurrent}
-                disabled={false}
-                className={`px-3 py-1 text-sm rounded-md transition-colors bg-green-600 text-white hover:bg-green-700`}
+                disabled={isSubmitting}
+                className={`px-3 py-2 text-sm rounded-md transition-colors ${isSubmitting
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
               >
                 {translations.stories.save}
               </button>
             )}
-            {/* Generate New button removed as per requirement */}
           </div>
         </div>
-        {translations.stories.aiEnrichmentDescription && (
-          <p className="text-sm text-gray-600 mb-4">
-            {translations.stories.aiEnrichmentDescription}
-          </p>
-        )}
 
-        {selectedContent?.status === 'pending' || isGenerating ? (
-          <div className="flex items-center space-x-3 text-primary-700">
+        {selectedContent?.status === 'pending' ? (
+          <div className="flex items-center gap-3 text-primary-700">
             <svg
               className="animate-spin h-5 w-5 text-primary-600"
               xmlns="http://www.w3.org/2000/svg"
@@ -240,12 +280,12 @@ export default function AIEnrichment({
                 r="10"
                 stroke="currentColor"
                 strokeWidth="4"
-              ></circle>
+              />
               <path
                 className="opacity-75"
                 fill="currentColor"
-                d="4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
             </svg>
             <span>{translations.stories.aiEnrichmentPending}</span>
           </div>
@@ -254,20 +294,16 @@ export default function AIEnrichment({
             <div className="text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
               {translations.stories.aiEnrichmentFailed}
             </div>
-            {retriesExhausted ? (
-              <div className="text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200 text-sm">
-                Retries exhausted. Maximum {ENRICHMENT.MAX_RETRIES} attempts reached.
-              </div>
-            ) : (
+            {selectedIsDraft && (
               <button
-                onClick={() => handleRetry(selectedContent.id)}
-                disabled={isRetrying || !canRetry}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying || !canRetry
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-primary-600 text-white hover:bg-primary-700'
-                  }`}
+                onClick={handleRegenerate}
+                disabled={isSubmitting}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
               >
-                {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${enrichmentRetryCount}/${ENRICHMENT.MAX_RETRIES})`}
+                {translations.stories.aiRegenerate}
               </button>
             )}
           </div>
@@ -276,26 +312,28 @@ export default function AIEnrichment({
             <div className="prose prose-primary max-w-none text-gray-800">
               <div className="whitespace-pre-wrap">{selectedContent?.generatedText || ''}</div>
             </div>
-            {selectedContent && (
-              <>
-                <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
-                  {translations.stories.aiProducedBy}
-                </div>
-                {canRetry && (
-                  <button
-                    onClick={() => handleRetry(selectedContent.id)}
-                    disabled={isRetrying || isGenerating}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRetrying || isGenerating
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 text-white hover:bg-primary-700'
-                      }`}
-                  >
-                    {isRetrying ? translations.stories.aiRetrying : `${translations.stories.aiRegenerate} (${enrichmentRetryCount}/${ENRICHMENT.MAX_RETRIES})`}
-                  </button>
-                )}
-              </>
+            {selectedContent?.status === 'completed' && (
+              <div className="pt-4 mt-4 border-t border-gray-200 text-sm text-gray-500 italic">
+                {translations.stories.aiProducedBy}
+              </div>
+            )}
+            {selectedIsDraft && (
+              <button
+                onClick={handleRegenerate}
+                disabled={isSubmitting}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
+              >
+                {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiRegenerate}
+              </button>
             )}
           </div>
+        )}
+
+        {errorMessage && (
+          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
         )}
       </div>
     </div>

@@ -96,9 +96,8 @@ export async function PUT(
       );
     }
 
-    // Saving = mark this enrichment as the selected (published) version for the story.
-    // The poll loop in the UI will re-fetch and reflect the saved state.
-    await repository.updateSelectedEnrichment(id, enrichmentId);
+    // Saving = promote the temporary enrichment draft into a numbered saved version
+    await repository.saveGeneratedContentVersion(id, enrichmentId);
 
     return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
   } catch (error) {
