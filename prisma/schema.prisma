@@ -21,7 +21,6 @@ model Story {
   language         String   @db.VarChar(5)
   verifiedEmail    Boolean  @default(false)
   selectedEnrichmentId String?
-  enrichmentRetryCount Int @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -42,9 +41,10 @@ model GeneratedContent {
   generatedText String?  @db.Text
   status        String   @default("pending") @db.VarChar(20)
   errorMessage  String?  @db.Text
-  retryCount    Int      @default(0)
+  version       Int?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@unique([storyId, version])
   @@map("generated_content")
 }

@@ -6,7 +6,6 @@ import { Story } from '@/types';
 import { LLMService } from './llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
 import { logger } from '@/lib/logger';
-import { ENRICHMENT } from '@/lib/constants';
 
 type Language = 'en' | 'he' | 'fr';
 
@@ -106,51 +105,32 @@ export class EnrichmentService {
       return;
     }
 
-    // Check story-level retry limit
-    if (story.enrichmentRetryCount >= ENRICHMENT.MAX_RETRIES) {
-      logger.warn(`Retry limit exceeded for story ${story.id}`);
-      throw new Error(`Retry limit (${ENRICHMENT.MAX_RETRIES}) exceeded`);
-    }
-
-    let createdEnrichmentId: string | undefined;
+    let enrichmentRecord;
 
     try {
-      let enrichmentRecord;
-
-      // Try to find an existing unsaved draft to reuse
+      // Try to find an existing temporary draft (unsaved version) to reuse
       const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
-      // Find the most-recent record that is NOT the saved/selected version
-      const selectedId = story.selectedEnrichmentId;
-      const draft = allRecords.find(r => r.id !== selectedId);
+      const draft = allRecords.find((record) => record.version == null);
 
       if (draft) {
-        // Reuse draft
         enrichmentRecord = draft;
         await this.repository.updateGeneratedContent(draft.id, {
           status: 'pending',
           errorMessage: null,
         });
       } else {
-        // No existing draft — create the very first record
         enrichmentRecord = await this.repository.createGeneratedContent({
           storyId: story.id,
           providerName: 'OpenAI-Compatible',
           modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
           status: 'pending',
+          version: null,
         });
-        createdEnrichmentId = enrichmentRecord.id;
       }
 
-      // Increment story-level retry count (after validation but before generation)
-      await this.repository.incrementEnrichmentRetryCount(story.id);
-
-      // 2. Build prompt: template + story content as a single string
       const prompt = this.buildPrompt(story);
-
-      // 3. Call LLM (via Netlify proxy in production, directly in local dev)
       const generatedText = await this.llmService.generateCompletion(prompt);
 
-      // 4. Update record with success
       await this.repository.updateGeneratedContent(enrichmentRecord.id, {
         generatedText,
         status: 'completed',
@@ -162,9 +142,8 @@ export class EnrichmentService {
       logger.error(`Failed to enrich story ${story.id}`, err);
 
       try {
-        const idToUpdate = createdEnrichmentId;
-        if (idToUpdate) {
-          await this.repository.updateGeneratedContent(idToUpdate, {
+        if (enrichmentRecord?.id) {
+          await this.repository.updateGeneratedContent(enrichmentRecord.id, {
             status: 'failed',
             errorMessage: err.message,
           });
