@@ -117,6 +117,19 @@ export default function AIEnrichment({
     }
   };
 
+  const getGenerateButtonLabel = (): string => {
+    if (!selectedContent) {
+      return translations.stories.aiGenerate;
+    }
+
+    const attempts = selectedContent.retryCount || 1;
+    if (attempts === 1) {
+      return translations.stories.aiGenerate;
+    }
+
+    return `${translations.stories.aiRegenerate} (Attempt ${attempts})`;
+  };
+
   const handleSaveCurrent = async () => {
     if (!selectedContent || selectedContent.status !== 'completed' || selectedContent.version != null) {
       return;
@@ -149,30 +162,6 @@ export default function AIEnrichment({
   const handleSelectEnrichment = (enrichmentId: string) => {
     setSelectedId(enrichmentId);
     setErrorMessage(null);
-  };
-
-  const handleRegenerate = async () => {
-    if (isSubmitting || !selectedIsDraft) return;
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      const response = await fetch(`/api/stories/${storyId}/enrichment`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to regenerate enrichment');
-      }
-
-      await refreshContents();
-    } catch (error) {
-      setErrorMessage('Unable to regenerate the draft version. Please try again.');
-      console.error('Error regenerating enrichment:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   if (!sortedContents || sortedContents.length === 0) {
@@ -238,19 +227,7 @@ export default function AIEnrichment({
                 )}
               </select>
             )}
-            {!draftContent && (
-              <button
-                onClick={handleGenerate}
-                disabled={isSubmitting}
-                className={`px-3 py-2 text-sm rounded-md transition-colors ${isSubmitting
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-                }`}
-              >
-                {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
-              </button>
-            )}
-            {selectedIsDraft && selectedContent?.status === 'completed' && (
+            {selectedIsDraft && selectedContent?.status === 'completed' && selectedContent?.generatedText?.trim() && (
               <button
                 onClick={handleSaveCurrent}
                 disabled={isSubmitting}
@@ -296,14 +273,14 @@ export default function AIEnrichment({
             </div>
             {selectedIsDraft && (
               <button
-                onClick={handleRegenerate}
+                onClick={handleGenerate}
                 disabled={isSubmitting}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                {translations.stories.aiRegenerate}
+                {isSubmitting ? translations.stories.aiEnrichmentPending : getGenerateButtonLabel()}
               </button>
             )}
           </div>
@@ -319,14 +296,14 @@ export default function AIEnrichment({
             )}
             {selectedIsDraft && (
               <button
-                onClick={handleRegenerate}
+                onClick={handleGenerate}
                 disabled={isSubmitting}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
-                {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiRegenerate}
+                {isSubmitting ? translations.stories.aiEnrichmentPending : getGenerateButtonLabel()}
               </button>
             )}
           </div>

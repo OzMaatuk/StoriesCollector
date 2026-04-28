@@ -64,9 +64,13 @@ export class StoryRepository {
     modelName: string;
     status: string;
     version?: number | null;
+    retryCount?: number;
   }) {
     return await prisma.generatedContent.create({
-      data,
+      data: {
+        ...data,
+        retryCount: data.retryCount ?? 1,
+      },
     });
   }
 
@@ -77,6 +81,7 @@ export class StoryRepository {
       status?: string;
       errorMessage?: string | null;
       version?: number | null;
+      retryCount?: number;
     }
   ) {
     return await prisma.generatedContent.update({

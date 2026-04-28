@@ -117,6 +117,7 @@ export class EnrichmentService {
         await this.repository.updateGeneratedContent(draft.id, {
           status: 'pending',
           errorMessage: null,
+          retryCount: (draft.retryCount || 1) + 1,
         });
       } else {
         enrichmentRecord = await this.repository.createGeneratedContent({
@@ -125,6 +126,7 @@ export class EnrichmentService {
           modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
           status: 'pending',
           version: null,
+          retryCount: 1,
         });
       }
 
