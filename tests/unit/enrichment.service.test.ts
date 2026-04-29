@@ -67,6 +67,7 @@ describe('EnrichmentService', () => {
       modelName: 'test-model',
       status: 'pending',
       version: null,
+      retryCount: 1,
     });
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(

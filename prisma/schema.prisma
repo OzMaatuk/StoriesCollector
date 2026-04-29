@@ -42,6 +42,7 @@ model GeneratedContent {
   status        String   @default("pending") @db.VarChar(20)
   errorMessage  String?  @db.Text
   version       Int?
+  retryCount    Int      @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
