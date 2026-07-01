@@ -13,8 +13,7 @@
         "Prisma.prisma",
         "ms-playwright.playwright",
         "firsttris.vscode-jest-runner",
-        "GitHub.copilot",
-        "ms-azuretools.vscode-docker"
+        "GitHub.copilot"
       ],
       "settings": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",
