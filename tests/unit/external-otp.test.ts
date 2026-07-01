@@ -30,5 +30,22 @@ describe('External OTP Service Integration', () => {
       const result = await verifyToken('not.a.valid.jwt');
       expect(result).toBeNull();
     });
+
+    it('should return null for expired tokens', async () => {
+      jest.useFakeTimers();
+
+      try {
+        const issuedAt = new Date('2026-01-01T00:00:00.000Z');
+        jest.setSystemTime(issuedAt);
+        const token = await signToken('test@example.com', 'email');
+
+        jest.setSystemTime(new Date(issuedAt.getTime() + 60 * 60 * 1000 + 1000));
+        const result = await verifyToken(token);
+
+        expect(result).toBeNull();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
   });
 });

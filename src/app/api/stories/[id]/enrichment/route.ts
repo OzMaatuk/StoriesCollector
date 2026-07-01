@@ -3,8 +3,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StoryRepository } from '@/repositories/story.repository';
 import { HTTP_STATUS } from '@/lib/constants';
+import { rateLimit } from '@/lib/rate-limit';
 
 const repository = new StoryRepository();
+
+function rateLimitResponse(resetTime?: number) {
+  return NextResponse.json(
+    { error: 'Too many requests. Please try again later.' },
+    {
+      status: HTTP_STATUS.TOO_MANY_REQUESTS,
+      headers: {
+        'X-RateLimit-Limit': process.env.RATE_LIMIT_MAX_REQUESTS || '10',
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(resetTime),
+      },
+    }
+  );
+}
 
 export async function GET(
   _request: NextRequest,
@@ -27,9 +42,14 @@ export async function GET(
 
 // POST endpoint to trigger generation of a new enrichment
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitResult = rateLimit(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime);
+  }
+
   try {
     const { id } = await params;
 
@@ -66,6 +86,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitResult = rateLimit(request);
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult.resetTime);
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();

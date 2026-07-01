@@ -186,9 +186,6 @@ Configure JWT in your environment file:
 ```bash
 # Required - at least 32 characters long, keep this secret!
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-
-# Optional - defaults to 15m (15 minutes)
-JWT_EXPIRES_IN=15m
 ```
 
 ⚠️ **Important Security Notes**:
@@ -196,6 +193,7 @@ JWT_EXPIRES_IN=15m
 - Never commit your JWT secret to version control
 - Use different secrets for development and production
 - Rotate your JWT secret periodically in production
+- Verification tokens expire after one hour
 
 Generate a secure JWT secret:
 
@@ -276,19 +274,25 @@ Best practices:
   - Status codes: `200` (found), `404` (not found), `500` (server error).
 
 - **`POST /api/stories/:id/enrichment`** - Trigger a retry of enrichment for an existing story
-  - Purpose: Retry a failed enrichment. The endpoint enforces a maximum retry limit to avoid excessive LLM calls.
+  - Purpose: Generate or regenerate enrichment for a public story.
   - Behavior:
-    - Validates the story exists and that a generated content record exists for the story.
-    - If `retryCount` >= configured max retries, returns `429` with details.
-    - Otherwise it triggers an asynchronous retry and returns the current enrichment record.
-  - Returns: Updated enrichment record and `200` on success, `404` if no record, `429` when retry limit exceeded.
+    - Validates the story exists.
+    - Applies the public API rate limit.
+    - Triggers asynchronous generation and returns immediately.
+  - Returns: `{ success: true }` and `200` on success, `404` if the story does not exist, `429` when rate limited.
+
+- **`PUT /api/stories/:id/enrichment`** - Save/select a generated enrichment version
+  - Body: `{ enrichmentId }`
+  - Behavior: Applies the public API rate limit and verifies the enrichment belongs to the story.
+  - Returns: `{ success: true }` and `200` on success.
 
 #### Chat / LLM Proxy
 
 - **`POST /api/chat`** - Server-side proxy to call the configured LLM backend
-  - Body: Pass-through to the LLM client (e.g., `{ model, messages, max_tokens }`). The server forwards the request to the LLM backend using `LVM_API_KEY`/server-side credentials.
-  - Notes: This endpoint is intended for internal use only and never exposes LLM secrets to the browser.
-  - Returns: The LLM backend response or `500` for proxy errors.
+  - Disabled by default. Set `ENABLE_CHAT_PROXY=true` only when the UI needs this endpoint.
+  - Body: validated OpenAI-compatible subset: `{ messages, model?, max_tokens?, temperature? }`.
+  - Notes: Requires a same-origin browser request, applies rate limiting, enforces `CHAT_PROXY_ALLOWED_MODELS`, and caps body size/tokens with `CHAT_PROXY_MAX_BODY_BYTES` and `CHAT_PROXY_MAX_TOKENS`.
+  - Returns: The LLM backend response, `400` for validation errors, `403` for cross-origin requests, `404` when disabled, or `502` for upstream failures.
 
 #### Common behaviors & headers
 
@@ -343,6 +347,11 @@ OTP_SERVICE_URL=https://your-otp-service.com
 ENABLE_LLM_ENRICHMENT=true # Set to 'true' to enable asynchronous enrichment (default: disabled in repo)
 LLM_MODEL_NAME=dicta-il/DictaLM-3.0-24B-Thinking-W4A16 # Optional model override
 LLM_MAX_TOKENS=2048 # Optional override for max tokens
+ENABLE_CHAT_PROXY=false # Set to 'true' only if the browser UI needs /api/chat
+CHAT_PROXY_ALLOWED_MODELS=dicta-il/DictaLM-3.0-24B-Thinking-W4A16
+CHAT_PROXY_MAX_TOKENS=512
+CHAT_PROXY_MAX_BODY_BYTES=20000
+LLM_DEBUG_LOGS=false
 ```
 
 Optional:
@@ -350,6 +359,7 @@ Optional:
 ```bash
 RATE_LIMIT_WINDOW_MS=900000  # 15 minutes
 RATE_LIMIT_MAX_REQUESTS=10   # Max requests per window
+RATE_LIMIT_TRUST_PROXY_HEADERS=false # Set true only behind a trusted proxy
 ```
 
 #### Build & Deploy

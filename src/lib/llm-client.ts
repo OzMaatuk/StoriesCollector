@@ -7,6 +7,7 @@ export interface LLMResponse {
 export async function callLLM(body: object): Promise<LLMResponse> {
   const baseUrl = (process.env.LLM_BASE_URL || '').trim();
   const apiKey = (process.env.LLM_API_KEY || '').trim();
+  const debugLogsEnabled = process.env.LLM_DEBUG_LOGS === 'true';
 
   if (!baseUrl) {
     throw new Error('LLM_BASE_URL not configured');
@@ -18,13 +19,11 @@ export async function callLLM(body: object): Promise<LLMResponse> {
 
   const targetUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
-  // Log exact request details for comparison with working curl
-  const bodyModel = (body as Record<string, unknown>).model;
-  console.warn('[LLM Client] URL:', targetUrl);
-  console.warn('[LLM Client] Model:', bodyModel);
-  console.warn('[LLM Client] Auth header prefix:', `Bearer ${apiKey.slice(0, 8)}...`);
-  console.warn('[LLM Client] Auth header length:', `Bearer ${apiKey}`.length);
-  console.warn('[LLM Client] Request body:', JSON.stringify(body));
+  if (debugLogsEnabled) {
+    const bodyModel = (body as Record<string, unknown>).model;
+    console.warn('[LLM Client] URL:', targetUrl);
+    console.warn('[LLM Client] Model:', bodyModel);
+  }
 
   const response = await fetch(targetUrl, {
     method: 'POST',
@@ -37,8 +36,10 @@ export async function callLLM(body: object): Promise<LLMResponse> {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error('[LLM Client] error response:', errText);
-    throw new Error(`LLM Error ${response.status}: ${errText}`);
+    if (debugLogsEnabled) {
+      console.error('[LLM Client] error response length:', errText.length);
+    }
+    throw new Error(`LLM Error ${response.status}: upstream request failed`);
   }
 
   return response.json() as Promise<LLMResponse>;

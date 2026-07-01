@@ -53,6 +53,18 @@ export async function verifyToken(
       base64UrlDecode(payloadB64).toString('utf-8')
     );
 
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof decodedPayload.exp !== 'number' || decodedPayload.exp <= now) {
+      return null;
+    }
+
+    if (
+      typeof decodedPayload.recipient !== 'string' ||
+      typeof decodedPayload.channel !== 'string'
+    ) {
+      return null;
+    }
+
     return {
       recipient: decodedPayload.recipient,
       channel: decodedPayload.channel,
