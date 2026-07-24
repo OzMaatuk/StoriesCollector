@@ -98,6 +98,7 @@ export class EnrichmentService {
     }
 
     let enrichmentRecord;
+    let success = false;
 
     try {
       // Try to find an existing temporary draft (unsaved version) to reuse
@@ -131,6 +132,7 @@ export class EnrichmentService {
       });
 
       logger.info(`Successfully enriched story ${story.id}`);
+      success = true;
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error(`Failed to enrich story ${story.id}`, err);
@@ -146,5 +148,7 @@ export class EnrichmentService {
         logger.error('Failed to update failure status in DB', dbError as Error);
       }
     }
+
+    return success;
   }
 }
