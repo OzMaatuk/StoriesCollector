@@ -21,10 +21,7 @@ function rateLimitResponse(resetTime?: number) {
   );
 }
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const enrichments = await repository.getGeneratedContentsByStoryId(id);
@@ -41,10 +38,7 @@ export async function GET(
 }
 
 // POST endpoint to trigger generation of a new enrichment
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const rateLimitResult = rateLimit(request);
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime);
@@ -56,10 +50,7 @@ export async function POST(
     // Validate story exists
     const story = await repository.findById(id);
     if (!story) {
-      return NextResponse.json(
-        { error: 'Story not found' },
-        { status: HTTP_STATUS.NOT_FOUND }
-      );
+      return NextResponse.json({ error: 'Story not found' }, { status: HTTP_STATUS.NOT_FOUND });
     }
 
     // Trigger enrichment generation (service will create a new tmp version or reuse existing draft)
@@ -67,12 +58,16 @@ export async function POST(
     const { EnrichmentService } = await import('@/services/enrichment.service');
     const service = new EnrichmentService();
 
-    // Run asynchronously to prevent Netlify serverless timeout
-    service.enrichStory(story).catch((error) => {
-      console.error(`Background enrichment failed for story ${id}:`, error);
-    });
+    if (!service.isEnabled()) {
+      return NextResponse.json(
+        { error: 'LLM enrichment is disabled' },
+        { status: HTTP_STATUS.SERVICE_UNAVAILABLE }
+      );
+    }
 
-    return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
+    await service.enrichStory(story);
+
+    return NextResponse.json({ success: true }, { status: HTTP_STATUS.ACCEPTED });
   } catch (error) {
     console.error('Error generating enrichment:', error);
     return NextResponse.json(
@@ -82,10 +77,7 @@ export async function POST(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const rateLimitResult = rateLimit(request);
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult.resetTime);
@@ -106,10 +98,7 @@ export async function PUT(
     // Validate story exists
     const story = await repository.findById(id);
     if (!story) {
-      return NextResponse.json(
-        { error: 'Story not found' },
-        { status: HTTP_STATUS.NOT_FOUND }
-      );
+      return NextResponse.json({ error: 'Story not found' }, { status: HTTP_STATUS.NOT_FOUND });
     }
 
     // Validate enrichment exists and belongs to the story

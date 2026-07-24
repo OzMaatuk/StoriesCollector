@@ -28,8 +28,8 @@ const languageLabels: Record<Language, LanguageLabels> = {
   },
   fr: {
     title: 'Titre',
-    background: 'Contexte de l\'histoire',
-    content: 'Contenu de l\'histoire',
+    background: "Contexte de l'histoire",
+    content: "Contenu de l'histoire",
   },
 };
 
@@ -51,11 +51,7 @@ export class EnrichmentService {
 
     for (const lang of languages) {
       try {
-        const promptPath = path.join(
-          process.cwd(),
-          'prompts',
-          `story_enrichment_${lang}.txt`
-        );
+        const promptPath = path.join(process.cwd(), 'prompts', `story_enrichment_${lang}.txt`);
         const template = fs.readFileSync(promptPath, 'utf8');
         this.promptTemplates.set(lang, template);
       } catch (error) {
@@ -68,41 +64,37 @@ export class EnrichmentService {
 
   private getPromptTemplate(language: string): string {
     const lang = (language.toLowerCase() || 'he') as Language;
-    return (
-      this.promptTemplates.get(lang) ||
-      this.promptTemplates.get('he') ||
-      ''
-    );
+    return this.promptTemplates.get(lang) || this.promptTemplates.get('he') || '';
   }
 
   private buildPrompt(story: Story): string {
     const promptTemplate = this.getPromptTemplate(story.language);
-    const labels = languageLabels[
-      (story.language.toLowerCase() as Language) || 'he'
-    ] || languageLabels.he;
+    const labels =
+      languageLabels[(story.language.toLowerCase() as Language) || 'he'] || languageLabels.he;
 
     const parts = [promptTemplate.trim()];
 
     if (story.title) parts.push(`\n${labels.title}: ${story.title}`);
-    if (story.storyBackground)
-      parts.push(`${labels.background}: ${story.storyBackground}`);
+    if (story.storyBackground) parts.push(`${labels.background}: ${story.storyBackground}`);
     parts.push(`\n${labels.content}:\n${story.content}`);
 
     return parts.join('\n');
   }
 
-  async enrichStory(story: Story) {
-    if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
+  isEnabled(): boolean {
+    return process.env.ENABLE_LLM_ENRICHMENT === 'true';
+  }
+
+  async enrichStory(story: Story): Promise<boolean> {
+    if (!this.isEnabled()) {
       logger.info('LLM enrichment is disabled');
-      return;
+      return false;
     }
 
     const promptTemplate = this.getPromptTemplate(story.language);
     if (!promptTemplate) {
-      logger.error(
-        `Cannot enrich story: prompt template missing for language ${story.language}`
-      );
-      return;
+      logger.error(`Cannot enrich story: prompt template missing for language ${story.language}`);
+      return false;
     }
 
     let enrichmentRecord;

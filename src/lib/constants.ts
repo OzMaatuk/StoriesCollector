@@ -26,7 +26,7 @@ export const RATE_LIMIT = {
   MAX_REQUESTS: 10,
 };
 
-const _maxRetriesEnv = process.env.ENRICHMENT_MAX_RETRIES
+const _maxRetriesEnv = process.env.ENRICHMENT_MAX_RETRIES;
 const _maxRetries = _maxRetriesEnv && Number.isInteger(_maxRetriesEnv) ? Number(_maxRetriesEnv) : 5;
 
 export const ENRICHMENT = {
@@ -43,6 +43,7 @@ export const HTTP_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   TOO_MANY_REQUESTS: 429,
+  SERVICE_UNAVAILABLE: 503,
   INTERNAL_SERVER_ERROR: 500,
   NOT_IMPLEMENTED: 501,
 };
