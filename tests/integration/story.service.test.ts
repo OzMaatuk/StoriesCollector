@@ -1,21 +1,15 @@
 import { StoryService } from '@/services/story.service';
 import { StoryRepository } from '@/repositories/story.repository';
-
-// Define the assumed Story interface to correctly type mock data
-interface Story {
-  id: string;
-  name: string;
-  phone?: string;
-  email: string;
-  content: string;
-  language: string;
-  verifiedEmail: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Story } from '@/types';
 
 // Mock the repository
 jest.mock('@/repositories/story.repository');
+// Mock enrichment service so fire-and-forget enrichStory doesn't log spurious errors
+jest.mock('@/services/enrichment.service', () => ({
+  EnrichmentService: jest.fn().mockImplementation(() => ({
+    enrichStory: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
 
 describe('StoryService', () => {
   let service: StoryService;

@@ -1,17 +1,9 @@
 // Set dummy DATABASE_URL before any imports that use prisma
 process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/db';
 
-jest.mock('@/repositories/story.repository');
-jest.mock('@/services/enrichment.service', () => ({
-  __esModule: true,
-  EnrichmentService: jest.fn().mockImplementation(() => ({
-    enrichStory: jest.fn(),
-  })),
-}));
-
-import { StoryRepository } from '@/repositories/story.repository';
 import { Story } from '@/types';
 import type { StoryService } from '@/services/story.service';
+import type { StoryRepository } from '@/repositories/story.repository';
 
 describe('Enrichment Integration', () => {
   let storyService: StoryService;
@@ -19,8 +11,29 @@ describe('Enrichment Integration', () => {
   let EnrichmentServiceMock: jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
     jest.resetModules();
+
+    // Re-register mocks after resetModules so they apply to freshly required modules
+    jest.doMock('@/repositories/story.repository', () => {
+      const mockCreate = jest.fn();
+      const mockFindAll = jest.fn();
+      const mockFindById = jest.fn();
+      const mockUpdate = jest.fn();
+      const MockRepo = jest.fn().mockImplementation(() => ({
+        create: mockCreate,
+        findAll: mockFindAll,
+        findById: mockFindById,
+        update: mockUpdate,
+      }));
+      return { StoryRepository: MockRepo };
+    });
+
+    jest.doMock('@/services/enrichment.service', () => ({
+      __esModule: true,
+      EnrichmentService: jest.fn().mockImplementation(() => ({
+        enrichStory: jest.fn(),
+      })),
+    }));
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { StoryService } = require('@/services/story.service');
