@@ -12,8 +12,8 @@ export class LLMService {
   private maxTokens: number;
 
   constructor() {
-    this.modelName =
-      process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16';
+    const configuredModel = process.env.LLM_MODEL_NAME?.trim();
+    this.modelName = configuredModel || 'default';
     this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1024', 10);
   }
 
@@ -27,10 +27,7 @@ export class LLMService {
     return this.callWithRetry(body);
   }
 
-  private async callWithRetry(
-    body: object,
-    retryCount = 0
-  ): Promise<string> {
+  private async callWithRetry(body: object, retryCount = 0): Promise<string> {
     try {
       const data = await callLLM(body);
       return data.choices[0].message.content;
@@ -42,9 +39,7 @@ export class LLMService {
       const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
 
       if (RETRYABLE_STATUSES.has(status) && retryCount < MAX_RETRIES) {
-        logger.info(
-          `LLM not ready (${status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`
-        );
+        logger.info(`LLM not ready (${status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         return this.callWithRetry(body, retryCount + 1);
       }

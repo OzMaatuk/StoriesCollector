@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const parsed = chatRequestSchema.parse(await request.json());
-    const defaultModel = process.env.LLM_MODEL_NAME || ALLOWED_MODELS[0];
+    const defaultModel = process.env.LLM_MODEL_NAME?.trim() || 'default';
     const model = parsed.model || defaultModel;
 
     if (!model) {
