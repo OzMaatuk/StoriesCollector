@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 
 # ── Stage 1: deps + build ──────────────────────────────────────────
 FROM node:${NODE_VERSION}-alpine AS builder
@@ -15,7 +15,6 @@ COPY prisma ./prisma
 # Install ALL deps (dev included) for build
 RUN npm ci
 
-RUN npm install @prisma/client@6
 RUN npx prisma generate
 
 COPY . .

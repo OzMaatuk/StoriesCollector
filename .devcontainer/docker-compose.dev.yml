@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NODE_VERSION: 20
+        NODE_VERSION: 24
     container_name: stories-collector-dev
     volumes:
       - ..:/workspace:cached
