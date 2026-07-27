@@ -10,8 +10,20 @@ interface AIEnrichmentProps {
   translations: Translations;
 }
 
-const sortGeneratedContents = (contents: GeneratedContent[]) => {
-  return [...contents].sort((a, b) => {
+const normalizeGeneratedContents = (
+  contents: GeneratedContent | GeneratedContent[] | null | undefined
+): GeneratedContent[] => {
+  if (!contents) {
+    return [];
+  }
+
+  return Array.isArray(contents) ? contents : [contents];
+};
+
+const sortGeneratedContents = (
+  contents: GeneratedContent | GeneratedContent[] | null | undefined
+) => {
+  return [...normalizeGeneratedContents(contents)].sort((a, b) => {
     const aVersion = a.version ?? Number.POSITIVE_INFINITY;
     const bVersion = b.version ?? Number.POSITIVE_INFINITY;
 
@@ -62,41 +74,68 @@ export default function AIEnrichment({
     return draftContent || sortedContents[0] || null;
   }, [selectedId, sortedContents, draftContent]);
 
-  const pendingContent = sortedContents.find((content) => content.status === 'pending') || null;
   const selectedIsDraft = selectedContent?.version == null;
 
-  const refreshContents = useCallback(async (): Promise<GeneratedContent[] | null> => {
-    try {
-      const response = await fetch(`/api/stories/${storyId}/enrichment`);
-      if (!response.ok) {
+  const refreshContents = useCallback(
+    async (requestedEnrichmentId?: string | null): Promise<GeneratedContent[] | null> => {
+      try {
+        const url = requestedEnrichmentId
+          ? `/api/stories/${storyId}/enrichment?enrichmentId=${encodeURIComponent(requestedEnrichmentId)}`
+          : `/api/stories/${storyId}/enrichment?mode=latest`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          return null;
+        }
+
+        const data = (await response.json()) as GeneratedContent | GeneratedContent[] | null;
+        const sortedData = sortGeneratedContents(data);
+        setContents(sortedData);
+
+        if (sortedData.length > 0) {
+          const selectedEnrichment = requestedEnrichmentId
+            ? sortedData.find((content) => content.id === requestedEnrichmentId) || sortedData[0]
+            : sortedData.find((content) => content.id === selectedId) ||
+              sortedData.find((content) => content.id === selectedEnrichmentId) ||
+              sortedData[0];
+
+          if (selectedEnrichment) {
+            setSelectedId(selectedEnrichment.id);
+          }
+        }
+
+        return sortedData;
+      } catch (error) {
+        console.error('Failed to refresh enrichment contents:', error);
         return null;
       }
+    },
+    [storyId, selectedId, selectedEnrichmentId]
+  );
 
-      const data = (await response.json()) as GeneratedContent[];
-      const sortedData = sortGeneratedContents(data);
-      setContents(sortedData);
-
-      if (!selectedId && sortedData.length > 0) {
-        const defaultSelection = selectedEnrichmentId ?? sortedData[0].id;
-        setSelectedId(defaultSelection);
-      }
-
-      return sortedData;
-    } catch (error) {
-      console.error('Failed to refresh enrichment contents:', error);
-      return null;
+  useEffect(() => {
+    if (initialContents.length > 0) {
+      return;
     }
-  }, [storyId, selectedId, selectedEnrichmentId]);
+
+    const timeoutId = window.setTimeout(() => {
+      void refreshContents(selectedEnrichmentId ?? selectedId ?? null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialContents.length, refreshContents, selectedEnrichmentId, selectedId]);
 
   useEffect(() => {
     if (!selectedContent || selectedContent.status !== 'pending') {
       return;
     }
 
-    const interval = setInterval(refreshContents, 3000);
+    const interval = setInterval(() => {
+      void refreshContents(selectedContent.id);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [refreshContents, selectedContent?.id, selectedContent?.status]);
+  }, [refreshContents, selectedContent, selectedContent?.id, selectedContent?.status]);
 
   const handleGenerate = async () => {
     if (isSubmitting) return;
@@ -113,7 +152,7 @@ export default function AIEnrichment({
         throw new Error('Failed to trigger enrichment generation');
       }
 
-      await refreshContents();
+      await refreshContents(selectedId ?? null);
     } catch (error) {
       setErrorMessage('Unable to start enrichment generation. Please try again.');
       console.error('Error generating enrichment:', error);
@@ -158,7 +197,7 @@ export default function AIEnrichment({
         throw new Error('Failed to save enrichment');
       }
 
-      await refreshContents();
+      await refreshContents(selectedContent.id);
       setSelectedId(selectedContent.id);
     } catch (error) {
       setErrorMessage('Unable to save this generated version. Please try again.');
@@ -171,6 +210,7 @@ export default function AIEnrichment({
   const handleSelectEnrichment = (enrichmentId: string) => {
     setSelectedId(enrichmentId);
     setErrorMessage(null);
+    void refreshContents(enrichmentId);
   };
 
   if (!sortedContents || sortedContents.length === 0) {

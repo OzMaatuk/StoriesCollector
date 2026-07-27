@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
 import { GeneratedContent, Translations } from '@/types';
 
@@ -76,6 +76,53 @@ describe('AIEnrichment Component', () => {
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentDescription)).toBeInTheDocument();
     expect(screen.getByText('Enriched Text')).toBeInTheDocument();
     expect(screen.getByText(mockTranslations.stories.aiProducedBy)).toBeInTheDocument();
+  });
+
+  it('requests the selected enrichment by id when the dropdown selection changes', async () => {
+    const mockContents: GeneratedContent[] = [
+      {
+        id: '1',
+        storyId,
+        providerName: 'Test',
+        modelName: 'Model',
+        status: 'completed',
+        generatedText: 'First version',
+        retryCount: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        version: 1,
+      },
+      {
+        id: '2',
+        storyId,
+        providerName: 'Test',
+        modelName: 'Model',
+        status: 'completed',
+        generatedText: 'Second version',
+        retryCount: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        version: 2,
+      },
+    ];
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockContents[1],
+    });
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={mockContents}
+        selectedEnrichmentId={null}
+        translations={mockTranslations}
+      />
+    );
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
+
+    expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment?enrichmentId=2');
   });
 
   it('polls for content when pending', async () => {
