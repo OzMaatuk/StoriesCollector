@@ -90,24 +90,25 @@ describe('AIEnrichment Component', () => {
       updatedAt: new Date(),
     };
 
-    const mockCompletedContent: GeneratedContent[] = [{
-      id: 'completed-id',
-      storyId,
-      providerName: 'Test',
-      modelName: 'Model',
-      status: 'completed',
-      generatedText: 'Polled Content',
-      retryCount: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      version: 1,
-    }];
+    const mockCompletedContent: GeneratedContent[] = [
+      {
+        id: 'completed-id',
+        storyId,
+        providerName: 'Test',
+        modelName: 'Model',
+        status: 'completed',
+        generatedText: 'Polled Content',
+        retryCount: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        version: 1,
+      },
+    ];
 
-    (global.fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockCompletedContent,
-      });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockCompletedContent,
+    });
 
     const setIntervalSpy = jest.spyOn(global, 'setInterval');
     render(
@@ -129,6 +130,47 @@ describe('AIEnrichment Component', () => {
 
     expect(screen.getByText('Polled Content')).toBeInTheDocument();
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentDescription)).toBeInTheDocument();
+
+    setIntervalSpy.mockRestore();
+  });
+
+  it('does not start polling when selected content is completed even if a stale pending item exists', () => {
+    const mockCompletedContent: GeneratedContent = {
+      id: 'completed-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Loaded Content',
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      version: 1,
+    };
+
+    const mockPendingContent: GeneratedContent = {
+      id: 'stale-pending-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'pending',
+      retryCount: 1,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
+      updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
+    };
+
+    const setIntervalSpy = jest.spyOn(global, 'setInterval');
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockCompletedContent, mockPendingContent]}
+        selectedEnrichmentId={mockCompletedContent.id}
+        translations={mockTranslations}
+      />
+    );
+
+    expect(screen.getByText('Loaded Content')).toBeInTheDocument();
+    expect(setIntervalSpy).not.toHaveBeenCalled();
 
     setIntervalSpy.mockRestore();
   });
