@@ -75,6 +75,7 @@ describe('EnrichmentService', () => {
     });
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
+      expect.stringContaining('Return only the final answer'),
       expect.stringContaining(mockStory.title!)
     );
 
@@ -138,10 +139,11 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(hebrewStory);
 
-    const prompt = mockLLMService.generateCompletion.mock.calls[0][0] as string;
-    expect(prompt).toContain('כותרת הסיפור');
-    expect(prompt).toContain('רקע לסיפור');
-    expect(prompt).toContain('הסיפור שלך');
+    const [systemPrompt, userContent] = mockLLMService.generateCompletion.mock.calls[0] as [string, string];
+    expect(systemPrompt).toContain('Return only the final answer');
+    expect(userContent).toContain('כותרת הסיפור');
+    expect(userContent).toContain('רקע לסיפור');
+    expect(userContent).toContain(hebrewStory.content);
   });
 
   it('should not enrich if disabled', async () => {

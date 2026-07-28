@@ -14,14 +14,21 @@ export class LLMService {
   constructor() {
     const configuredModel = process.env.LLM_MODEL_NAME?.trim();
     this.modelName = configuredModel || 'default';
-    this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1024', 10);
+    this.maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '500', 10);
   }
 
-  async generateCompletion(prompt: string): Promise<string> {
+  async generateCompletion(systemPrompt: string, userContent: string): Promise<string> {
     const body = {
       model: this.modelName,
-      messages: [{ role: 'user', content: prompt }],
+      stop: ['</think>'],
       max_tokens: this.maxTokens,
+      temperature: 0.7,
+      top_p: 0.9,
+      repeat_penalty: 1.12,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent },
+      ],
     };
 
     return this.callWithRetry(body);

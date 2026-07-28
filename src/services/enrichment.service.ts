@@ -59,17 +59,28 @@ export class EnrichmentService {
     };
   }
 
-  private buildPrompt(story: Story): string {
-    const promptTemplate = this.getPromptTemplate(story.language);
+  private buildSystemPrompt(language: string): string {
+    const lang = (language?.toLowerCase() || 'he') as Language;
+
+    const constraints: Record<Language, string> = {
+      he: "Return only the final answer. Never output <think> tags, reasoning, analysis, internal thoughts, prompts, instructions, or any meta commentary. Never repeat or quote the input. Transform the provided story into a short summarized story written in the style and language of Rabbi Nachman of Breslov, incorporating relevant ideas, teachings, and connections from his writings when appropriate. Include only the story itself, with no introduction or explanation. Avoid repeating phrases, sentences, or ideas. Each paragraph must add new information. Keep the response between 100 and 1000 characters and do not stop before reaching the minimum length.",
+      en: "Return only the final answer. Never output <think> tags, reasoning, analysis, internal thoughts, prompts, instructions, or any meta commentary. Never repeat or quote the input. Transform the provided story into a short summarized story written in the style and language of Rabbi Nachman of Breslov, incorporating relevant ideas, teachings, and connections from his writings when appropriate. Include only the story itself, with no introduction or explanation. Avoid repeating phrases, sentences, or ideas. Each paragraph must add new information. Keep the response between 100 and 1000 characters and do not stop before reaching the minimum length.",
+      fr: "Retournez uniquement la réponse finale. Ne produisez jamais de balises <think>, de raisonnement, d'analyse, de pensées internes, de consignes, d'instructions ou de méta-commentaires. Ne répétez jamais ou ne citez jamais l'entrée. Transformez l'histoire fournie en un court résumé rédigé dans le style et la langue du rabbin Nachman de Breslov, en incorporant des idées, des enseignements et des connexions pertinents de ses écrits lorsque cela est approprié. N'incluez que l'histoire elle-même, sans introduction ni explication. Évitez de répéter des expressions, des phrases ou des idées. Chaque paragraphe doit apporter de nouvelles informations. Gardez la réponse entre 100 et 1000 caractères et ne vous arrêtez pas avant d'atteindre la longueur minimale.",
+    };
+
+    return constraints[lang] ?? constraints['he'];
+  }
+
+  private buildUserContent(story: Story): string {
+    const template = this.getPromptTemplate(story.language).trim();
     const labels = this.getPromptLabels(story.language);
+    const parts: string[] = [template];
 
-    const parts = [promptTemplate.trim()];
-
-    if (story.title) parts.push(`\n${labels.title}: ${story.title}`);
+    if (story.title) parts.push(`${labels.title}: ${story.title}`);
     if (story.storyBackground) parts.push(`${labels.background}: ${story.storyBackground}`);
-    parts.push(`\n${labels.content}:\n${story.content}`);
+    parts.push(`${story.content}`);
 
-    return parts.join('\n');
+    return parts.join(' ');
   }
 
   async enrichStory(story: Story) {
@@ -109,8 +120,9 @@ export class EnrichmentService {
         });
       }
 
-      const prompt = this.buildPrompt(story);
-      const generatedText = await this.llmService.generateCompletion(prompt);
+      const systemPrompt = this.buildSystemPrompt(story.language);
+      const userContent = this.buildUserContent(story);
+      const generatedText = await this.llmService.generateCompletion(systemPrompt, userContent);
 
       await this.repository.updateGeneratedContent(enrichmentRecord.id, {
         generatedText,
