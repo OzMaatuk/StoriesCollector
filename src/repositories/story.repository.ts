@@ -77,7 +77,7 @@ export class StoryRepository {
   async updateGeneratedContent(
     id: string,
     data: {
-      generatedText?: string;
+      generatedText?: string | null;
       status?: string;
       errorMessage?: string | null;
       version?: number | null;
@@ -103,6 +103,32 @@ export class StoryRepository {
     });
   }
 
+  /**
+   * Guarantees a draft row (version === null) exists for the story.
+   * If one already exists it is returned as-is — content and status are NOT
+   * touched, so a completed draft keeps its text and a pending draft keeps
+   * spinning.  Only creates a new row when none is found.
+   */
+  async ensureDraftExists(storyId: string) {
+    const existing = await prisma.generatedContent.findFirst({
+      where: { storyId, version: null },
+    });
+
+    if (existing) return existing;
+
+    return await prisma.generatedContent.create({
+      data: {
+        storyId,
+        providerName: 'OpenAI-Compatible',
+        modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+        generatedText: null,
+        status: 'completed',
+        version: null,
+        retryCount: 0,
+      },
+    });
+  }
+
   async updateSelectedEnrichment(storyId: string, enrichmentId: string | null) {
     return await prisma.story.update({
       where: { id: storyId },
@@ -123,12 +149,10 @@ export class StoryRepository {
 
     const nextVersion = (latestVersionResult?.version ?? 0) + 1;
 
-    return await prisma.$transaction(async (tx) => {
-      const updatedEnrichment = await tx.generatedContent.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.generatedContent.update({
         where: { id: enrichmentId },
-        data: {
-          version: nextVersion,
-        },
+        data: { version: nextVersion },
       });
 
       await tx.story.update({
@@ -136,7 +160,19 @@ export class StoryRepository {
         data: { selectedEnrichmentId: enrichmentId },
       });
 
-      return updatedEnrichment;
+      // The saved row is now a versioned record — replace it with a fresh
+      // empty draft so the Draft slot is always available for the next generation.
+      await tx.generatedContent.create({
+        data: {
+          storyId,
+          providerName: 'OpenAI-Compatible',
+          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+          generatedText: null,
+          status: 'completed',
+          version: null,
+          retryCount: 0,
+        },
+      });
     });
   }
 

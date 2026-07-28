@@ -100,8 +100,9 @@ export class EnrichmentService {
     if (existing) {
       return await this.repository.updateGeneratedContent(existing.id, {
         status: 'pending',
+        generatedText: null, // clear stale text so spinner shows a blank slate during generation
         errorMessage: null,
-        retryCount: (existing.retryCount || 1) + 1,
+        retryCount: (existing.retryCount || 0) + 1,
       });
     }
 

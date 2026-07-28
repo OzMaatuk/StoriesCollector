@@ -59,6 +59,10 @@ export class StoryService {
 
         const story = await this.repository.create(storyData);
         
+        // Guarantee the draft slot exists before triggering enrichment so the
+        // story page always has at least one GeneratedContent row to show.
+        await this.repository.ensureDraftExists(story.id);
+
         // Trigger enrichment asynchronously
         void enrichmentService.enrichStory(story);
 
@@ -72,6 +76,9 @@ export class StoryService {
           email: validated.email ?? '',
           verifiedEmail: false,
         });
+
+        // Guarantee the draft slot exists before triggering enrichment.
+        await this.repository.ensureDraftExists(story.id);
 
         // Trigger enrichment asynchronously
         void enrichmentService.enrichStory(story);
