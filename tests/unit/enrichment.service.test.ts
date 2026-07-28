@@ -90,6 +90,7 @@ describe('EnrichmentService', () => {
   it('should delegate enrichment to Python backend when LLM_EXECUTION_METHOD is async_python', async () => {
     process.env.LLM_EXECUTION_METHOD = 'async_python';
     process.env.PYTHON_BACKEND_URL = 'http://127.0.0.1:8000';
+    delete process.env.PYTHON_BACKEND_SECRET;
 
     const mockFetch = jest.fn().mockResolvedValue({
       ok: true,
