@@ -130,17 +130,22 @@ export class EnrichmentService {
       retryCount: draftRecord.retryCount,
     };
 
-    const response = await fetch(`${pythonUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch(`${pythonUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Python backend returned ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Python backend returned status ${response.status}`);
+      }
+
+      logger.info(`Delegated enrichment to Python backend for story ${story.id}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Python backend unreachable at ${pythonUrl} (${errorMsg})`);
     }
-
-    logger.info(`Delegated enrichment to Python backend for story ${story.id}`);
   }
 
   async enrichStory(

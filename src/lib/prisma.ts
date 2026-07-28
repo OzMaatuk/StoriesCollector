@@ -1,3 +1,4 @@
+import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
@@ -10,7 +11,16 @@ if (!databaseUrl) {
   throw new Error('[Prisma] DATABASE_URL is not set');
 }
 
-const adapter = new PrismaPg({ connectionString: databaseUrl });
+const isSupabase = databaseUrl.includes('supabase.com') || databaseUrl.includes('pooler.supabase');
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: isSupabase || databaseUrl.includes('sslmode=') ? { rejectUnauthorized: false } : undefined,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
+});
+
+const adapter = new PrismaPg(pool);
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -20,10 +30,8 @@ export const prisma =
   });
 
 if (!globalForPrisma.prisma) {
-  // eslint-disable-next-line no-console
   console.log('[Prisma] New PrismaClient instance created');
 } else {
-  // eslint-disable-next-line no-console
   console.log('[Prisma] Reusing existing PrismaClient instance');
 }
 
