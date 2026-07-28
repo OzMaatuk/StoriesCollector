@@ -39,16 +39,16 @@ export class StoryRepository {
       return JSON.parse(JSON.stringify(story)) as Story;
     } catch (error) {
       console.error('Error fetching story with enrichments:', error);
-      
-      // Fallback: Try to fetch the story without the enrichment relation 
+
+      // Fallback: Try to fetch the story without the enrichment relation
       // in case the database table or relation doesn't exist (old data structure)
       try {
         const story = await prisma.story.findUnique({
           where: { id },
         });
-        
+
         if (!story) return null;
-        
+
         // Return without generatedContents if we couldn't fetch it
         return JSON.parse(JSON.stringify(story)) as Story;
       } catch (fallbackError) {
@@ -120,7 +120,7 @@ export class StoryRepository {
       data: {
         storyId,
         providerName: 'OpenAI-Compatible',
-        modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+        modelName: process.env.LLM_MODEL_NAME || 'default',
         generatedText: null,
         status: 'completed',
         version: null,
@@ -166,7 +166,7 @@ export class StoryRepository {
         data: {
           storyId,
           providerName: 'OpenAI-Compatible',
-          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+          modelName: process.env.LLM_MODEL_NAME || 'default',
           generatedText: null,
           status: 'completed',
           version: null,

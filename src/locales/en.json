@@ -81,6 +81,7 @@
     "aiRegenerate": "Retry",
     "aiEnrichmentDescription": "According to the writings of Rabbi Nachman of Breslov, we retell the story in his words, including contexts and additions from his teachings with reference to the source.",
     "aiEnrichmentCounts": "{{versions}} versions · {{current}}/{{max}}",
+    "aiEnrichmentBackgroundNotice": "The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.",
     "enrichmentNote": "Note: The generation of the story summary and enrichment may take a few seconds.",
     "save": "Save",
     "saved": "Saved"

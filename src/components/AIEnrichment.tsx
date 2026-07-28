@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { GeneratedContent, Translations } from '@/types';
 import { ENRICHMENT } from '@/lib/constants';
 
@@ -11,7 +11,6 @@ interface AIEnrichmentProps {
   translations: Translations;
 }
 
-// Normalise whatever the API returns (single object or array) into an array.
 const toArray = (
   contents: GeneratedContent | GeneratedContent[] | null | undefined
 ): GeneratedContent[] => {
@@ -19,7 +18,6 @@ const toArray = (
   return Array.isArray(contents) ? contents : [contents];
 };
 
-// Sort: saved versions (v1, v2 …) ascending, then draft (version === null) last.
 const sortContents = (
   contents: GeneratedContent | GeneratedContent[] | null | undefined
 ): GeneratedContent[] =>
@@ -30,7 +28,6 @@ const sortContents = (
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-// Coerce ISO-string dates that come back from fetch JSON into real Date objects.
 const normalizeDates = (c: GeneratedContent): GeneratedContent => ({
   ...c,
   createdAt: new Date(c.createdAt),
@@ -49,10 +46,8 @@ export default function AIEnrichment({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Derived state ─────────────────────────────────────────────────────────────
   const sortedContents = useMemo(() => sortContents(contents), [contents]);
 
-  // The draft slot is always the item with version === null.
   const draftContent = useMemo(
     () => sortedContents.find((c) => c.version == null) ?? null,
     [sortedContents]
@@ -63,9 +58,6 @@ export default function AIEnrichment({
     [sortedContents]
   );
 
-  // Selected ID: if the caller provides a selectedEnrichmentId that maps to a
-  // saved version, honour it (user navigating back to a story they already saved).
-  // Otherwise default to the draft slot so it's always the starting view.
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     if (selectedEnrichmentId) {
       const pinned = sortContents(initialContents).find(
@@ -77,16 +69,12 @@ export default function AIEnrichment({
   });
 
   const selectedContent = useMemo(() => {
-    // If selectedId still exists in the current list, use it.
-    // Otherwise (e.g. after a save replaced the draft row) fall back to the
-    // new draft.  This avoids a setState-in-effect to re-anchor selection.
     const found = selectedId ? sortedContents.find((c) => c.id === selectedId) : null;
     return found ?? draftContent ?? null;
   }, [selectedId, sortedContents, draftContent]);
 
   const selectedIsDraft = selectedContent?.version == null;
 
-  // API helpers ────────────────────────────────────────────────────────────────
   const refreshContents = useCallback(
     async (pinToId?: string | null): Promise<GeneratedContent[] | null> => {
       try {
@@ -101,8 +89,6 @@ export default function AIEnrichment({
         const sorted = sortContents(toArray(data).map(normalizeDates));
         setContents(sorted);
 
-        // Keep selection on the pinned id if it exists in the new data,
-        // otherwise stay on the draft.
         const target = pinToId
           ? sorted.find((c) => c.id === pinToId)
           : sorted.find((c) => c.version == null);
@@ -117,19 +103,6 @@ export default function AIEnrichment({
     [storyId]
   );
 
-  // Poll while the selected content is pending ────────────────────────────────
-  useEffect(() => {
-    if (!selectedContent || selectedContent.status !== 'pending') return;
-
-    const id = selectedContent.id;
-    const interval = setInterval(() => {
-      void refreshContents(id);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [refreshContents, selectedContent]);
-
-  // Handlers ───────────────────────────────────────────────────────────────────
   const handleGenerate = async () => {
     if (isSubmitting) return;
 
@@ -143,15 +116,13 @@ export default function AIEnrichment({
 
       if (!response.ok) throw new Error('Failed to trigger enrichment generation');
 
-      // POST returns the draft record immediately so we can show the spinner
-      // before the LLM finishes.
       const { draft } = (await response.json()) as { draft: GeneratedContent };
 
       if (draft) {
         const normalized = normalizeDates(draft);
         setContents((prev) => [
-          ...prev.filter((c) => c.version != null), // keep saved versions
-          normalized,                                 // replace draft slot
+          ...prev.filter((c) => c.version != null),
+          normalized,
         ]);
         setSelectedId(normalized.id);
       }
@@ -179,9 +150,7 @@ export default function AIEnrichment({
 
       if (!response.ok) throw new Error('Failed to save enrichment');
 
-      // Refresh to get the updated list: saved row now has a version number
-      // and the server has already created a fresh empty draft.
-      await refreshContents(null); // null → pins to new draft
+      await refreshContents(null);
     } catch (err) {
       setErrorMessage('Unable to save this generated version. Please try again.');
       console.error('Error saving enrichment:', err);
@@ -209,18 +178,15 @@ export default function AIEnrichment({
       .replace('{{current}}', String(draftContent?.retryCount ?? 0))
       .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
 
-  const isPending = selectedContent?.status === 'pending';
-  const isFailed  = selectedContent?.status === 'failed';
+  const isPending = selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
+  const isFailed = selectedContent?.status === 'failed';
   const generationCount = draftContent?.retryCount ?? 0;
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
   const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="mt-8 pt-8 border-t border-gray-200">
       <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-primary-500">
-
-        {/* Header row */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -234,7 +200,6 @@ export default function AIEnrichment({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Version / draft picker — always rendered */}
             <select
               value={selectedContent?.id ?? ''}
               onChange={(e) => handleSelect(e.target.value)}
@@ -245,7 +210,6 @@ export default function AIEnrichment({
                   v{c.version}
                 </option>
               ))}
-              {/* Draft option — always present */}
               <option value={draftContent?.id ?? ''}>
                 {isPending && selectedIsDraft
                   ? 'Draft (generating…)'
@@ -255,7 +219,6 @@ export default function AIEnrichment({
               </option>
             </select>
 
-            {/* Save — only when draft has completed text */}
             {selectedIsDraft &&
               selectedContent?.status === 'completed' &&
               selectedContent.generatedText?.trim() && (
@@ -274,23 +237,27 @@ export default function AIEnrichment({
           </div>
         </div>
 
-        {/* Content area */}
         {isPending ? (
-          <div className="flex items-center gap-3 text-primary-700">
-            <svg
-              className="animate-spin h-5 w-5 text-primary-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            <span>{translations.stories.aiEnrichmentPending}</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-primary-700">
+              <svg
+                className="animate-spin h-5 w-5 text-primary-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <span>{translations.stories.aiEnrichmentPending}</span>
+            </div>
+            <div className="p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-md text-sm">
+              {translations.stories.aiEnrichmentBackgroundNotice}
+            </div>
           </div>
         ) : isFailed ? (
           <div className="text-red-600 bg-red-50 p-4 rounded-md border border-red-200">
@@ -308,7 +275,6 @@ export default function AIEnrichment({
             )}
           </div>
         ) : (
-          /* Empty draft — no content yet */
           <p className="text-sm text-gray-400 italic">
             {translations.stories.aiEnrichmentDescription}
           </p>
@@ -318,7 +284,6 @@ export default function AIEnrichment({
           <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
         )}
 
-        {/* Generate action — pinned to the bottom of the enrichment box */}
         <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-wrap">
           <span className="text-sm text-gray-500">{formatEnrichmentCounts()}</span>
           <button

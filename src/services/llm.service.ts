@@ -5,7 +5,7 @@ import { callLLM } from '@/lib/llm-client';
 
 const MAX_RETRIES = 60; // 60 retries * 5000ms = 5 minutes wait for cold start
 const RETRY_DELAY_MS = 5000;
-const RETRYABLE_STATUSES = new Set([502, 503, 504]);
+const RETRYABLE_STATUSES = new Set([502, 503, 504, 524]);
 
 export class LLMService {
   private modelName: string;
@@ -41,12 +41,13 @@ export class LLMService {
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
 
-      // Retry on 502/503/504
+      // Retry on 502/503/504/524 or timeout error
       const statusMatch = err.message.match(/LLM Error (\d+):/);
       const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+      const isTimeout = err.message.toLowerCase().includes('timed out');
 
-      if (RETRYABLE_STATUSES.has(status) && retryCount < MAX_RETRIES) {
-        logger.info(`LLM not ready (${status}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
+      if ((RETRYABLE_STATUSES.has(status) || isTimeout) && retryCount < MAX_RETRIES) {
+        logger.info(`LLM not ready (${status || 'timeout'}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         return this.callWithRetry(body, retryCount + 1);
       }

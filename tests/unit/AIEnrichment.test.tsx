@@ -1,10 +1,9 @@
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
 import { GeneratedContent, Translations } from '@/types';
 
-// Mock fetch
 global.fetch = jest.fn();
 
 const mockTranslations: Translations = {
@@ -15,6 +14,7 @@ const mockTranslations: Translations = {
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
     aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
+    aiEnrichmentBackgroundNotice: 'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',
@@ -31,11 +31,6 @@ describe('AIEnrichment Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders generate button when no content exists', () => {
@@ -53,7 +48,6 @@ describe('AIEnrichment Component', () => {
   });
 
   it('renders enrichment content when a saved version is selected', () => {
-    // A saved version (version !== null) — aiProducedBy footer should appear.
     const mockContent: GeneratedContent = {
       id: '1',
       storyId: storyId,
@@ -67,8 +61,6 @@ describe('AIEnrichment Component', () => {
       updatedAt: new Date(),
     };
 
-    // The component also needs a draft slot (always-present in production);
-    // supply one so the dropdown renders correctly.
     const mockDraft: GeneratedContent = {
       id: 'draft-1',
       storyId: storyId,
@@ -143,8 +135,7 @@ describe('AIEnrichment Component', () => {
     expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment?enrichmentId=2');
   });
 
-  it('polls for content when pending draft is selected', async () => {
-    // Draft (version === null) starts as pending.
+  it('displays background notice when pending draft is selected without polling loop', () => {
     const mockPendingDraft: GeneratedContent = {
       id: 'pending-id',
       storyId,
@@ -157,26 +148,6 @@ describe('AIEnrichment Component', () => {
       updatedAt: new Date(),
     };
 
-    // Poll response returns the same draft now completed with text.
-    const mockCompletedDraft: GeneratedContent = {
-      id: 'pending-id',
-      storyId,
-      providerName: 'Test',
-      modelName: 'Model',
-      status: 'completed',
-      generatedText: 'Polled Content',
-      retryCount: 1,
-      version: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [mockCompletedDraft],
-    });
-
-    const setIntervalSpy = jest.spyOn(global, 'setInterval');
     render(
       <AIEnrichment
         storyId={storyId}
@@ -187,20 +158,10 @@ describe('AIEnrichment Component', () => {
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
-
-    const callback = setIntervalSpy.mock.calls[0][0] as () => void | Promise<void>;
-
-    await act(async () => {
-      await callback();
-    });
-
-    expect(screen.getByText('Polled Content')).toBeInTheDocument();
-
-    setIntervalSpy.mockRestore();
+    expect(screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).toBeInTheDocument();
   });
 
-  it('does not start polling when a saved version is selected and draft is separately pending', () => {
-    // Saved version (version:1, completed) — this is what selectedEnrichmentId points to.
+  it('displays saved version content when selected and draft is separately pending', () => {
     const mockSavedVersion: GeneratedContent = {
       id: 'completed-id',
       storyId,
@@ -214,8 +175,6 @@ describe('AIEnrichment Component', () => {
       version: 1,
     };
 
-    // Draft slot is separately pending (a background job is running) but is
-    // not the selected item.
     const mockPendingDraft: GeneratedContent = {
       id: 'stale-pending-id',
       storyId,
@@ -228,21 +187,16 @@ describe('AIEnrichment Component', () => {
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
     };
 
-    const setIntervalSpy = jest.spyOn(global, 'setInterval');
     render(
       <AIEnrichment
         storyId={storyId}
         initialContents={[mockSavedVersion, mockPendingDraft]}
-        // Explicitly select the saved version — component should respect this
-        // and not default to the pending draft.
         selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
       />
     );
 
     expect(screen.getByText('Loaded Content')).toBeInTheDocument();
-    expect(setIntervalSpy).not.toHaveBeenCalled();
-
-    setIntervalSpy.mockRestore();
+    expect(screen.queryByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,3 @@
-// src/services/enrichment.service.ts
-
 import fs from 'fs';
 import path from 'path';
 import { Language, Story } from '@/types';
@@ -24,7 +22,6 @@ export class EnrichmentService {
     this.llmService = new LLMService();
     this.repository = new StoryRepository();
 
-    // Load prompts for each language
     this.loadPromptTemplates();
   }
 
@@ -43,7 +40,11 @@ export class EnrichmentService {
       }
 
       try {
-        const systemPath = path.join(process.cwd(), 'prompts', `story_enrichment_system_${lang}.txt`);
+        const systemPath = path.join(
+          process.cwd(),
+          'prompts',
+          `story_enrichment_system_${lang}.txt`
+        );
         const systemPrompt = fs.readFileSync(systemPath, 'utf8');
         this.systemPrompts.set(lang, systemPrompt.trim());
       } catch (error) {
@@ -87,12 +88,6 @@ export class EnrichmentService {
     return parts.join(' ');
   }
 
-  /**
-   * Ensures a draft GeneratedContent row (version === null) exists for the story and
-   * returns it. Creates one if none exists; resets an existing draft to pending if found.
-   * This is safe to call synchronously before firing the background LLM job so the
-   * client always has a record to track.
-   */
   async getOrCreateDraft(story: Story) {
     const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
     const existing = allRecords.find((record) => record.version == null);
@@ -100,7 +95,7 @@ export class EnrichmentService {
     if (existing) {
       return await this.repository.updateGeneratedContent(existing.id, {
         status: 'pending',
-        generatedText: null, // clear stale text so spinner shows a blank slate during generation
+        generatedText: null,
         errorMessage: null,
         retryCount: (existing.retryCount || 0) + 1,
       });
@@ -108,20 +103,52 @@ export class EnrichmentService {
 
     return await this.repository.createGeneratedContent({
       storyId: story.id,
-      providerName: 'OpenAI-Compatible',
-      modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+      providerName: 'llama-cpp-local',
+      modelName: process.env.LLM_MODEL_NAME || 'llama-3-8b-instruct',
       status: 'pending',
       version: null,
       retryCount: 1,
     });
   }
 
-  /**
-   * @param story - the story to enrich
-   * @param existingDraft - optional pre-created draft record; when supplied the
-   *   function skips the find-or-create step so we don't double-write the row.
-   */
-  async enrichStory(story: Story, existingDraft?: Awaited<ReturnType<StoryRepository['updateGeneratedContent']>> | Awaited<ReturnType<StoryRepository['createGeneratedContent']>>) {
+  private async triggerAsyncPythonEnrichment(
+    story: Story,
+    draftRecord: Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+  ) {
+    const pythonUrl = (process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    const systemPrompt = this.buildSystemPrompt(story.language);
+    const userContent = this.buildUserContent(story);
+    const prompt = systemPrompt ? `${systemPrompt}\n\n${userContent}` : userContent;
+
+    const payload = {
+      enrichmentId: draftRecord.id,
+      storyId: story.id,
+      providerName: draftRecord.providerName || 'llama-cpp-local',
+      modelName: draftRecord.modelName || process.env.LLM_MODEL_NAME || 'llama-3-8b-instruct',
+      prompt,
+      version: draftRecord.version,
+      retryCount: draftRecord.retryCount,
+    };
+
+    const response = await fetch(`${pythonUrl}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python backend returned ${response.status}`);
+    }
+
+    logger.info(`Delegated enrichment to Python backend for story ${story.id}`);
+  }
+
+  async enrichStory(
+    story: Story,
+    existingDraft?:
+      | Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+      | Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+  ) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -136,10 +163,14 @@ export class EnrichmentService {
     let enrichmentRecord;
 
     try {
-      // Use the pre-created draft when available (called from POST route) so we
-      // don't bump retryCount a second time before the LLM even starts.
-      // Fall back to find-or-create when called directly (e.g. at story-create time).
-      enrichmentRecord = existingDraft ?? await this.getOrCreateDraft(story);
+      enrichmentRecord = existingDraft ?? (await this.getOrCreateDraft(story));
+
+      const executionMethod = process.env.LLM_EXECUTION_METHOD || 'async_python';
+
+      if (executionMethod === 'async_python') {
+        await this.triggerAsyncPythonEnrichment(story, enrichmentRecord);
+        return;
+      }
 
       const systemPrompt = this.buildSystemPrompt(story.language);
       const userContent = this.buildUserContent(story);
