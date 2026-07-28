@@ -18,6 +18,7 @@ export class EnrichmentService {
   private llmService: LLMService;
   private repository: StoryRepository;
   private promptTemplates: Map<Language, string> = new Map();
+  private systemPrompts: Map<Language, string> = new Map();
 
   constructor() {
     this.llmService = new LLMService();
@@ -37,6 +38,16 @@ export class EnrichmentService {
         this.promptTemplates.set(lang, template);
       } catch (error) {
         logger.warn(`Failed to load prompt template for language ${lang}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      try {
+        const systemPath = path.join(process.cwd(), 'prompts', `story_enrichment_system_${lang}.txt`);
+        const systemPrompt = fs.readFileSync(systemPath, 'utf8');
+        this.systemPrompts.set(lang, systemPrompt.trim());
+      } catch (error) {
+        logger.warn(`Failed to load system prompt for language ${lang}`, {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -61,14 +72,7 @@ export class EnrichmentService {
 
   private buildSystemPrompt(language: string): string {
     const lang = (language?.toLowerCase() || 'he') as Language;
-
-    const constraints: Record<Language, string> = {
-      he: "Return only the final answer. Never output <think> tags, reasoning, analysis, internal thoughts, prompts, instructions, or any meta commentary. Never repeat or quote the input. Transform the provided story into a short summarized story written in the style and language of Rabbi Nachman of Breslov, incorporating relevant ideas, teachings, and connections from his writings when appropriate. Include only the story itself, with no introduction or explanation. Avoid repeating phrases, sentences, or ideas. Each paragraph must add new information. Keep the response between 100 and 1000 characters and do not stop before reaching the minimum length.",
-      en: "Return only the final answer. Never output <think> tags, reasoning, analysis, internal thoughts, prompts, instructions, or any meta commentary. Never repeat or quote the input. Transform the provided story into a short summarized story written in the style and language of Rabbi Nachman of Breslov, incorporating relevant ideas, teachings, and connections from his writings when appropriate. Include only the story itself, with no introduction or explanation. Avoid repeating phrases, sentences, or ideas. Each paragraph must add new information. Keep the response between 100 and 1000 characters and do not stop before reaching the minimum length.",
-      fr: "Retournez uniquement la réponse finale. Ne produisez jamais de balises <think>, de raisonnement, d'analyse, de pensées internes, de consignes, d'instructions ou de méta-commentaires. Ne répétez jamais ou ne citez jamais l'entrée. Transformez l'histoire fournie en un court résumé rédigé dans le style et la langue du rabbin Nachman de Breslov, en incorporant des idées, des enseignements et des connexions pertinents de ses écrits lorsque cela est approprié. N'incluez que l'histoire elle-même, sans introduction ni explication. Évitez de répéter des expressions, des phrases ou des idées. Chaque paragraphe doit apporter de nouvelles informations. Gardez la réponse entre 100 et 1000 caractères et ne vous arrêtez pas avant d'atteindre la longueur minimale.",
-    };
-
-    return constraints[lang] ?? constraints['he'];
+    return this.systemPrompts.get(lang) ?? this.systemPrompts.get('he') ?? '';
   }
 
   private buildUserContent(story: Story): string {
@@ -83,7 +87,40 @@ export class EnrichmentService {
     return parts.join(' ');
   }
 
-  async enrichStory(story: Story) {
+  /**
+   * Ensures a draft GeneratedContent row (version === null) exists for the story and
+   * returns it. Creates one if none exists; resets an existing draft to pending if found.
+   * This is safe to call synchronously before firing the background LLM job so the
+   * client always has a record to track.
+   */
+  async getOrCreateDraft(story: Story) {
+    const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
+    const existing = allRecords.find((record) => record.version == null);
+
+    if (existing) {
+      return await this.repository.updateGeneratedContent(existing.id, {
+        status: 'pending',
+        errorMessage: null,
+        retryCount: (existing.retryCount || 1) + 1,
+      });
+    }
+
+    return await this.repository.createGeneratedContent({
+      storyId: story.id,
+      providerName: 'OpenAI-Compatible',
+      modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
+      status: 'pending',
+      version: null,
+      retryCount: 1,
+    });
+  }
+
+  /**
+   * @param story - the story to enrich
+   * @param existingDraft - optional pre-created draft record; when supplied the
+   *   function skips the find-or-create step so we don't double-write the row.
+   */
+  async enrichStory(story: Story, existingDraft?: Awaited<ReturnType<StoryRepository['updateGeneratedContent']>> | Awaited<ReturnType<StoryRepository['createGeneratedContent']>>) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -98,27 +135,10 @@ export class EnrichmentService {
     let enrichmentRecord;
 
     try {
-      // Try to find an existing temporary draft (unsaved version) to reuse
-      const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
-      const draft = allRecords.find((record) => record.version == null);
-
-      if (draft) {
-        enrichmentRecord = draft;
-        await this.repository.updateGeneratedContent(draft.id, {
-          status: 'pending',
-          errorMessage: null,
-          retryCount: (draft.retryCount || 1) + 1,
-        });
-      } else {
-        enrichmentRecord = await this.repository.createGeneratedContent({
-          storyId: story.id,
-          providerName: 'OpenAI-Compatible',
-          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
-          status: 'pending',
-          version: null,
-          retryCount: 1,
-        });
-      }
+      // Use the pre-created draft when available (called from POST route) so we
+      // don't bump retryCount a second time before the LLM even starts.
+      // Fall back to find-or-create when called directly (e.g. at story-create time).
+      enrichmentRecord = existingDraft ?? await this.getOrCreateDraft(story);
 
       const systemPrompt = this.buildSystemPrompt(story.language);
       const userContent = this.buildUserContent(story);

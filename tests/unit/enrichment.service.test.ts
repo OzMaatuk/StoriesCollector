@@ -29,7 +29,12 @@ describe('EnrichmentService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (fs.readFileSync as jest.Mock).mockReturnValue('Retell {{title}}: {{content}}');
+    (fs.readFileSync as jest.Mock).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('_system_')) {
+        return 'Return only the final answer. Mock system prompt.';
+      }
+      return 'Retell {{title}}: {{content}}';
+    });
 
     // Set environment variable
     process.env.ENABLE_LLM_ENRICHMENT = 'true';
