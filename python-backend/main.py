@@ -5,12 +5,12 @@ from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
+import psycopg2
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from supabase import create_client, Client
 
 load_dotenv()
 
@@ -26,12 +26,22 @@ app.add_middleware(
 
 executor = ThreadPoolExecutor(max_workers=1)
 
-def get_supabase_client() -> Optional[Client]:
-    url = os.getenv("SUPABASE_URL", "").strip()
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
-    if url and key:
-        return create_client(url, key)
-    return None
+def update_db(enrichment_id: str, updates: dict) -> None:
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    if not db_url:
+        return
+    try:
+        conn = psycopg2.connect(db_url)
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            set_clauses = [f'"{k}" = %s' for k in updates.keys()]
+            values = list(updates.values())
+            values.append(enrichment_id)
+            query = f'UPDATE generated_content SET {", ".join(set_clauses)} WHERE id = %s'
+            cur.execute(query, values)
+        conn.close()
+    except Exception:
+        pass
 
 class GenerateRequest(BaseModel):
     enrichmentId: Optional[str] = Field(default=None, alias="enrichment_id")
@@ -48,17 +58,11 @@ class GenerateRequest(BaseModel):
     }
 
 def run_heavy_llm(enrichment_id: str, request_data: dict) -> None:
-    client = get_supabase_client()
     now_iso = datetime.now(timezone.utc).isoformat()
-
-    if client:
-        try:
-            client.table("generated_content").update({
-                "status": "processing",
-                "updatedAt": now_iso
-            }).eq("id", enrichment_id).execute()
-        except Exception:
-            pass
+    update_db(enrichment_id, {
+        "status": "processing",
+        "updatedAt": now_iso
+    })
 
     try:
         raw_url = os.getenv("LLAMA_CPP_URL", "http://127.0.0.1:8080").rstrip("/")
@@ -101,25 +105,20 @@ def run_heavy_llm(enrichment_id: str, request_data: dict) -> None:
             generated_text = str(res_data)
 
         completion_iso = datetime.now(timezone.utc).isoformat()
-        if client:
-            client.table("generated_content").update({
-                "status": "completed",
-                "generatedText": generated_text,
-                "errorMessage": None,
-                "updatedAt": completion_iso
-            }).eq("id", enrichment_id).execute()
+        update_db(enrichment_id, {
+            "status": "completed",
+            "generatedText": generated_text,
+            "errorMessage": None,
+            "updatedAt": completion_iso
+        })
 
     except Exception as exc:
         failed_iso = datetime.now(timezone.utc).isoformat()
-        if client:
-            try:
-                client.table("generated_content").update({
-                    "status": "failed",
-                    "errorMessage": str(exc),
-                    "updatedAt": failed_iso
-                }).eq("id", enrichment_id).execute()
-            except Exception:
-                pass
+        update_db(enrichment_id, {
+            "status": "failed",
+            "errorMessage": str(exc),
+            "updatedAt": failed_iso
+        })
 
 @app.post("/api/generate")
 @app.post("/generate")
