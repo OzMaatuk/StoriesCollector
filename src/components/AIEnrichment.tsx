@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GeneratedContent, Translations } from '@/types';
+import { ENRICHMENT } from '@/lib/constants';
 
 interface AIEnrichmentProps {
   storyId: string;
@@ -202,9 +203,17 @@ export default function AIEnrichment({
       : translations.stories.aiGenerate;
   };
 
+  const formatEnrichmentCounts = (): string =>
+    translations.stories.aiEnrichmentCounts
+      .replace('{{versions}}', String(savedVersions.length))
+      .replace('{{current}}', String(draftContent?.retryCount ?? 0))
+      .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
+
   const isPending = selectedContent?.status === 'pending';
   const isFailed  = selectedContent?.status === 'failed';
-  const isGenerateDisabled = isSubmitting || isPending;
+  const generationCount = draftContent?.retryCount ?? 0;
+  const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
+  const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -245,21 +254,6 @@ export default function AIEnrichment({
                     : 'Draft'}
               </option>
             </select>
-
-            {/* Generate / Regenerate */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerateDisabled}
-              className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                isGenerateDisabled
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
-            >
-              {isSubmitting
-                ? translations.stories.aiEnrichmentPending
-                : generateLabel()}
-            </button>
 
             {/* Save — only when draft has completed text */}
             {selectedIsDraft &&
@@ -323,6 +317,24 @@ export default function AIEnrichment({
         {errorMessage && (
           <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
         )}
+
+        {/* Generate action — pinned to the bottom of the enrichment box */}
+        <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-wrap">
+          <span className="text-sm text-gray-500">{formatEnrichmentCounts()}</span>
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerateDisabled}
+            className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
+              isGenerateDisabled
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            }`}
+          >
+            {isSubmitting
+              ? translations.stories.aiEnrichmentPending
+              : generateLabel()}
+          </button>
+        </div>
       </div>
     </div>
   );

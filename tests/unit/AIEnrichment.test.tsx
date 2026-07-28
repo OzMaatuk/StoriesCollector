@@ -14,6 +14,7 @@ const mockTranslations: Translations = {
     aiEnrichmentFailed: 'Failed',
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
+    aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',

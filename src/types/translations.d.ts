@@ -26,6 +26,7 @@ export interface Translations {
     aiRetrying: string;
     aiRegenerate: string;
     aiEnrichmentDescription: string;
+    aiEnrichmentCounts: string;
     save: string;
     saved: string;
   };
