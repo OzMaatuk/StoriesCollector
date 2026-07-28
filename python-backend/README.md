@@ -38,6 +38,8 @@ Create a `.env` file inside `python-backend/`:
 ```env
 DATABASE_URL=postgresql://postgres.sgvscrprlmtpdhscznbo:MY_PASSWORD@aws-1-eu-west-3.pooler.supabase.com:6543/postgres
 LLAMA_CPP_URL=http://127.0.0.1:8080
+LLAMA_CPP_API_KEY=your-llama-cpp-api-key
+PYTHON_BACKEND_SECRET=your-shared-secret-here
 ```
 
 ## Running the Server

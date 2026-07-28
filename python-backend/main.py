@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import httpx
 import psycopg2
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -120,8 +120,18 @@ def run_heavy_llm(enrichment_id: str, request_data: dict) -> None:
             "updatedAt": failed_iso
         })
 
-@app.post("/api/generate")
-@app.post("/generate")
+def verify_backend_secret(authorization: Optional[str] = Header(None)):
+    secret = os.getenv("PYTHON_BACKEND_SECRET", "").strip()
+    if not secret:
+        return
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    token = authorization[len("Bearer "):]
+    if token != secret:
+        raise HTTPException(status_code=403, detail="Invalid bearer token")
+
+@app.post("/api/generate", dependencies=[Depends(verify_backend_secret)])
+@app.post("/generate", dependencies=[Depends(verify_backend_secret)])
 async def generate_enrichment(payload: GenerateRequest):
     enrichment_id = payload.enrichmentId or payload.enrichment_id or str(uuid.uuid4())
     req_data = payload.model_dump()

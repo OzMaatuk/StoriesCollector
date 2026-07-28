@@ -131,9 +131,15 @@ export class EnrichmentService {
     };
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const backendSecret = process.env.PYTHON_BACKEND_SECRET?.trim();
+      if (backendSecret) {
+        headers['Authorization'] = `Bearer ${backendSecret}`;
+      }
+
       const response = await fetch(`${pythonUrl}/api/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
 
