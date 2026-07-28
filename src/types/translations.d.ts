@@ -14,6 +14,7 @@ export interface Translations {
   stories: {
     title: string;
     verifiedEmail: string;
+    unverifiedEmail: string;
     allLanguages: string;
     noStories: string;
     readMore: string;
