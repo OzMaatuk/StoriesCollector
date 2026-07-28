@@ -2,36 +2,17 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Story } from '@/types';
+import { Language, Story } from '@/types';
 import { LLMService } from './llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
 import { logger } from '@/lib/logger';
+import { getTranslations } from '@/lib/translations';
 
-type Language = 'en' | 'he' | 'fr';
-
-interface LanguageLabels {
+interface PromptLabels {
   title: string;
   background: string;
   content: string;
 }
-
-const languageLabels: Record<Language, LanguageLabels> = {
-  he: {
-    title: 'כותרת',
-    background: 'רקע הסיפור',
-    content: 'תוכן הסיפור',
-  },
-  en: {
-    title: 'Title',
-    background: 'Story Background',
-    content: 'Story Content',
-  },
-  fr: {
-    title: 'Titre',
-    background: 'Contexte de l\'histoire',
-    content: 'Contenu de l\'histoire',
-  },
-};
 
 export class EnrichmentService {
   private llmService: LLMService;
@@ -51,11 +32,7 @@ export class EnrichmentService {
 
     for (const lang of languages) {
       try {
-        const promptPath = path.join(
-          process.cwd(),
-          'prompts',
-          `story_enrichment_${lang}.txt`
-        );
+        const promptPath = path.join(process.cwd(), 'prompts', `story_enrichment_${lang}.txt`);
         const template = fs.readFileSync(promptPath, 'utf8');
         this.promptTemplates.set(lang, template);
       } catch (error) {
@@ -68,24 +45,28 @@ export class EnrichmentService {
 
   private getPromptTemplate(language: string): string {
     const lang = (language.toLowerCase() || 'he') as Language;
-    return (
-      this.promptTemplates.get(lang) ||
-      this.promptTemplates.get('he') ||
-      ''
-    );
+    return this.promptTemplates.get(lang) || this.promptTemplates.get('he') || '';
+  }
+
+  private getPromptLabels(language: string): PromptLabels {
+    const lang = (language?.toLowerCase() || 'he') as Language;
+    const translations = getTranslations(lang);
+
+    return {
+      title: translations.form.storyTitle || 'Title',
+      background: translations.form.storyBackground || 'Story Background',
+      content: translations.form.content || 'Story Content',
+    };
   }
 
   private buildPrompt(story: Story): string {
     const promptTemplate = this.getPromptTemplate(story.language);
-    const labels = languageLabels[
-      (story.language.toLowerCase() as Language) || 'he'
-    ] || languageLabels.he;
+    const labels = this.getPromptLabels(story.language);
 
     const parts = [promptTemplate.trim()];
 
     if (story.title) parts.push(`\n${labels.title}: ${story.title}`);
-    if (story.storyBackground)
-      parts.push(`${labels.background}: ${story.storyBackground}`);
+    if (story.storyBackground) parts.push(`${labels.background}: ${story.storyBackground}`);
     parts.push(`\n${labels.content}:\n${story.content}`);
 
     return parts.join('\n');
@@ -99,9 +80,7 @@ export class EnrichmentService {
 
     const promptTemplate = this.getPromptTemplate(story.language);
     if (!promptTemplate) {
-      logger.error(
-        `Cannot enrich story: prompt template missing for language ${story.language}`
-      );
+      logger.error(`Cannot enrich story: prompt template missing for language ${story.language}`);
       return;
     }
 

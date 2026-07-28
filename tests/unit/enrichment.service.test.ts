@@ -36,8 +36,10 @@ describe('EnrichmentService', () => {
     process.env.LLM_MODEL_NAME = 'test-model';
 
     service = new EnrichmentService();
-    mockLLMService = (service as unknown as { llmService: LLMService }).llmService as jest.Mocked<LLMService>;
-    mockRepository = (service as unknown as { repository: StoryRepository }).repository as jest.Mocked<StoryRepository>;
+    mockLLMService = (service as unknown as { llmService: LLMService })
+      .llmService as jest.Mocked<LLMService>;
+    mockRepository = (service as unknown as { repository: StoryRepository })
+      .repository as jest.Mocked<StoryRepository>;
   });
 
   it('should successfully enrich a story', async () => {
@@ -56,7 +58,9 @@ describe('EnrichmentService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
-    mockRepository.updateGeneratedContent.mockResolvedValue({} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+    );
 
     await service.enrichStory(mockStory);
 
@@ -96,7 +100,9 @@ describe('EnrichmentService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
-    mockRepository.updateGeneratedContent.mockResolvedValue({} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+    );
 
     await service.enrichStory(mockStory);
 
@@ -104,6 +110,38 @@ describe('EnrichmentService', () => {
       status: 'failed',
       errorMessage: errorMsg,
     });
+  });
+
+  it('uses locale-based labels for non-English enrichment prompts', async () => {
+    const hebrewStory = {
+      ...mockStory,
+      language: 'he' as const,
+      title: 'כותרת בדיקה',
+      storyBackground: 'רקע לבדיקה',
+      content: 'תוכן לבדיקה',
+    };
+
+    mockLLMService.generateCompletion.mockResolvedValue('done');
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
+    mockRepository.createGeneratedContent.mockResolvedValue({
+      id: 'enrichment-789',
+      storyId: hebrewStory.id,
+      providerName: 'OpenAI-Compatible',
+      modelName: 'test-model',
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+    mockRepository.updateGeneratedContent.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+    );
+
+    await service.enrichStory(hebrewStory);
+
+    const prompt = mockLLMService.generateCompletion.mock.calls[0][0] as string;
+    expect(prompt).toContain('כותרת הסיפור');
+    expect(prompt).toContain('רקע לסיפור');
+    expect(prompt).toContain('הסיפור שלך');
   });
 
   it('should not enrich if disabled', async () => {
@@ -114,5 +152,4 @@ describe('EnrichmentService', () => {
     expect(mockRepository.createGeneratedContent).not.toHaveBeenCalled();
     expect(mockLLMService.generateCompletion).not.toHaveBeenCalled();
   });
-
 });

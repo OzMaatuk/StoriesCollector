@@ -40,10 +40,9 @@ const customJestConfig = {
     '\\.d\\.ts$',
   ],
 
-  // Transform TS/JS
+  // Transform TS/JS — ts-jest handles .ts; next/jest handles .js internally
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
-    '^.+\\.(js|jsx)$': 'babel-jest',
   },
 
   // Critical: Transform ESM in node_modules

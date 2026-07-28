@@ -10,8 +10,20 @@ interface AIEnrichmentProps {
   translations: Translations;
 }
 
-const sortGeneratedContents = (contents: GeneratedContent[]) => {
-  return [...contents].sort((a, b) => {
+const normalizeGeneratedContents = (
+  contents: GeneratedContent | GeneratedContent[] | null | undefined
+): GeneratedContent[] => {
+  if (!contents) {
+    return [];
+  }
+
+  return Array.isArray(contents) ? contents : [contents];
+};
+
+const sortGeneratedContents = (
+  contents: GeneratedContent | GeneratedContent[] | null | undefined
+) => {
+  return [...normalizeGeneratedContents(contents)].sort((a, b) => {
     const aVersion = a.version ?? Number.POSITIVE_INFINITY;
     const bVersion = b.version ?? Number.POSITIVE_INFINITY;
 
@@ -51,47 +63,79 @@ export default function AIEnrichment({
 
   const selectedContent = useMemo(() => {
     if (selectedId) {
-      return sortedContents.find((content) => content.id === selectedId) || draftContent || sortedContents[0] || null;
+      return (
+        sortedContents.find((content) => content.id === selectedId) ||
+        draftContent ||
+        sortedContents[0] ||
+        null
+      );
     }
 
     return draftContent || sortedContents[0] || null;
   }, [selectedId, sortedContents, draftContent]);
 
-  const hasPending = sortedContents.some((content) => content.status === 'pending');
   const selectedIsDraft = selectedContent?.version == null;
 
-  const refreshContents = useCallback(async (): Promise<GeneratedContent[] | null> => {
-    try {
-      const response = await fetch(`/api/stories/${storyId}/enrichment`);
-      if (!response.ok) {
+  const refreshContents = useCallback(
+    async (requestedEnrichmentId?: string | null): Promise<GeneratedContent[] | null> => {
+      try {
+        const url = requestedEnrichmentId
+          ? `/api/stories/${storyId}/enrichment?enrichmentId=${encodeURIComponent(requestedEnrichmentId)}`
+          : `/api/stories/${storyId}/enrichment?mode=latest`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+          return null;
+        }
+
+        const data = (await response.json()) as GeneratedContent | GeneratedContent[] | null;
+        const sortedData = sortGeneratedContents(data);
+        setContents(sortedData);
+
+        if (sortedData.length > 0) {
+          const selectedEnrichment = requestedEnrichmentId
+            ? sortedData.find((content) => content.id === requestedEnrichmentId) || sortedData[0]
+            : sortedData.find((content) => content.id === selectedId) ||
+              sortedData.find((content) => content.id === selectedEnrichmentId) ||
+              sortedData[0];
+
+          if (selectedEnrichment) {
+            setSelectedId(selectedEnrichment.id);
+          }
+        }
+
+        return sortedData;
+      } catch (error) {
+        console.error('Failed to refresh enrichment contents:', error);
         return null;
       }
-
-      const data = (await response.json()) as GeneratedContent[];
-      const sortedData = sortGeneratedContents(data);
-      setContents(sortedData);
-
-      if (!selectedId && sortedData.length > 0) {
-        const defaultSelection = selectedEnrichmentId ?? sortedData[0].id;
-        setSelectedId(defaultSelection);
-      }
-
-      return sortedData;
-    } catch (error) {
-      console.error('Failed to refresh enrichment contents:', error);
-      return null;
-    }
-  }, [storyId, selectedId, selectedEnrichmentId]);
+    },
+    [storyId, selectedId, selectedEnrichmentId]
+  );
 
   useEffect(() => {
-    if (!hasPending) {
+    if (initialContents.length > 0) {
       return;
     }
 
-    const interval = setInterval(refreshContents, 3000);
+    const timeoutId = window.setTimeout(() => {
+      void refreshContents(selectedEnrichmentId ?? selectedId ?? null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialContents.length, refreshContents, selectedEnrichmentId, selectedId]);
+
+  useEffect(() => {
+    if (!selectedContent || selectedContent.status !== 'pending') {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void refreshContents(selectedContent.id);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [hasPending, refreshContents]);
+  }, [refreshContents, selectedContent, selectedContent?.id, selectedContent?.status]);
 
   const handleGenerate = async () => {
     if (isSubmitting) return;
@@ -108,7 +152,7 @@ export default function AIEnrichment({
         throw new Error('Failed to trigger enrichment generation');
       }
 
-      await refreshContents();
+      await refreshContents(selectedId ?? null);
     } catch (error) {
       setErrorMessage('Unable to start enrichment generation. Please try again.');
       console.error('Error generating enrichment:', error);
@@ -131,7 +175,11 @@ export default function AIEnrichment({
   };
 
   const handleSaveCurrent = async () => {
-    if (!selectedContent || selectedContent.status !== 'completed' || selectedContent.version != null) {
+    if (
+      !selectedContent ||
+      selectedContent.status !== 'completed' ||
+      selectedContent.version != null
+    ) {
       return;
     }
 
@@ -149,7 +197,7 @@ export default function AIEnrichment({
         throw new Error('Failed to save enrichment');
       }
 
-      await refreshContents();
+      await refreshContents(selectedContent.id);
       setSelectedId(selectedContent.id);
     } catch (error) {
       setErrorMessage('Unable to save this generated version. Please try again.');
@@ -162,6 +210,7 @@ export default function AIEnrichment({
   const handleSelectEnrichment = (enrichmentId: string) => {
     setSelectedId(enrichmentId);
     setErrorMessage(null);
+    void refreshContents(enrichmentId);
   };
 
   if (!sortedContents || sortedContents.length === 0) {
@@ -177,16 +226,17 @@ export default function AIEnrichment({
           <button
             onClick={handleGenerate}
             disabled={isSubmitting}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-primary-600 text-white hover:bg-primary-700'
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              isSubmitting
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
             }`}
           >
-            {isSubmitting ? translations.stories.aiEnrichmentPending : translations.stories.aiGenerate}
+            {isSubmitting
+              ? translations.stories.aiEnrichmentPending
+              : translations.stories.aiGenerate}
           </button>
-          {errorMessage && (
-            <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
-          )}
+          {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
         </div>
       </div>
     );
@@ -227,18 +277,21 @@ export default function AIEnrichment({
                 )}
               </select>
             )}
-            {selectedIsDraft && selectedContent?.status === 'completed' && selectedContent?.generatedText?.trim() && (
-              <button
-                onClick={handleSaveCurrent}
-                disabled={isSubmitting}
-                className={`px-3 py-2 text-sm rounded-md transition-colors ${isSubmitting
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                {translations.stories.save}
-              </button>
-            )}
+            {selectedIsDraft &&
+              selectedContent?.status === 'completed' &&
+              selectedContent?.generatedText?.trim() && (
+                <button
+                  onClick={handleSaveCurrent}
+                  disabled={isSubmitting}
+                  className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                    isSubmitting
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {translations.stories.save}
+                </button>
+              )}
           </div>
         </div>
 
@@ -275,9 +328,10 @@ export default function AIEnrichment({
               <button
                 onClick={handleGenerate}
                 disabled={isSubmitting}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isSubmitting
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
                 {isSubmitting ? translations.stories.aiEnrichmentPending : getGenerateButtonLabel()}
@@ -298,9 +352,10 @@ export default function AIEnrichment({
               <button
                 onClick={handleGenerate}
                 disabled={isSubmitting}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${isSubmitting
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isSubmitting
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
                 }`}
               >
                 {isSubmitting ? translations.stories.aiEnrichmentPending : getGenerateButtonLabel()}
@@ -309,9 +364,7 @@ export default function AIEnrichment({
           </div>
         )}
 
-        {errorMessage && (
-          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
-        )}
+        {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
       </div>
     </div>
   );

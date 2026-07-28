@@ -1,21 +1,21 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Debug: Log DATABASE_URL to verify connection string
 const databaseUrl = process.env.DATABASE_URL;
-if (databaseUrl) {
-  // eslint-disable-next-line no-console
-  console.log('[Prisma] DATABASE_URL is set');
-} else {
-  console.error('[Prisma] DATABASE_URL is not set!');
+if (!databaseUrl) {
+  throw new Error('[Prisma] DATABASE_URL is not set');
 }
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
