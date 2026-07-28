@@ -47,8 +47,8 @@ class GenerateRequest(BaseModel):
     enrichmentId: Optional[str] = Field(default=None, alias="enrichment_id")
     enrichment_id: Optional[str] = None
     storyId: str
-    providerName: str = "llama-cpp-local"
-    modelName: str = "llama-3-8b-instruct"
+    providerName: str = os.getenv("PROVIDER_NAME", "llama-cpp-local")
+    modelName: str = os.getenv("MODEL_NAME", "llama-3-8b-instruct")
     prompt: str
     version: Optional[int] = None
     retryCount: int = 1
@@ -77,7 +77,7 @@ def run_heavy_llm(enrichment_id: str, request_data: dict) -> None:
             headers["Authorization"] = f"Bearer {api_key}"
 
         body = {
-            "model": request_data.get("modelName", "llama-3-8b-instruct"),
+            "model": request_data.get("modelName"),
             "messages": [
                 {"role": "user", "content": request_data.get("prompt", "")}
             ],

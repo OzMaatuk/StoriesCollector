@@ -104,7 +104,7 @@ export class EnrichmentService {
     return await this.repository.createGeneratedContent({
       storyId: story.id,
       providerName: 'llama-cpp-local',
-      modelName: process.env.LLM_MODEL_NAME || 'llama-3-8b-instruct',
+      modelName: process.env.LLM_MODEL_NAME || 'default',
       status: 'pending',
       version: null,
       retryCount: 1,
@@ -124,7 +124,7 @@ export class EnrichmentService {
       enrichmentId: draftRecord.id,
       storyId: story.id,
       providerName: draftRecord.providerName || 'llama-cpp-local',
-      modelName: draftRecord.modelName || process.env.LLM_MODEL_NAME || 'llama-3-8b-instruct',
+      modelName: draftRecord.modelName || process.env.LLM_MODEL_NAME || 'default',
       prompt,
       version: draftRecord.version,
       retryCount: draftRecord.retryCount,
