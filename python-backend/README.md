@@ -2,11 +2,34 @@
 
 FastAPI background processing middleware for multi-hour llama.cpp LLM generation tasks.
 
-## Prerequisites & Installation
+## Prerequisites & Virtual Environment Setup
 
-```bash
-pip install -r requirements.txt
-```
+Since `python3` points to an older Python version, explicitly create a virtual environment using `python3.8`:
+
+1. Navigate to the `python-backend` directory:
+   ```bash
+   cd python-backend
+   ```
+
+2. Create a virtual environment using `python3.8`:
+   ```bash
+   python3.8 -m venv venv
+   ```
+
+3. Activate the virtual environment:
+   ```bash
+   # On Linux/macOS:
+   source venv/bin/activate
+
+   # On Windows:
+   venv\Scripts\activate
+   ```
+
+4. Install requirements inside the virtual environment:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
 
 ## Environment Variables
 
@@ -19,8 +42,9 @@ LLAMA_CPP_URL=http://127.0.0.1:8080
 
 ## Running the Server
 
-Start Uvicorn with:
+Make sure your `venv` is activated (`source venv/bin/activate`), then start Uvicorn:
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
