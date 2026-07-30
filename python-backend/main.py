@@ -113,7 +113,7 @@ class GenerateRequest(BaseModel):
         return {
             "model": self.model_name,
             "messages": messages,
-            "stop": ["</think>"],
+            # "stop": ["</think>"],
             "max_tokens": 2048,
             "temperature": 0.7,
             "top_p": 0.9,
