@@ -190,6 +190,8 @@ class LLMClient:
         body = request.to_llm_request()
 
         logger.debug("Sending LLM request to %s (model=%s)", url, request.model_name)
+        logger.debug("Sending LLM request with body: %s ", body)
+
 
         retry_count = 0
         while True:
