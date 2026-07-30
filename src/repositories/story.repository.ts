@@ -119,7 +119,7 @@ export class StoryRepository {
     return await prisma.generatedContent.create({
       data: {
         storyId,
-        providerName: 'OpenAI-Compatible',
+        providerName: process.env.LLM_PROVIDER_NAME || 'default',
         modelName: process.env.LLM_MODEL_NAME || 'default',
         generatedText: null,
         status: 'completed',
@@ -165,7 +165,7 @@ export class StoryRepository {
       await tx.generatedContent.create({
         data: {
           storyId,
-          providerName: 'OpenAI-Compatible',
+          providerName: process.env.LLM_PROVIDER_NAME || 'default',
           modelName: process.env.LLM_MODEL_NAME || 'default',
           generatedText: null,
           status: 'completed',

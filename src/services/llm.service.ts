@@ -20,7 +20,7 @@ export class LLMService {
   async generateCompletion(systemPrompt: string, userContent: string): Promise<string> {
     const body = {
       model: this.modelName,
-      stop: ['</think>'],
+      // stop: ['</think>'],
       max_tokens: this.maxTokens,
       temperature: 0.7,
       top_p: 0.9,
@@ -47,7 +47,9 @@ export class LLMService {
       const isTimeout = err.message.toLowerCase().includes('timed out');
 
       if ((RETRYABLE_STATUSES.has(status) || isTimeout) && retryCount < MAX_RETRIES) {
-        logger.info(`LLM not ready (${status || 'timeout'}), retrying (${retryCount + 1}/${MAX_RETRIES})...`);
+        logger.info(
+          `LLM not ready (${status || 'timeout'}), retrying (${retryCount + 1}/${MAX_RETRIES})...`
+        );
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         return this.callWithRetry(body, retryCount + 1);
       }

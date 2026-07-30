@@ -115,17 +115,20 @@ export class EnrichmentService {
     story: Story,
     draftRecord: Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
   ) {
-    const pythonUrl = (process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    const pythonUrl = (process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000').replace(
+      /\/$/,
+      ''
+    );
     const systemPrompt = this.buildSystemPrompt(story.language);
     const userContent = this.buildUserContent(story);
-    const prompt = systemPrompt ? `${systemPrompt}\n\n${userContent}` : userContent;
 
     const payload = {
       enrichmentId: draftRecord.id,
       storyId: story.id,
       providerName: draftRecord.providerName || 'llama-cpp-local',
       modelName: draftRecord.modelName || process.env.LLM_MODEL_NAME || 'default',
-      prompt,
+      systemPrompt: systemPrompt,
+      prompt: userContent,
       version: draftRecord.version,
       retryCount: draftRecord.retryCount,
     };

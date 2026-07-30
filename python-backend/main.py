@@ -90,14 +90,8 @@ class GenerateRequest(BaseModel):
 
     enrichment_id: Optional[str] = Field(default=None, alias="enrichmentId")
     story_id: str = Field(alias="storyId")
-    provider_name: str = Field(
-        default_factory=lambda: os.getenv("PROVIDER_NAME", "llama-cpp-local"),
-        alias="providerName",
-    )
-    model_name: str = Field(
-        default_factory=lambda: os.getenv("MODEL_NAME", "llama-3-8b-instruct"),
-        alias="modelName",
-    )
+    provider_name: str = Field(alias="providerName")
+    model_name: str = Field(alias="modelName")
     prompt: str
     version: Optional[int] = None
     retry_count: int = Field(default=1, alias="retryCount")
@@ -114,10 +108,10 @@ class GenerateRequest(BaseModel):
             "model": self.model_name,
             "messages": messages,
             # "stop": ["</think>"],
-            "max_tokens": 2048,
-            "temperature": 0.7,
-            "top_p": 0.9,
-            "repeat_penalty": 1.12,
+            "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "4096")),
+            "temperature": float(os.getenv("LLM_TEMPERATURE", "0.7")),
+            "top_p": float(os.getenv("LLM_TOP_P", "0.9")),
+            "repeat_penalty": float(os.getenv("LLM_REPEAT_PENALTY", "1.12")),
         }
 
 
@@ -180,22 +174,14 @@ class LLMClient:
 
     def _extract_content(self, response_data: Any) -> str:
         """Extract generated content from LLM response."""
-        if not isinstance(response_data, dict):
-            return str(response_data)
-
-        choices = response_data.get("choices", [])
-        if choices and isinstance(choices, list):
-            msg = choices[0].get("message", {})
-            content = msg.get("content", "")
-            if content:
-                return content
-
-        for key in ("content", "text", "response", "result"):
-            value = response_data.get(key)
-            if value:
-                return str(value)
-
-        return str(response_data)
+        if isinstance(response_data, dict):
+            choices = response_data.get("choices", [])
+            if choices and isinstance(choices, list):
+                msg = choices[0].get("message", {})
+                content = msg.get("content", "")
+                if content:
+                    return content
+        raise LLMError(f"Unexpected LLM response shape: {response_data!r}")
 
     def generate_completion(self, request: GenerateRequest) -> str:
         """Generate a completion using the LLM API, retrying while the backend is cold-starting."""
