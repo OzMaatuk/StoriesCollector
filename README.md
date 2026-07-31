@@ -345,6 +345,8 @@ OTP_SERVICE_URL=https://your-otp-service.com
 
 # AI / LLM Configuration
 ENABLE_LLM_ENRICHMENT=true # Set to 'true' to enable asynchronous enrichment (default: disabled in repo)
+LLM_EXECUTION_METHOD=async_python # Execution mode: 'async_python' (default, uses Python background wrapper) or 'direct'
+PYTHON_BACKEND_URL=http://127.0.0.1:8000 # URL of the Python FastAPI backend wrapper when LLM_EXECUTION_METHOD=async_python
 LLM_MODEL_NAME=dicta-il/DictaLM-3.0-24B-Thinking-W4A16 # Optional model override
 LLM_MAX_TOKENS=2048 # Optional override for max tokens
 ENABLE_CHAT_PROXY=false # Set to 'true' only if the browser UI needs /api/chat

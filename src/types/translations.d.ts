@@ -1,4 +1,3 @@
-// src/types/translations.d.ts
 export interface Translations {
   nav: { submit: string; stories: string };
   common: {
@@ -14,6 +13,7 @@ export interface Translations {
   stories: {
     title: string;
     verifiedEmail: string;
+    unverifiedEmail: string;
     allLanguages: string;
     noStories: string;
     readMore: string;
@@ -25,6 +25,8 @@ export interface Translations {
     aiRetrying: string;
     aiRegenerate: string;
     aiEnrichmentDescription: string;
+    aiEnrichmentCounts: string;
+    aiEnrichmentBackgroundNotice: string;
     save: string;
     saved: string;
   };

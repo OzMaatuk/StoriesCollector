@@ -24,7 +24,7 @@ export interface GeneratedContent {
   providerName: string;
   modelName: string;
   generatedText?: string | null;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string | null;
   version?: number | null;
   retryCount: number;

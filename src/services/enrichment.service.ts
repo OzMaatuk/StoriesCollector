@@ -1,5 +1,3 @@
-// src/services/enrichment.service.ts
-
 import fs from 'fs';
 import path from 'path';
 import { Language, Story } from '@/types';
@@ -18,12 +16,12 @@ export class EnrichmentService {
   private llmService: LLMService;
   private repository: StoryRepository;
   private promptTemplates: Map<Language, string> = new Map();
+  private systemPrompts: Map<Language, string> = new Map();
 
   constructor() {
     this.llmService = new LLMService();
     this.repository = new StoryRepository();
 
-    // Load prompts for each language
     this.loadPromptTemplates();
   }
 
@@ -37,6 +35,20 @@ export class EnrichmentService {
         this.promptTemplates.set(lang, template);
       } catch (error) {
         logger.warn(`Failed to load prompt template for language ${lang}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
+      try {
+        const systemPath = path.join(
+          process.cwd(),
+          'prompts',
+          `story_enrichment_system_${lang}.txt`
+        );
+        const systemPrompt = fs.readFileSync(systemPath, 'utf8');
+        this.systemPrompts.set(lang, systemPrompt.trim());
+      } catch (error) {
+        logger.warn(`Failed to load system prompt for language ${lang}`, {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -59,20 +71,98 @@ export class EnrichmentService {
     };
   }
 
-  private buildPrompt(story: Story): string {
-    const promptTemplate = this.getPromptTemplate(story.language);
-    const labels = this.getPromptLabels(story.language);
-
-    const parts = [promptTemplate.trim()];
-
-    if (story.title) parts.push(`\n${labels.title}: ${story.title}`);
-    if (story.storyBackground) parts.push(`${labels.background}: ${story.storyBackground}`);
-    parts.push(`\n${labels.content}:\n${story.content}`);
-
-    return parts.join('\n');
+  private buildSystemPrompt(language: string): string {
+    const lang = (language?.toLowerCase() || 'he') as Language;
+    return this.systemPrompts.get(lang) ?? this.systemPrompts.get('he') ?? '';
   }
 
-  async enrichStory(story: Story) {
+  private buildUserContent(story: Story): string {
+    const template = this.getPromptTemplate(story.language).trim();
+    const labels = this.getPromptLabels(story.language);
+    const parts: string[] = [template];
+
+    if (story.title) parts.push(`${labels.title}: ${story.title}`);
+    if (story.storyBackground) parts.push(`${labels.background}: ${story.storyBackground}`);
+    parts.push(`${story.content}`);
+
+    return parts.join(' ');
+  }
+
+  async getOrCreateDraft(story: Story) {
+    const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
+    const existing = allRecords.find((record) => record.version == null);
+
+    if (existing) {
+      return await this.repository.updateGeneratedContent(existing.id, {
+        status: 'pending',
+        generatedText: null,
+        errorMessage: null,
+        retryCount: (existing.retryCount || 0) + 1,
+      });
+    }
+
+    return await this.repository.createGeneratedContent({
+      storyId: story.id,
+      providerName: 'llama-cpp-local',
+      modelName: process.env.LLM_MODEL_NAME || 'default',
+      status: 'pending',
+      version: null,
+      retryCount: 1,
+    });
+  }
+
+  private async triggerAsyncPythonEnrichment(
+    story: Story,
+    draftRecord: Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+  ) {
+    const pythonUrl = (process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000').replace(
+      /\/$/,
+      ''
+    );
+    const systemPrompt = this.buildSystemPrompt(story.language);
+    const userContent = this.buildUserContent(story);
+
+    const payload = {
+      enrichmentId: draftRecord.id,
+      storyId: story.id,
+      providerName: draftRecord.providerName || 'llama-cpp-local',
+      modelName: draftRecord.modelName || process.env.LLM_MODEL_NAME || 'default',
+      systemPrompt: systemPrompt,
+      prompt: userContent,
+      version: draftRecord.version,
+      retryCount: draftRecord.retryCount,
+    };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const backendSecret = process.env.PYTHON_BACKEND_SECRET?.trim();
+      if (backendSecret) {
+        headers['Authorization'] = `Bearer ${backendSecret}`;
+      }
+
+      const response = await fetch(`${pythonUrl}/api/generate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Python backend returned status ${response.status}`);
+      }
+
+      logger.info(`Delegated enrichment to Python backend for story ${story.id}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Python backend unreachable at ${pythonUrl} (${errorMsg})`);
+    }
+  }
+
+  async enrichStory(
+    story: Story,
+    existingDraft?:
+      | Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
+      | Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
+  ) {
     if (process.env.ENABLE_LLM_ENRICHMENT !== 'true') {
       logger.info('LLM enrichment is disabled');
       return;
@@ -87,30 +177,18 @@ export class EnrichmentService {
     let enrichmentRecord;
 
     try {
-      // Try to find an existing temporary draft (unsaved version) to reuse
-      const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
-      const draft = allRecords.find((record) => record.version == null);
+      enrichmentRecord = existingDraft ?? (await this.getOrCreateDraft(story));
 
-      if (draft) {
-        enrichmentRecord = draft;
-        await this.repository.updateGeneratedContent(draft.id, {
-          status: 'pending',
-          errorMessage: null,
-          retryCount: (draft.retryCount || 1) + 1,
-        });
-      } else {
-        enrichmentRecord = await this.repository.createGeneratedContent({
-          storyId: story.id,
-          providerName: 'OpenAI-Compatible',
-          modelName: process.env.LLM_MODEL_NAME || 'dicta-il/DictaLM-3.0-24B-Thinking-W4A16',
-          status: 'pending',
-          version: null,
-          retryCount: 1,
-        });
+      const executionMethod = process.env.LLM_EXECUTION_METHOD || 'async_python';
+
+      if (executionMethod === 'async_python') {
+        await this.triggerAsyncPythonEnrichment(story, enrichmentRecord);
+        return;
       }
 
-      const prompt = this.buildPrompt(story);
-      const generatedText = await this.llmService.generateCompletion(prompt);
+      const systemPrompt = this.buildSystemPrompt(story.language);
+      const userContent = this.buildUserContent(story);
+      const generatedText = await this.llmService.generateCompletion(systemPrompt, userContent);
 
       await this.repository.updateGeneratedContent(enrichmentRecord.id, {
         generatedText,

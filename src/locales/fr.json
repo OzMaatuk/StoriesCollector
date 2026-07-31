@@ -80,6 +80,8 @@
     "aiRetrying": "Nouvel essai...",
     "aiRegenerate": "Réessayer",
     "aiEnrichmentDescription": "Selon les écrits de Rabbi Nachman de Breslev, nous racontons l'histoire dans ses propres mots, en ajoutant des contextes et des enseignements de sa pensée avec référence à la source.",
+    "aiEnrichmentCounts": "{{versions}} versions · {{current}}/{{max}}",
+    "aiEnrichmentBackgroundNotice": "Le processus d'enrichissement s'exécute en arrière-plan et peut prendre jusqu'à un jour. Veuillez rafraîchir cette page plus tard pour afficher le contenu mis à jour.",
     "enrichmentNote": "Remarque : la génération du résumé et de l'enrichissement de l'histoire peut prendre quelques secondes.",
     "save": "Enregistrer",
     "saved": "Enregistré"

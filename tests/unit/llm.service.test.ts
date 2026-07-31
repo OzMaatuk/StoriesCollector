@@ -19,8 +19,50 @@ describe('LLMService', () => {
     } as Awaited<ReturnType<typeof callLLM>>);
 
     const service = new LLMService();
-    await service.generateCompletion('hello');
+    await service.generateCompletion('hello', 'world');
 
     expect(mockedCallLLM).toHaveBeenCalledWith(expect.objectContaining({ model: 'default' }));
+  });
+
+  it('retries on status 524 Cloudflare gateway timeout', async () => {
+    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      fn();
+      return 0 as any;
+    });
+
+    mockedCallLLM
+      .mockRejectedValueOnce(new Error('LLM Error 524: upstream request failed'))
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'recovered' } }],
+      } as Awaited<ReturnType<typeof callLLM>>);
+
+    const service = new LLMService();
+    const result = await service.generateCompletion('sys', 'user');
+
+    expect(result).toBe('recovered');
+    expect(mockedCallLLM).toHaveBeenCalledTimes(2);
+
+    (global.setTimeout as unknown as jest.Mock).mockRestore();
+  });
+
+  it('retries on client request timeout error', async () => {
+    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
+      fn();
+      return 0 as any;
+    });
+
+    mockedCallLLM
+      .mockRejectedValueOnce(new Error('LLM Error: request timed out after 300000ms'))
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'recovered' } }],
+      } as Awaited<ReturnType<typeof callLLM>>);
+
+    const service = new LLMService();
+    const result = await service.generateCompletion('sys', 'user');
+
+    expect(result).toBe('recovered');
+    expect(mockedCallLLM).toHaveBeenCalledTimes(2);
+
+    (global.setTimeout as unknown as jest.Mock).mockRestore();
   });
 });

@@ -4,7 +4,6 @@ import { StoryRepository } from '@/repositories/story.repository';
 import fs from 'fs';
 import { Story } from '@/types';
 
-// Mock dependencies
 jest.mock('@/services/llm.service');
 jest.mock('@/repositories/story.repository');
 jest.mock('fs');
@@ -29,11 +28,16 @@ describe('EnrichmentService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (fs.readFileSync as jest.Mock).mockReturnValue('Retell {{title}}: {{content}}');
+    (fs.readFileSync as jest.Mock).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('_system_')) {
+        return 'Return only the final answer. Mock system prompt.';
+      }
+      return 'Retell {{title}}: {{content}}';
+    });
 
-    // Set environment variable
     process.env.ENABLE_LLM_ENRICHMENT = 'true';
     process.env.LLM_MODEL_NAME = 'test-model';
+    process.env.LLM_EXECUTION_METHOD = 'direct';
 
     service = new EnrichmentService();
     mockLLMService = (service as unknown as { llmService: LLMService })
@@ -42,17 +46,16 @@ describe('EnrichmentService', () => {
       .repository as jest.Mocked<StoryRepository>;
   });
 
-  it('should successfully enrich a story', async () => {
+  it('should successfully enrich a story directly', async () => {
     const mockedGeneratedText = 'Enriched content from Rabbi Nachman';
     const mockEnrichmentId = 'enrichment-123';
 
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
-    // No existing draft — service should create a new record
     mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
-      providerName: 'OpenAI-Compatible',
+      providerName: 'llama-cpp-local',
       modelName: 'test-model',
       status: 'pending',
       createdAt: new Date(),
@@ -64,10 +67,9 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(mockStory);
 
-    // Verify database updates
     expect(mockRepository.createGeneratedContent).toHaveBeenCalledWith({
       storyId: mockStory.id,
-      providerName: 'OpenAI-Compatible',
+      providerName: 'llama-cpp-local',
       modelName: 'test-model',
       status: 'pending',
       version: null,
@@ -75,6 +77,7 @@ describe('EnrichmentService', () => {
     });
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
+      expect.stringContaining('Return only the final answer'),
       expect.stringContaining(mockStory.title!)
     );
 
@@ -84,17 +87,53 @@ describe('EnrichmentService', () => {
     });
   });
 
-  it('should handle LLM failure', async () => {
+  it('should delegate enrichment to Python backend when LLM_EXECUTION_METHOD is async_python', async () => {
+    process.env.LLM_EXECUTION_METHOD = 'async_python';
+    process.env.PYTHON_BACKEND_URL = 'http://127.0.0.1:8000';
+    delete process.env.PYTHON_BACKEND_SECRET;
+
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ enrichment_id: 'enrichment-python-1', status: 'pending' }),
+    });
+    global.fetch = mockFetch;
+
+    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
+    mockRepository.createGeneratedContent.mockResolvedValue({
+      id: 'enrichment-python-1',
+      storyId: mockStory.id,
+      providerName: 'llama-cpp-local',
+      modelName: 'test-model',
+      status: 'pending',
+      version: null,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+
+    await service.enrichStory(mockStory);
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:8000/api/generate',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+
+    expect(mockLLMService.generateCompletion).not.toHaveBeenCalled();
+  });
+
+  it('should handle LLM failure in direct mode', async () => {
     const errorMsg = 'API Quota exceeded';
     const mockEnrichmentId = 'enrichment-456';
 
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
-    // No existing draft — service should create a new record
     mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
-      providerName: 'OpenAI-Compatible',
+      providerName: 'llama-cpp-local',
       modelName: 'test-model',
       status: 'pending',
       createdAt: new Date(),
@@ -112,7 +151,7 @@ describe('EnrichmentService', () => {
     });
   });
 
-  it('uses locale-based labels for non-English enrichment prompts', async () => {
+  it('uses locale-based labels for non-English enrichment prompts in direct mode', async () => {
     const hebrewStory = {
       ...mockStory,
       language: 'he' as const,
@@ -126,7 +165,7 @@ describe('EnrichmentService', () => {
     mockRepository.createGeneratedContent.mockResolvedValue({
       id: 'enrichment-789',
       storyId: hebrewStory.id,
-      providerName: 'OpenAI-Compatible',
+      providerName: 'llama-cpp-local',
       modelName: 'test-model',
       status: 'pending',
       createdAt: new Date(),
@@ -138,10 +177,11 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(hebrewStory);
 
-    const prompt = mockLLMService.generateCompletion.mock.calls[0][0] as string;
-    expect(prompt).toContain('כותרת הסיפור');
-    expect(prompt).toContain('רקע לסיפור');
-    expect(prompt).toContain('הסיפור שלך');
+    const [systemPrompt, userContent] = mockLLMService.generateCompletion.mock.calls[0] as [string, string];
+    expect(systemPrompt).toContain('Return only the final answer');
+    expect(userContent).toContain('כותרת הסיפור');
+    expect(userContent).toContain('רקע לסיפור');
+    expect(userContent).toContain(hebrewStory.content);
   });
 
   it('should not enrich if disabled', async () => {

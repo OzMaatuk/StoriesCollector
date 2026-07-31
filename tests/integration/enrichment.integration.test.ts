@@ -19,11 +19,13 @@ describe('Enrichment Integration', () => {
       const mockFindAll = jest.fn();
       const mockFindById = jest.fn();
       const mockUpdate = jest.fn();
+      const mockEnsureDraftExists = jest.fn().mockResolvedValue({});
       const MockRepo = jest.fn().mockImplementation(() => ({
         create: mockCreate,
         findAll: mockFindAll,
         findById: mockFindById,
         update: mockUpdate,
+        ensureDraftExists: mockEnsureDraftExists,
       }));
       return { StoryRepository: MockRepo };
     });

@@ -30,5 +30,8 @@ export function sanitizeStoryInput(
     title: sanitizeString(input.title),
     content: sanitizeContent(input.content),
     language: sanitizeString(input.language),
+    // Pass the verification token through unchanged — it is a signed JWT,
+    // not user-supplied HTML, and must not be stripped or lowercased.
+    verificationToken: input.verificationToken,
   };
 }

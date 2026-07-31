@@ -62,17 +62,21 @@ export async function POST(
       );
     }
 
-    // Trigger enrichment generation (service will create a new tmp version or reuse existing draft)
     // Import lazily to avoid circular dependencies at top level
     const { EnrichmentService } = await import('@/services/enrichment.service');
     const service = new EnrichmentService();
 
-    // Run asynchronously to prevent Netlify serverless timeout
-    service.enrichStory(story).catch((error) => {
+    // Create (or reset) the draft record synchronously so the client immediately
+    // has a pending record to display and poll — even before the LLM responds.
+    const draft = await service.getOrCreateDraft(story);
+
+    // Run the actual LLM call in the background, passing the draft so enrichStory
+    // doesn't call getOrCreateDraft a second time and inflate retryCount.
+    service.enrichStory(story, draft).catch((error) => {
       console.error(`Background enrichment failed for story ${id}:`, error);
     });
 
-    return NextResponse.json({ success: true }, { status: HTTP_STATUS.OK });
+    return NextResponse.json({ draft }, { status: HTTP_STATUS.OK });
   } catch (error) {
     console.error('Error generating enrichment:', error);
     return NextResponse.json(

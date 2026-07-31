@@ -1,10 +1,9 @@
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
 import { GeneratedContent, Translations } from '@/types';
 
-// Mock fetch
 global.fetch = jest.fn();
 
 const mockTranslations: Translations = {
@@ -14,6 +13,8 @@ const mockTranslations: Translations = {
     aiEnrichmentFailed: 'Failed',
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
+    aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
+    aiEnrichmentBackgroundNotice: 'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',
@@ -30,11 +31,6 @@ describe('AIEnrichment Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders generate button when no content exists', () => {
@@ -51,7 +47,7 @@ describe('AIEnrichment Component', () => {
     expect(screen.getByText('Generate')).toBeInTheDocument();
   });
 
-  it('renders enrichment content and description when content is present', () => {
+  it('renders enrichment content when a saved version is selected', () => {
     const mockContent: GeneratedContent = {
       id: '1',
       storyId: storyId,
@@ -60,6 +56,20 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       retryCount: 1,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const mockDraft: GeneratedContent = {
+      id: 'draft-1',
+      storyId: storyId,
+      status: 'completed',
+      generatedText: null,
+      providerName: 'Test',
+      modelName: 'Model',
+      retryCount: 0,
+      version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -67,8 +77,8 @@ describe('AIEnrichment Component', () => {
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContents={[mockContent]}
-        selectedEnrichmentId={null}
+        initialContents={[mockContent, mockDraft]}
+        selectedEnrichmentId={mockContent.id}
         translations={mockTranslations}
       />
     );
@@ -125,64 +135,34 @@ describe('AIEnrichment Component', () => {
     expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment?enrichmentId=2');
   });
 
-  it('polls for content when pending', async () => {
-    const mockPendingContent: GeneratedContent = {
+  it('displays background notice when pending draft is selected without polling loop', () => {
+    const mockPendingDraft: GeneratedContent = {
       id: 'pending-id',
       storyId,
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
       retryCount: 1,
+      version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    const mockCompletedContent: GeneratedContent[] = [
-      {
-        id: 'completed-id',
-        storyId,
-        providerName: 'Test',
-        modelName: 'Model',
-        status: 'completed',
-        generatedText: 'Polled Content',
-        retryCount: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        version: 1,
-      },
-    ];
-
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockCompletedContent,
-    });
-
-    const setIntervalSpy = jest.spyOn(global, 'setInterval');
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContents={[mockPendingContent]}
+        initialContents={[mockPendingDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
       />
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
-
-    const callback = setIntervalSpy.mock.calls[0][0] as () => void | Promise<void>;
-
-    await act(async () => {
-      await callback();
-    });
-
-    expect(screen.getByText('Polled Content')).toBeInTheDocument();
-    expect(screen.getByText(mockTranslations.stories.aiEnrichmentDescription)).toBeInTheDocument();
-
-    setIntervalSpy.mockRestore();
+    expect(screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).toBeInTheDocument();
   });
 
-  it('does not start polling when selected content is completed even if a stale pending item exists', () => {
-    const mockCompletedContent: GeneratedContent = {
+  it('displays saved version content when selected and draft is separately pending', () => {
+    const mockSavedVersion: GeneratedContent = {
       id: 'completed-id',
       storyId,
       providerName: 'Test',
@@ -195,30 +175,28 @@ describe('AIEnrichment Component', () => {
       version: 1,
     };
 
-    const mockPendingContent: GeneratedContent = {
+    const mockPendingDraft: GeneratedContent = {
       id: 'stale-pending-id',
       storyId,
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
       retryCount: 1,
+      version: null,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
     };
 
-    const setIntervalSpy = jest.spyOn(global, 'setInterval');
     render(
       <AIEnrichment
         storyId={storyId}
-        initialContents={[mockCompletedContent, mockPendingContent]}
-        selectedEnrichmentId={mockCompletedContent.id}
+        initialContents={[mockSavedVersion, mockPendingDraft]}
+        selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
       />
     );
 
     expect(screen.getByText('Loaded Content')).toBeInTheDocument();
-    expect(setIntervalSpy).not.toHaveBeenCalled();
-
-    setIntervalSpy.mockRestore();
+    expect(screen.queryByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).not.toBeInTheDocument();
   });
 });
