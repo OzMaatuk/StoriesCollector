@@ -26,11 +26,11 @@ export const RATE_LIMIT = {
   MAX_REQUESTS: 10,
 };
 
-const _maxRetriesEnv = process.env.ENRICHMENT_MAX_RETRIES
-const _maxRetries = _maxRetriesEnv && Number.isInteger(_maxRetriesEnv) ? Number(_maxRetriesEnv) : 5;
+const maxRetriesEnv = Number(process.env.ENRICHMENT_MAX_RETRIES);
+const maxRetries = Number.isInteger(maxRetriesEnv) && maxRetriesEnv > 0 ? maxRetriesEnv : 5;
 
 export const ENRICHMENT = {
-  MAX_RETRIES: _maxRetries,
+  MAX_RETRIES: maxRetries,
 };
 
 export const SUPPORTED_LANGUAGES = ['en', 'he', 'fr'] as const;

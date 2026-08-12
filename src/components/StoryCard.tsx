@@ -3,11 +3,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Story, Language } from '@/types';
+import { PublicStory, Language } from '@/types';
 import { Translations } from '@/types/translations';
 
 interface StoryCardProps {
-  story: Story;
+  story: PublicStory;
   lang: Language;
   translations: Translations['stories'];
 }

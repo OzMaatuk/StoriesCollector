@@ -25,11 +25,14 @@ Since `python3` points to an older Python version, explicitly create a virtual e
    venv\Scripts\activate
    ```
 
-4. Install requirements inside the virtual environment:
+4. Install the reviewed, hashed dependency lock inside the virtual environment:
    ```bash
    pip install --upgrade pip
-   pip install -r requirements.txt
+   pip install --require-hashes -r requirements.lock
    ```
+
+To deliberately update dependencies, edit the exact versions in
+`requirements.txt` and regenerate `requirements.lock` with pip-tools.
 
 ## Environment Variables
 
@@ -49,4 +52,3 @@ Make sure your `venv` is activated (`source venv/bin/activate`), then start Uvic
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
-

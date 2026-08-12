@@ -1,7 +1,7 @@
 // src/services/story.service.ts
 
 import { StoryRepository } from '@/repositories/story.repository';
-import { Story, PaginatedResponse, Language } from '@/types';
+import { Story, PaginatedResponse, Language, PublicStory } from '@/types';
 import { sanitizeStoryInput } from '@/lib/sanitization';
 import { storySchema } from '@/lib/validation';
 import { ZodError } from 'zod';
@@ -97,6 +97,10 @@ export class StoryService {
     return await this.repository.findById(id);
   }
 
+  async getPublicStoryById(id: string): Promise<PublicStory | null> {
+    return (await this.repository.findPublicById(id)) as PublicStory | null;
+  }
+
   async getStories(params: {
     page?: number;
     pageSize?: number;
@@ -126,6 +130,26 @@ export class StoryService {
         totalPages,
         hasMore: page < totalPages,
       },
+    };
+  }
+
+  async getPublicStories(params: {
+    page?: number;
+    pageSize?: number;
+    language?: string;
+  }): Promise<PaginatedResponse<PublicStory>> {
+    const page = Math.max(params.page || 1, 1);
+    const pageSize = Math.min(Math.max(params.pageSize || 10, 1), 100);
+    const skip = (page - 1) * pageSize;
+    const [stories, totalCount] = await Promise.all([
+      this.repository.findManyPublic({ skip, take: pageSize, language: params.language }),
+      this.repository.count(params.language),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    return {
+      data: stories,
+      pagination: { page, pageSize, totalCount, totalPages, hasMore: page < totalPages },
     };
   }
 

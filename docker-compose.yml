@@ -10,7 +10,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
       postgres:
@@ -35,20 +35,18 @@ services:
     container_name: stories_collector_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: stories_user
-      POSTGRES_PASSWORD: stories_pass
-      POSTGRES_DB: stories_collector
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
       POSTGRES_INITDB_ARGS: '-E UTF8'
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    ports:
-      - '5432:5432'
     networks:
       - stories_network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U stories_user -d stories_collector']
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,7 +59,7 @@ services:
     working_dir: /app
     command: sh -c "apk add --no-cache openssl && npx prisma studio --port 5555 --hostname 0.0.0.0"
     environment:
-      DATABASE_URL: postgresql://stories_user:stories_pass@postgres:5432/stories_collector?schema=public
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
     volumes:
       - ./prisma:/app/prisma:ro
       - ./package.json:/app/package.json:ro

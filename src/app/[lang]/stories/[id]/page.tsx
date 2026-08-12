@@ -19,7 +19,7 @@ export default async function StoryPage({ params }: PageProps) {
   const translationsMap: Record<Language, Translations> = { en, fr, he };
   const translations = translationsMap[lang] ?? en;
   const storyService = new StoryService();
-  const story = await storyService.getStoryById(id);
+  const story = await storyService.getPublicStoryById(id);
 
   if (!story) {
     notFound();
@@ -105,7 +105,6 @@ export default async function StoryPage({ params }: PageProps) {
         <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>Published {formatDate(story.createdAt)}</span>
-            {story.email && <span>Contact: {story.email}</span>}
           </div>
         </div>
       </article>

@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
     const language = searchParams.get('language') || undefined;
 
-    const result = await storyService.getStories({ page, pageSize, language });
+    const result = await storyService.getPublicStories({ page, pageSize, language });
 
     return NextResponse.json(result);
   } catch (error) {

@@ -44,6 +44,11 @@ describe('EnrichmentService', () => {
       .llmService as jest.Mocked<LLMService>;
     mockRepository = (service as unknown as { repository: StoryRepository })
       .repository as jest.Mocked<StoryRepository>;
+    mockRepository.claimDraftForGeneration.mockResolvedValue({
+      id: 'enrichment-123', storyId: mockStory.id, providerName: 'llama-cpp-local',
+      modelName: 'test-model', status: 'pending', version: null, retryCount: 1,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as unknown as Awaited<ReturnType<StoryRepository['claimDraftForGeneration']>>);
   });
 
   it('should successfully enrich a story directly', async () => {
@@ -51,30 +56,13 @@ describe('EnrichmentService', () => {
     const mockEnrichmentId = 'enrichment-123';
 
     mockLLMService.generateCompletion.mockResolvedValue(mockedGeneratedText);
-    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
-    mockRepository.createGeneratedContent.mockResolvedValue({
-      id: mockEnrichmentId,
-      storyId: mockStory.id,
-      providerName: 'llama-cpp-local',
-      modelName: 'test-model',
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
     mockRepository.updateGeneratedContent.mockResolvedValue(
       {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
     );
 
     await service.enrichStory(mockStory);
 
-    expect(mockRepository.createGeneratedContent).toHaveBeenCalledWith({
-      storyId: mockStory.id,
-      providerName: 'llama-cpp-local',
-      modelName: 'test-model',
-      status: 'pending',
-      version: null,
-      retryCount: 1,
-    });
+    expect(mockRepository.claimDraftForGeneration).toHaveBeenCalledWith(mockStory.id, 5);
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
       expect.stringContaining('Return only the final answer'),
@@ -98,19 +86,6 @@ describe('EnrichmentService', () => {
     });
     global.fetch = mockFetch;
 
-    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
-    mockRepository.createGeneratedContent.mockResolvedValue({
-      id: 'enrichment-python-1',
-      storyId: mockStory.id,
-      providerName: 'llama-cpp-local',
-      modelName: 'test-model',
-      status: 'pending',
-      version: null,
-      retryCount: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
-
     await service.enrichStory(mockStory);
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -129,8 +104,7 @@ describe('EnrichmentService', () => {
     const mockEnrichmentId = 'enrichment-456';
 
     mockLLMService.generateCompletion.mockRejectedValue(new Error(errorMsg));
-    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
-    mockRepository.createGeneratedContent.mockResolvedValue({
+    mockRepository.claimDraftForGeneration.mockResolvedValue({
       id: mockEnrichmentId,
       storyId: mockStory.id,
       providerName: 'llama-cpp-local',
@@ -138,7 +112,7 @@ describe('EnrichmentService', () => {
       status: 'pending',
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
+    } as unknown as Awaited<ReturnType<StoryRepository['claimDraftForGeneration']>>);
     mockRepository.updateGeneratedContent.mockResolvedValue(
       {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
     );
@@ -161,16 +135,6 @@ describe('EnrichmentService', () => {
     };
 
     mockLLMService.generateCompletion.mockResolvedValue('done');
-    mockRepository.getGeneratedContentsByStoryId.mockResolvedValue([]);
-    mockRepository.createGeneratedContent.mockResolvedValue({
-      id: 'enrichment-789',
-      storyId: hebrewStory.id,
-      providerName: 'llama-cpp-local',
-      modelName: 'test-model',
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as unknown as Awaited<ReturnType<StoryRepository['createGeneratedContent']>>);
     mockRepository.updateGeneratedContent.mockResolvedValue(
       {} as unknown as Awaited<ReturnType<StoryRepository['updateGeneratedContent']>>
     );

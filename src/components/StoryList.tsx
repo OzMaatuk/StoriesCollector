@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import StoryCard from './StoryCard';
-import { Story, PaginatedResponse, Language } from '@/types';
+import { PublicStory, PaginatedResponse, Language } from '@/types';
 import { Translations } from '@/types/translations';
 
 interface StoryListProps {
@@ -12,7 +12,7 @@ interface StoryListProps {
 }
 
 export default function StoryList({ lang, translations }: StoryListProps) {
-  const [stories, setStories] = useState<Story[]>([]);
+  const [stories, setStories] = useState<PublicStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedLanguage] = useState<string>('');
@@ -43,7 +43,7 @@ export default function StoryList({ lang, translations }: StoryListProps) {
         throw new Error('Failed to fetch stories');
       }
 
-      const result: PaginatedResponse<Story> = await response.json();
+      const result: PaginatedResponse<PublicStory> = await response.json();
 
       if (append) {
         setStories((prev) => [...prev, ...result.data]);
