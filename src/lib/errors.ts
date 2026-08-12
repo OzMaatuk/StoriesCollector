@@ -40,3 +40,17 @@ export class NotImplementedError extends AppError {
     this.name = 'NotImplementedError';
   }
 }
+
+export class ConflictError extends AppError {
+  constructor(message: string) {
+    super(message, 409);
+    this.name = 'ConflictError';
+  }
+}
+
+export class LimitExceededError extends AppError {
+  constructor(message: string) {
+    super(message, 429);
+    this.name = 'LimitExceededError';
+  }
+}

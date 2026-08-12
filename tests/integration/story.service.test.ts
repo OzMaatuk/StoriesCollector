@@ -138,4 +138,37 @@ describe('StoryService', () => {
       expect(result.pagination.page).toBe(1);
     });
   });
+
+  describe('public story access', () => {
+    it('uses the public repository projection for an individual story', async () => {
+      const publicStory = {
+        id: '1', name: 'John', content: 'A public story', language: 'en', verifiedEmail: false,
+        city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
+        selectedEnrichmentId: null, generatedContents: [], createdAt: new Date(), updatedAt: new Date(),
+      };
+      mockRepository.findPublicById.mockResolvedValue(publicStory);
+
+      const result = await service.getPublicStoryById('1');
+
+      expect(mockRepository.findPublicById).toHaveBeenCalledWith('1');
+      expect(result).not.toHaveProperty('email');
+      expect(result).not.toHaveProperty('phone');
+    });
+
+    it('uses the public repository projection for listings', async () => {
+      const publicStory = {
+        id: '1', name: 'John', content: 'A public story', language: 'en', verifiedEmail: false,
+        city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
+        selectedEnrichmentId: null, createdAt: new Date(), updatedAt: new Date(),
+      };
+      mockRepository.findManyPublic.mockResolvedValue([publicStory]);
+      mockRepository.count.mockResolvedValue(1);
+
+      const result = await service.getPublicStories({ page: 1, pageSize: 10 });
+
+      expect(mockRepository.findManyPublic).toHaveBeenCalled();
+      expect(result.data[0]).not.toHaveProperty('email');
+      expect(result.data[0]).not.toHaveProperty('phone');
+    });
+  });
 });

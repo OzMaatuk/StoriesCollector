@@ -74,6 +74,14 @@ docker-compose*.yml
 logs/
 *.log
 
+# Local backups and generated runtime configuration
+backups/
+*.bak
+*.backup
+*.dump
+*.sql.gz
+generated/
+
 # Temp files
 tmp/
 temp/

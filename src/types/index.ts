@@ -18,6 +18,9 @@ export interface Story {
   generatedContents?: GeneratedContent[];
 }
 
+/** Fields that may be returned to unauthenticated visitors. */
+export type PublicStory = Omit<Story, 'email' | 'phone'>;
+
 export interface GeneratedContent {
   id: string;
   storyId: string;

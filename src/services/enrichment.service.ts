@@ -5,6 +5,7 @@ import { LLMService } from './llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
 import { logger } from '@/lib/logger';
 import { getTranslations } from '@/lib/translations';
+import { ENRICHMENT } from '@/lib/constants';
 
 interface PromptLabels {
   title: string;
@@ -89,26 +90,7 @@ export class EnrichmentService {
   }
 
   async getOrCreateDraft(story: Story) {
-    const allRecords = await this.repository.getGeneratedContentsByStoryId(story.id);
-    const existing = allRecords.find((record) => record.version == null);
-
-    if (existing) {
-      return await this.repository.updateGeneratedContent(existing.id, {
-        status: 'pending',
-        generatedText: null,
-        errorMessage: null,
-        retryCount: (existing.retryCount || 0) + 1,
-      });
-    }
-
-    return await this.repository.createGeneratedContent({
-      storyId: story.id,
-      providerName: 'llama-cpp-local',
-      modelName: process.env.LLM_MODEL_NAME || 'default',
-      status: 'pending',
-      version: null,
-      retryCount: 1,
-    });
+    return this.repository.claimDraftForGeneration(story.id, ENRICHMENT.MAX_RETRIES);
   }
 
   private async triggerAsyncPythonEnrichment(

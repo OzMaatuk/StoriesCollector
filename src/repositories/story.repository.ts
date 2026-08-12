@@ -1,6 +1,36 @@
 import prisma from '@/lib/prisma';
 import { Story, StoryCreateInput } from '@/types';
 import { Prisma } from '@prisma/client';
+import { ConflictError, LimitExceededError } from '@/lib/errors';
+
+const publicStorySelect = {
+  id: true,
+  name: true,
+  city: true,
+  country: true,
+  tellerBackground: true,
+  storyBackground: true,
+  title: true,
+  content: true,
+  language: true,
+  verifiedEmail: true,
+  selectedEnrichmentId: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.StorySelect;
+
+const publicGeneratedContentSelect = {
+  id: true,
+  storyId: true,
+  providerName: true,
+  modelName: true,
+  generatedText: true,
+  status: true,
+  version: true,
+  retryCount: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.GeneratedContentSelect;
 
 export class StoryRepository {
   async create(data: StoryCreateInput): Promise<Story> {
@@ -58,6 +88,19 @@ export class StoryRepository {
     }
   }
 
+  async findPublicById(id: string) {
+    return prisma.story.findUnique({
+      where: { id },
+      select: {
+        ...publicStorySelect,
+        generatedContents: {
+          orderBy: { createdAt: 'desc' },
+          select: publicGeneratedContentSelect,
+        },
+      },
+    });
+  }
+
   async createGeneratedContent(data: {
     storyId: string;
     providerName: string;
@@ -97,9 +140,68 @@ export class StoryRepository {
     });
   }
 
+  async getPublicGeneratedContentsByStoryId(storyId: string) {
+    return prisma.generatedContent.findMany({
+      where: { storyId },
+      orderBy: { createdAt: 'desc' },
+      select: publicGeneratedContentSelect,
+    });
+  }
+
   async getGeneratedContentById(id: string) {
     return await prisma.generatedContent.findUnique({
       where: { id },
+    });
+  }
+
+  /**
+   * Atomically claim a completed/failed draft for one more generation. Public
+   * requests use this instead of relying on the browser to enforce limits.
+   */
+  async claimDraftForGeneration(storyId: string, maxGenerations: number) {
+    return prisma.$transaction(async (tx) => {
+      // Serializes generation claims for this story without holding the lock
+      // during the long-running LLM request.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${storyId}))`;
+
+      const records = await tx.generatedContent.findMany({
+        where: { storyId },
+        orderBy: { createdAt: 'desc' },
+      });
+      const draft = records.find((record) => record.version === null);
+
+      if (draft?.status === 'pending' || draft?.status === 'processing') {
+        throw new ConflictError('An enrichment is already being generated for this story');
+      }
+
+      const completedVersions = records.filter((record) => record.version !== null).length;
+      const generationCount = completedVersions + (draft?.retryCount ?? 0);
+      if (generationCount >= maxGenerations) {
+        throw new LimitExceededError('This story has reached its enrichment limit');
+      }
+
+      if (draft) {
+        return tx.generatedContent.update({
+          where: { id: draft.id },
+          data: {
+            status: 'pending',
+            generatedText: null,
+            errorMessage: null,
+            retryCount: draft.retryCount + 1,
+          },
+        });
+      }
+
+      return tx.generatedContent.create({
+        data: {
+          storyId,
+          providerName: process.env.LLM_PROVIDER_NAME || 'default',
+          modelName: process.env.LLM_MODEL_NAME || 'default',
+          status: 'pending',
+          version: null,
+          retryCount: 1,
+        },
+      });
     });
   }
 
@@ -191,6 +293,22 @@ export class StoryRepository {
       skip,
       take,
       orderBy,
+    });
+  }
+
+  async findManyPublic(params: {
+    skip?: number;
+    take?: number;
+    language?: string;
+    orderBy?: Prisma.StoryOrderByWithRelationInput;
+  }) {
+    const { skip = 0, take = 10, language, orderBy = { createdAt: 'desc' } } = params;
+    return prisma.story.findMany({
+      where: language ? { language } : {},
+      skip,
+      take,
+      orderBy,
+      select: publicStorySelect,
     });
   }
 

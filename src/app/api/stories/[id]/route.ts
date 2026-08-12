@@ -8,7 +8,7 @@ const storyService = new StoryService();
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const story = await storyService.getStoryById(id);
+    const story = await storyService.getPublicStoryById(id);
 
     if (!story) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });

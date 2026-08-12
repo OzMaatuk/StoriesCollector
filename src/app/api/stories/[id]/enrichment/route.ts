@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { StoryRepository } from '@/repositories/story.repository';
 import { HTTP_STATUS } from '@/lib/constants';
 import { rateLimit } from '@/lib/rate-limit';
+import { AppError } from '@/lib/errors';
 
 const repository = new StoryRepository();
 
@@ -27,7 +28,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const enrichments = await repository.getGeneratedContentsByStoryId(id);
+    const enrichments = await repository.getPublicGeneratedContentsByStoryId(id);
 
     if (!enrichments || enrichments.length === 0) {
       return NextResponse.json({ status: 'not_found' }, { status: 404 });
@@ -79,6 +80,9 @@ export async function POST(
     return NextResponse.json({ draft }, { status: HTTP_STATUS.OK });
   } catch (error) {
     console.error('Error generating enrichment:', error);
+    if (error instanceof AppError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
@@ -122,6 +126,13 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Enrichment not found or does not belong to this story' },
         { status: HTTP_STATUS.NOT_FOUND }
+      );
+    }
+
+    if (enrichment.version !== null) {
+      return NextResponse.json(
+        { error: 'Only the current enrichment draft can be saved' },
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 

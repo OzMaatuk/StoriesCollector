@@ -71,16 +71,19 @@ A secure, multilingual, and scalable web application for collecting and displayi
 
 ### 🐳 Docker Setup
 
-Run the entire stack with Docker Compose:
+Run the development stack with Docker Compose. Create a local `.env` from
+`.env.example` first and set unique database credentials. It is ignored by Git
+and Docker builds. PostgreSQL is internal to the Compose network by default.
 
 ```bash
 docker-compose up -d
 ```
 
 This will start:
-- PostgreSQL database on port 5432
+- PostgreSQL database on the internal Docker network
 - Application on port 3000
-- Prisma Studio on port 5555 (optional, use `docker-compose --profile tools up -d`)
+- Prisma Studio on `127.0.0.1:5555` only (optional, local administration only;
+  do not enable the `tools` profile on an Internet-facing host)
 
 
 ### 🧪 Testing
@@ -260,11 +263,11 @@ Best practices:
     - LLM enrichment is triggered asynchronously after creation when enabled (see environment variables below). If enrichment fails, the story is still created and a generated content record is stored with status `failed`.
   - Returns: Created story object
 
-- **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated stories
+- **`GET /api/stories?page=1&pageSize=10&language=en`** - Get paginated public stories
   - Query params: `page`, `pageSize`, `language`
   - Returns: Paginated response with stories
 
-- **`GET /api/stories/:id`** - Get story by ID
+- **`GET /api/stories/:id`** - Get a public story by ID
   - Returns: Story object or 404
 
 #### Enrichment (Generated AI Content)
@@ -278,7 +281,7 @@ Best practices:
   - Behavior:
     - Validates the story exists.
     - Applies the public API rate limit.
-    - Triggers asynchronous generation and returns immediately.
+  - Triggers asynchronous generation and returns immediately. Only one generation may run per story, and the server enforces the configured total generation limit (default: 5).
   - Returns: `{ success: true }` and `200` on success, `404` if the story does not exist, `429` when rate limited.
 
 - **`PUT /api/stories/:id/enrichment`** - Save/select a generated enrichment version
