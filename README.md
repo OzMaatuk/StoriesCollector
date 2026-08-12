@@ -82,7 +82,8 @@ docker-compose up -d
 This will start:
 - PostgreSQL database on the internal Docker network
 - Application on port 3000
-- Prisma Studio on port 5555 (optional, use `docker-compose --profile tools up -d`)
+- Prisma Studio on `127.0.0.1:5555` only (optional, local administration only;
+  do not enable the `tools` profile on an Internet-facing host)
 
 
 ### 🧪 Testing
