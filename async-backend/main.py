@@ -91,7 +91,7 @@ class GenerateRequest(BaseModel):
     enrichment_id: Optional[str] = Field(default=None, alias="enrichmentId")
     story_id: str = Field(alias="storyId")
     provider_name: str = Field(alias="providerName")
-    model_name: str = Field(alias="modelName")
+    llm_name: str = Field(alias="modelName")
     prompt: str
     version: Optional[int] = None
     retry_count: int = Field(default=1, alias="retryCount")
@@ -105,7 +105,7 @@ class GenerateRequest(BaseModel):
         messages.append({"role": "user", "content": self.prompt})
 
         return {
-            "model": self.model_name,
+            "model": self.llm_name,
             "messages": messages,
             # "stop": ["</think>"],
             "max_tokens": int(os.getenv("LLM_MAX_TOKENS", "4096")),
@@ -189,7 +189,7 @@ class LLMClient:
         headers = self._build_headers()
         body = request.to_llm_request()
 
-        logger.debug("Sending LLM request to %s (model=%s)", url, request.model_name)
+        logger.debug("Sending LLM request to %s (model=%s)", url, request.llm_name)
         logger.debug("Sending LLM request with body: %s ", body)
 
 
@@ -199,7 +199,7 @@ class LLMClient:
                 with httpx.Client(timeout=self.timeout) as http_client:
                     response = http_client.post(url, json=body, headers=headers)
                     response.raise_for_status()
-                    logger.info("LLM request succeeded (model=%s)", request.model_name)
+                    logger.info("LLM request succeeded (model=%s)", request.llm_name)
                     return self._extract_content(response.json())
 
             except httpx.HTTPStatusError as exc:
