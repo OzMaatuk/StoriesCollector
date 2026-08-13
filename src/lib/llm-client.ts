@@ -53,7 +53,7 @@ export async function callLLM(body: object): Promise<LLMResponse> {
     throw new Error('LLM_API_KEY not configured');
   }
 
-  const targetUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
+  const targetUrl = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
 
   if (debugLogsEnabled) {
     const bodyModel = (body as Record<string, unknown>).model;
