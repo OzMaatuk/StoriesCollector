@@ -37,7 +37,7 @@ describe('EnrichmentService', () => {
 
     process.env.ENABLE_LLM_ENRICHMENT = 'true';
     process.env.LLM_MODEL_NAME = 'test-model';
-    process.env.LLM_EXECUTION_METHOD = 'direct';
+    process.env.LLM_ASYNC_METHOD = 'false';
 
     service = new EnrichmentService();
     mockLLMService = (service as unknown as { llmService: LLMService })
@@ -45,9 +45,15 @@ describe('EnrichmentService', () => {
     mockRepository = (service as unknown as { repository: StoryRepository })
       .repository as jest.Mocked<StoryRepository>;
     mockRepository.claimDraftForGeneration.mockResolvedValue({
-      id: 'enrichment-123', storyId: mockStory.id, providerName: 'llama-cpp-local',
-      modelName: 'test-model', status: 'pending', version: null, retryCount: 1,
-      createdAt: new Date(), updatedAt: new Date(),
+      id: 'enrichment-123',
+      storyId: mockStory.id,
+      providerName: 'llama-cpp-local',
+      modelName: 'test-model',
+      status: 'pending',
+      version: null,
+      retryCount: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['claimDraftForGeneration']>>);
   });
 
@@ -75,10 +81,10 @@ describe('EnrichmentService', () => {
     });
   });
 
-  it('should delegate enrichment to Python backend when LLM_EXECUTION_METHOD is async_python', async () => {
-    process.env.LLM_EXECUTION_METHOD = 'async_python';
-    process.env.PYTHON_BACKEND_URL = 'http://127.0.0.1:8000';
-    delete process.env.PYTHON_BACKEND_SECRET;
+  it('should delegate enrichment to Python backend when LLM_ASYNC_METHOD is true', async () => {
+    process.env.LLM_ASYNC_METHOD = 'true';
+    process.env.LLM_BASE_URL = 'http://127.0.0.1:8000';
+    delete process.env.ASYNC_SECRET;
 
     const mockFetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -141,7 +147,10 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(hebrewStory);
 
-    const [systemPrompt, userContent] = mockLLMService.generateCompletion.mock.calls[0] as [string, string];
+    const [systemPrompt, userContent] = mockLLMService.generateCompletion.mock.calls[0] as [
+      string,
+      string,
+    ];
     expect(systemPrompt).toContain('Return only the final answer');
     expect(userContent).toContain('כותרת הסיפור');
     expect(userContent).toContain('רקע לסיפור');

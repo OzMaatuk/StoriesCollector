@@ -97,10 +97,7 @@ export class EnrichmentService {
     story: Story,
     draftRecord: Awaited<ReturnType<StoryRepository['createGeneratedContent']>>
   ) {
-    const pythonUrl = (process.env.PYTHON_BACKEND_URL || 'http://127.0.0.1:8000').replace(
-      /\/$/,
-      ''
-    );
+    const pythonUrl = (process.env.LLM_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
     const systemPrompt = this.buildSystemPrompt(story.language);
     const userContent = this.buildUserContent(story);
 
@@ -117,7 +114,7 @@ export class EnrichmentService {
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const backendSecret = process.env.PYTHON_BACKEND_SECRET?.trim();
+      const backendSecret = process.env.ASYNC_SECRET?.trim();
       if (backendSecret) {
         headers['Authorization'] = `Bearer ${backendSecret}`;
       }
@@ -161,9 +158,15 @@ export class EnrichmentService {
     try {
       enrichmentRecord = existingDraft ?? (await this.getOrCreateDraft(story));
 
-      const executionMethod = process.env.LLM_EXECUTION_METHOD || 'async_python';
+      const executionMethod = process.env.LLM_ASYNC_METHOD || 'false';
 
-      if (executionMethod === 'async_python') {
+      if (executionMethod !== 'true' && executionMethod !== 'false') {
+        throw new Error(
+          `Invalid value for LLM_ASYNC_METHOD: ${executionMethod}. Must be 'true' or 'false'.`
+        );
+      }
+
+      if (executionMethod === 'true') {
         await this.triggerAsyncPythonEnrichment(story, enrichmentRecord);
         return;
       }
