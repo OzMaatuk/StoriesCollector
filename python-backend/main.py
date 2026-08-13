@@ -273,9 +273,9 @@ enrichment_service = EnrichmentService()
 
 def verify_backend_secret(authorization: Optional[str] = Header(None)) -> None:
     """Verify the backend secret for API authentication."""
-    secret = os.getenv("PYTHON_BACKEND_SECRET", "").strip()
+    secret = os.getenv("ASYNC_SECRET", "").strip()
     if not secret:
-        logger.debug("PYTHON_BACKEND_SECRET not set - skipping auth check")
+        logger.debug("ASYNC_SECRET not set - skipping auth check")
         return
 
     if not authorization or not authorization.startswith("Bearer "):
