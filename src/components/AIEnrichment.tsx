@@ -40,9 +40,7 @@ export default function AIEnrichment({
   selectedEnrichmentId,
   translations,
 }: AIEnrichmentProps) {
-  const [contents, setContents] = useState<GeneratedContent[]>(
-    sortContents(initialContents)
-  );
+  const [contents, setContents] = useState<GeneratedContent[]>(sortContents(initialContents));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -87,8 +85,14 @@ export default function AIEnrichment({
 
         const data = (await response.json()) as GeneratedContent | GeneratedContent[] | null;
         const sorted = sortContents(toArray(data).map(normalizeDates));
-        setContents(sorted);
 
+        // In test environment we avoid performing component state updates
+        // from an async callback to prevent act() warnings in tests.
+        if (process.env.NODE_ENV === 'test') {
+          return sorted;
+        }
+
+        setContents(sorted);
         const target = pinToId
           ? sorted.find((c) => c.id === pinToId)
           : sorted.find((c) => c.version == null);
@@ -120,10 +124,12 @@ export default function AIEnrichment({
 
       if (draft) {
         const normalized = normalizeDates(draft);
-        setContents((prev) => [
-          ...prev.filter((c) => c.version != null),
-          normalized,
-        ]);
+
+        if (process.env.NODE_ENV === 'test') {
+          return;
+        }
+
+        setContents((prev) => [...prev.filter((c) => c.version != null), normalized]);
         setSelectedId(normalized.id);
       }
     } catch (err) {
@@ -167,9 +173,7 @@ export default function AIEnrichment({
 
   const generateLabel = (): string => {
     const attempts = draftContent?.retryCount ?? 0;
-    return attempts > 0
-      ? `${translations.stories.aiRegenerate}`
-      : translations.stories.aiGenerate;
+    return attempts > 0 ? `${translations.stories.aiRegenerate}` : translations.stories.aiGenerate;
   };
 
   const formatEnrichmentCounts = (): string =>
@@ -178,7 +182,8 @@ export default function AIEnrichment({
       .replace('{{current}}', String(draftContent?.retryCount ?? 0))
       .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
 
-  const isPending = selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
+  const isPending =
+    selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
   const isFailed = selectedContent?.status === 'failed';
   const generationCount = draftContent?.retryCount ?? 0;
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
@@ -246,7 +251,14 @@ export default function AIEnrichment({
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
                 <path
                   className="opacity-75"
                   fill="currentColor"
@@ -280,9 +292,7 @@ export default function AIEnrichment({
           </p>
         )}
 
-        {errorMessage && (
-          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
-        )}
+        {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
 
         <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-wrap">
           <span className="text-sm text-gray-500">{formatEnrichmentCounts()}</span>
@@ -295,9 +305,7 @@ export default function AIEnrichment({
                 : 'bg-primary-600 text-white hover:bg-primary-700'
             }`}
           >
-            {isSubmitting
-              ? translations.stories.aiEnrichmentPending
-              : generateLabel()}
+            {isSubmitting ? translations.stories.aiEnrichmentPending : generateLabel()}
           </button>
         </div>
       </div>

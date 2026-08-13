@@ -53,7 +53,19 @@ export async function callLLM(body: object): Promise<LLMResponse> {
     throw new Error('LLM_API_KEY not configured');
   }
 
-  const targetUrl = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
+  const trimmed = baseUrl.replace(/\/+$/, '');
+
+  let targetUrl: string;
+  if (/\/chat\/completions$/i.test(trimmed)) {
+    // full endpoint provided
+    targetUrl = trimmed;
+  } else if (/\/v\d+$/i.test(trimmed)) {
+    // base includes version (eg. /v1) - append only the chat route
+    targetUrl = `${trimmed}/chat/completions`;
+  } else {
+    // plain host - append version + route
+    targetUrl = `${trimmed}/v1/chat/completions`;
+  }
 
   if (debugLogsEnabled) {
     const bodyModel = (body as Record<string, unknown>).model;
@@ -67,7 +79,7 @@ export async function callLLM(body: object): Promise<LLMResponse> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(timeoutMs),
