@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import { Story, StoryCreateInput } from '@/types';
 import { Prisma } from '@prisma/client';
 import { ConflictError, LimitExceededError } from '@/lib/errors';
+import { ENRICHMENT } from '@/lib/constants';
 
 const publicStorySelect = {
   id: true,
@@ -158,7 +159,11 @@ export class StoryRepository {
    * Atomically claim a completed/failed draft for one more generation. Public
    * requests use this instead of relying on the browser to enforce limits.
    */
-  async claimDraftForGeneration(storyId: string, maxGenerations: number) {
+  async claimDraftForGeneration(
+    storyId: string,
+    maxGenerations: number,
+    staleTimeoutMs: number = ENRICHMENT.STALE_TIMEOUT_MS
+  ) {
     return prisma.$transaction(async (tx) => {
       // Serializes generation claims for this story without holding the lock
       // during the long-running LLM request.
@@ -171,7 +176,13 @@ export class StoryRepository {
       const draft = records.find((record) => record.version === null);
 
       if (draft?.status === 'pending' || draft?.status === 'processing') {
-        throw new ConflictError('An enrichment is already being generated for this story');
+        const isStale =
+          draft.updatedAt &&
+          Date.now() - new Date(draft.updatedAt).getTime() > staleTimeoutMs;
+
+        if (!isStale) {
+          throw new ConflictError('An enrichment is already being generated for this story');
+        }
       }
 
       const completedVersions = records.filter((record) => record.version !== null).length;
