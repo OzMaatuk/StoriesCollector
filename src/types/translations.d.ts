@@ -27,6 +27,7 @@ export interface Translations {
     aiEnrichmentDescription: string;
     aiEnrichmentCounts: string;
     aiEnrichmentBackgroundNotice: string;
+    aiConfirmOverwriteDraft: string;
     save: string;
     saved: string;
   };
