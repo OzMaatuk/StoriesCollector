@@ -29,8 +29,15 @@ export const RATE_LIMIT = {
 const maxRetriesEnv = Number(process.env.ENRICHMENT_MAX_RETRIES);
 const maxRetries = Number.isInteger(maxRetriesEnv) && maxRetriesEnv > 0 ? maxRetriesEnv : 5;
 
+const staleTimeoutMinutesEnv = Number(process.env.ENRICHMENT_STALE_TIMEOUT_MINUTES);
+const staleTimeoutMinutes =
+  Number.isFinite(staleTimeoutMinutesEnv) && staleTimeoutMinutesEnv > 0
+    ? staleTimeoutMinutesEnv
+    : 15;
+
 export const ENRICHMENT = {
   MAX_RETRIES: maxRetries,
+  STALE_TIMEOUT_MS: staleTimeoutMinutes * 60 * 1000,
 };
 
 export const SUPPORTED_LANGUAGES = ['en', 'he', 'fr'] as const;
