@@ -57,19 +57,53 @@ export default function AIEnrichment({
   );
 
   const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const sortedInit = sortContents(initialContents);
+    const initDraft = sortedInit.find((c) => c.version == null) ?? null;
+    const initSaved = sortedInit.filter((c) => c.version != null);
+
+    const isDraftNonEmpty = Boolean(
+      initDraft &&
+        initDraft.status === 'completed' &&
+        initDraft.generatedText?.trim()
+    );
+
+    if (isDraftNonEmpty && initDraft) {
+      return initDraft.id;
+    }
+
     if (selectedEnrichmentId) {
-      const pinned = sortContents(initialContents).find(
+      const pinned = initSaved.find(
         (c) => c.id === selectedEnrichmentId && c.version != null
       );
       if (pinned) return pinned.id;
     }
-    return draftContent?.id ?? null;
+
+    const latestSaved = initSaved.length > 0 ? initSaved[initSaved.length - 1] : null;
+    if (latestSaved) {
+      return latestSaved.id;
+    }
+
+    return initDraft?.id ?? null;
   });
 
   const selectedContent = useMemo(() => {
-    const found = selectedId ? sortedContents.find((c) => c.id === selectedId) : null;
-    return found ?? draftContent ?? null;
-  }, [selectedId, sortedContents, draftContent]);
+    if (selectedId) {
+      const found = sortedContents.find((c) => c.id === selectedId);
+      if (found) return found;
+    }
+    const isDraftNonEmpty = Boolean(
+      draftContent &&
+        draftContent.status === 'completed' &&
+        draftContent.generatedText?.trim()
+    );
+    if (isDraftNonEmpty && draftContent) {
+      return draftContent;
+    }
+    if (savedVersions.length > 0) {
+      return savedVersions[savedVersions.length - 1];
+    }
+    return draftContent ?? null;
+  }, [selectedId, sortedContents, draftContent, savedVersions]);
 
   const selectedIsDraft = selectedContent?.version == null;
 
@@ -93,9 +127,25 @@ export default function AIEnrichment({
         }
 
         setContents(sorted);
-        const target = pinToId
-          ? sorted.find((c) => c.id === pinToId)
-          : sorted.find((c) => c.version == null);
+        const sortedSaved = sorted.filter((c) => c.version != null);
+        const sortedDraft = sorted.find((c) => c.version == null);
+        const isDraftNonEmpty = Boolean(
+          sortedDraft &&
+            sortedDraft.status === 'completed' &&
+            sortedDraft.generatedText?.trim()
+        );
+
+        let target: GeneratedContent | undefined;
+        if (pinToId) {
+          target = sorted.find((c) => c.id === pinToId);
+        } else if (isDraftNonEmpty && sortedDraft) {
+          target = sortedDraft;
+        } else if (sortedSaved.length > 0) {
+          target = sortedSaved[sortedSaved.length - 1];
+        } else {
+          target = sortedDraft;
+        }
+
         if (target) setSelectedId(target.id);
 
         return sorted;
@@ -109,6 +159,21 @@ export default function AIEnrichment({
 
   const handleGenerate = async () => {
     if (isSubmitting) return;
+
+    const hasUnsavedDraftContent = Boolean(
+      draftContent &&
+        draftContent.status === 'completed' &&
+        draftContent.generatedText?.trim()
+    );
+
+    if (hasUnsavedDraftContent) {
+      const confirmMsg =
+        translations.stories.aiConfirmOverwriteDraft ||
+        'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?';
+      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     setErrorMessage(null);

@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
 import { GeneratedContent, Translations } from '@/types';
 
@@ -15,6 +15,7 @@ const mockTranslations: Translations = {
     aiEnrichmentDescription: 'This is the description of the feature.',
     aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
     aiEnrichmentBackgroundNotice: 'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
+    aiConfirmOverwriteDraft: 'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',
@@ -198,5 +199,134 @@ describe('AIEnrichment Component', () => {
 
     expect(screen.getByText('Loaded Content')).toBeInTheDocument();
     expect(screen.queryByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).not.toBeInTheDocument();
+  });
+
+  it('presents completed non-empty draft version first even when selectedEnrichmentId points to a saved version', () => {
+    const mockSavedVersion: GeneratedContent = {
+      id: 'saved-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Saved Version Text',
+      retryCount: 1,
+      version: 1,
+      createdAt: new Date(Date.now() - 10000),
+      updatedAt: new Date(Date.now() - 10000),
+    };
+
+    const mockCompletedDraft: GeneratedContent = {
+      id: 'draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Unsaved Draft Text',
+      retryCount: 1,
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockSavedVersion, mockCompletedDraft]}
+        selectedEnrichmentId={mockSavedVersion.id}
+        translations={mockTranslations}
+      />
+    );
+
+    expect(screen.getByText('Unsaved Draft Text')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('prompts confirmation when user clicks generate and an unsaved non-empty draft exists', async () => {
+    const mockCompletedDraft: GeneratedContent = {
+      id: 'draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Unsaved Draft Text',
+      retryCount: 0,
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => false);
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockCompletedDraft]}
+        selectedEnrichmentId={null}
+        translations={mockTranslations}
+      />
+    );
+
+    const generateBtn = screen.getByRole('button', { name: 'Generate' });
+    await act(async () => {
+      fireEvent.click(generateBtn);
+    });
+
+    expect(confirmSpy).toHaveBeenCalledWith(mockTranslations.stories.aiConfirmOverwriteDraft);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('proceeds with generation when user confirms overwrite alert', async () => {
+    const mockCompletedDraft: GeneratedContent = {
+      id: 'draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Unsaved Draft Text',
+      retryCount: 0,
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const newDraft: GeneratedContent = {
+      id: 'new-draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'pending',
+      generatedText: null,
+      retryCount: 1,
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const confirmSpy = jest.spyOn(window, 'confirm').mockImplementation(() => true);
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ draft: newDraft }),
+    });
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockCompletedDraft]}
+        selectedEnrichmentId={null}
+        translations={mockTranslations}
+      />
+    );
+
+    const generateBtn = screen.getByRole('button', { name: 'Generate' });
+    fireEvent.click(generateBtn);
+
+    expect(confirmSpy).toHaveBeenCalledWith(mockTranslations.stories.aiConfirmOverwriteDraft);
+    expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment', {
+      method: 'POST',
+    });
+
+    confirmSpy.mockRestore();
   });
 });
