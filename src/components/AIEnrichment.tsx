@@ -45,9 +45,11 @@ const getPreferredDraft = (contents: GeneratedContent[]): GeneratedContent | nul
 
   if (activeDraft) return activeDraft;
 
-  return [...draftCandidates]
-    .reverse()
-    .find((c) => c.status === 'completed' && c.generatedText?.trim()) ?? null;
+  return (
+    [...draftCandidates]
+      .reverse()
+      .find((c) => c.status === 'completed' && c.generatedText?.trim()) ?? null
+  );
 };
 
 export default function AIEnrichment({

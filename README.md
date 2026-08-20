@@ -11,7 +11,7 @@ A secure, multilingual, and scalable web application for collecting and displayi
 - **JWT Security**: Token-based verification system
 - **Responsive Design**: Mobile-first, accessible UI with Tailwind CSS
 - **Security**: Input validation, sanitization, rate limiting, CSRF protection
- - **AI-Powered Story Enrichment**: Automatically generates summaries and spiritual lessons for uploaded stories. The enrichment uses language-specific prompts (prompts/story_enrichment_en.txt, prompts/story_enrichment_he.txt, prompts/story_enrichment_fr.txt) and is triggered asynchronously after story creation. Language is taken from the story `language` field (required: `en` | `he` | `fr`).
+- **AI-Powered Story Enrichment**: Automatically generates summaries and spiritual lessons for uploaded stories. The enrichment uses language-specific prompts (prompts/story_enrichment_en.txt, prompts/story_enrichment_he.txt, prompts/story_enrichment_fr.txt) and is triggered asynchronously after story creation. New enrichments start as a temporary draft (`version: null`), stay unsaved until the user explicitly saves them, and the active draft is preferred over stale saved versions on refresh. Language is taken from the story `language` field (required: `en` | `he` | `fr`).
 
 ## 🧰 Tech Stack
 
@@ -281,12 +281,14 @@ Best practices:
   - Behavior:
     - Validates the story exists.
     - Applies the public API rate limit.
-  - Triggers asynchronous generation and returns immediately. Only one generation may run per story, and the server enforces the configured total generation limit (default: 5).
-  - Returns: `{ success: true }` and `200` on success, `404` if the story does not exist, `429` when rate limited.
+    - Creates or reuses a draft row (`version: null`), sets it as the current selected enrichment, and returns it immediately so the page can show the pending/processing state while generation runs.
+    - Prevents overlapping generation for the same story and enforces the configured total generation limit (`ENRICHMENT_MAX_RETRIES`, default: `5`).
+  - Returns: `{ draft }` with the pending draft record, `200` on success, `404` if the story does not exist, `429` when rate limited or generation is blocked by the cap.
 
-- **`PUT /api/stories/:id/enrichment`** - Save/select a generated enrichment version
+- **`PUT /api/stories/:id/enrichment`** - Save a generated draft as a numbered version
   - Body: `{ enrichmentId }`
-  - Behavior: Applies the public API rate limit and verifies the enrichment belongs to the story.
+  - Behavior: Applies the public API rate limit, verifies the enrichment belongs to the story, and only accepts drafts where `version === null`.
+  - On success: the draft is promoted to the next version number, `selectedEnrichmentId` is updated to that saved version, and a fresh empty draft slot is created for future generations. The draft remains unsaved until this endpoint is called.
   - Returns: `{ success: true }` and `200` on success.
 
 #### Chat / LLM Proxy
@@ -331,8 +333,10 @@ Language files are in `src/locales/`. The app uses `next-intl` for international
 - Prompt files live in the `prompts/` folder and are language-specific: `prompts/story_enrichment_en.txt`, `prompts/story_enrichment_he.txt`, `prompts/story_enrichment_fr.txt`.
 - Enrichment is triggered asynchronously after a story is created when `ENABLE_LLM_ENRICHMENT` is set to `true`.
 - The service selects the prompt by the story `language` field. If a language-specific prompt file is missing, the service falls back to the Hebrew prompt.
+- Draft lifecycle: every new generation starts as a temporary draft record with `version: null`. The active draft is preferred on refresh so users see the newest generation even when a previous saved version exists. It is only promoted to a numbered saved version after `PUT /api/stories/:id/enrichment` is called.
+- Save semantics: the "Save" action promotes the current draft to the next version number and creates a fresh empty draft slot. Until that save happens, the draft is still considered unsaved, and a second generate click should trigger the overwrite confirmation.
 - Retry behavior: the LLM client retries on HTTP 502/503/504 responses up to 5 times with a 5 second delay between retries. Failures are recorded in the generated content record (`status: failed`).
-- Note: the application currently expects the `language` value to be provided by the client when submitting a story. Automatic language detection is not enabled by default; implementors can add a language-detection step (for example using a small NPM library) before persisting the story if they prefer auto-detection.
+- Generation cap: the total number of public enrichment generations per story is configurable through `ENRICHMENT_MAX_RETRIES` and defaults to `5`.
 
 ### 🚀 Deployment
 
@@ -352,6 +356,7 @@ LLM_ASYNC_METHOD=true # Set to 'true' to enable asynchronous llm connection for 
 LLM_BASE_URL=http://127.0.0.1:8000 # URL of the Python FastAPI backend wrapper when LLM_ASYNC_METHOD=true
 LLM_MODEL_NAME=dicta-il/DictaLM-3.0-24B-Thinking-W4A16 # Optional model override
 LLM_MAX_TOKENS=2048 # Optional override for max tokens
+ENRICHMENT_MAX_RETRIES=5 # Total public enrichment generations allowed per story before the limit is enforced (default: 5)
 ENRICHMENT_STALE_TIMEOUT_MINUTES=15 # Timeout (in minutes) after which pending/processing enrichments are considered stale (default: 15)
 ENABLE_CHAT_PROXY=false # Set to 'true' only if the browser UI needs /api/chat
 CHAT_PROXY_ALLOWED_MODELS=dicta-il/DictaLM-3.0-24B-Thinking-W4A16

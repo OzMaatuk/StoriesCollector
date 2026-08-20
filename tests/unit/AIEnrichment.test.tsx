@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
+import { ENRICHMENT } from '@/lib/constants';
 import { GeneratedContent, Translations } from '@/types';
 
 global.fetch = jest.fn();
@@ -34,6 +35,24 @@ describe('AIEnrichment Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('defaults to 5 total generations and allows configuration override', () => {
+    expect(ENRICHMENT.MAX_RETRIES).toBe(5);
+
+    const original = process.env.ENRICHMENT_MAX_RETRIES;
+    process.env.ENRICHMENT_MAX_RETRIES = '7';
+
+    jest.isolateModules(() => {
+      const { ENRICHMENT: overridden } = require('@/lib/constants');
+      expect(overridden.MAX_RETRIES).toBe(7);
+    });
+
+    if (original === undefined) {
+      delete process.env.ENRICHMENT_MAX_RETRIES;
+    } else {
+      process.env.ENRICHMENT_MAX_RETRIES = original;
+    }
   });
 
   it('renders generate button when no content exists', () => {
