@@ -180,9 +180,12 @@ export class StoryRepository {
         }
       }
 
-      const completedVersions = records.filter((record) => record.version !== null).length;
+      // Only count the number of previous generation attempts (retryCount)
+      // when enforcing the maximum. Saved version rows are a record of
+      // completed enrichments and should not by themselves consume the
+      // generation quota.
       const currentRetryCount = story?.retryCount ?? 0;
-      const generationCount = completedVersions + currentRetryCount;
+      const generationCount = currentRetryCount;
       if (generationCount >= maxGenerations) {
         throw new LimitExceededError('This story has reached its enrichment limit');
       }

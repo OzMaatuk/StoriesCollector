@@ -1,6 +1,7 @@
 import { EnrichmentService } from '@/services/enrichment.service';
 import { LLMService } from '@/services/llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
+import { ENRICHMENT } from '@/lib/constants';
 import fs from 'fs';
 import { Story } from '@/types';
 
@@ -68,7 +69,10 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(mockStory);
 
-    expect(mockRepository.claimDraftForGeneration).toHaveBeenCalledWith(mockStory.id, 5);
+    expect(mockRepository.claimDraftForGeneration).toHaveBeenCalledWith(
+      mockStory.id,
+      ENRICHMENT.MAX_RETRIES
+    );
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
       expect.stringContaining('Return only the final answer'),

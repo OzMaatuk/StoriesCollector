@@ -259,22 +259,25 @@ export default function AIEnrichment({
     void refreshContents(id);
   };
 
+  const hasFailedDraft = draftContent?.status === 'failed' || selectedContent?.status === 'failed';
+
   const generateLabel = (): string => {
-    return retryCountState > 0
-      ? `${translations.stories.aiRegenerate}`
-      : translations.stories.aiGenerate;
+    return hasFailedDraft ? translations.stories.aiRegenerate : translations.stories.aiGenerate;
   };
 
-  const formatEnrichmentCounts = (): string =>
-    translations.stories.aiEnrichmentCounts
-      .replace('{{versions}}', String(savedVersions.length))
-      .replace('{{current}}', String(retryCountState))
+  // The number of generation attempts the user has used. This is stored on
+  // the story as `retryCount` and mirrored in component state via
+  // `retryCountState`.
+  const generationCount = retryCountState;
+
+  const formatEnrichmentUsage = (): string =>
+    (translations.stories.aiEnrichmentUsage || '')
+      .replace('{{used}}', String(generationCount))
       .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
 
   const isPending =
     selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
   const isFailed = selectedContent?.status === 'failed';
-  const generationCount = savedVersions.length + retryCountState;
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
   const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
@@ -294,9 +297,9 @@ export default function AIEnrichment({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {savedVersions.length > 0 && (
+            {(savedVersions.length > 0 || draftContent) && (
               <select
-                value={selectedContent?.version != null ? selectedContent.id : ''}
+                value={selectedContent?.id ?? ''}
                 onChange={(e) => handleSelect(e.target.value)}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
               >
@@ -305,6 +308,15 @@ export default function AIEnrichment({
                     v{c.version}
                   </option>
                 ))}
+                {draftContent && (
+                  <option value={draftContent.id}>
+                    {isPending && selectedIsDraft
+                      ? 'Draft (generating…)'
+                      : isFailed && selectedIsDraft
+                        ? 'Draft (failed)'
+                        : 'Draft'}
+                  </option>
+                )}
               </select>
             )}
 
@@ -379,7 +391,7 @@ export default function AIEnrichment({
         {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
 
         <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-wrap">
-          <span className="text-sm text-gray-500">{formatEnrichmentCounts()}</span>
+          <span className="text-sm text-gray-500">{formatEnrichmentUsage()}</span>
           <button
             onClick={handleGenerate}
             disabled={isGenerateDisabled}
