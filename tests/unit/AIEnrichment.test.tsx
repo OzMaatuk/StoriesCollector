@@ -14,8 +14,10 @@ const mockTranslations: Translations = {
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
     aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
-    aiEnrichmentBackgroundNotice: 'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
-    aiConfirmOverwriteDraft: 'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?',
+    aiEnrichmentBackgroundNotice:
+      'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
+    aiConfirmOverwriteDraft:
+      'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',
@@ -132,7 +134,9 @@ describe('AIEnrichment Component', () => {
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment?enrichmentId=2');
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/stories/test-story-id/enrichment?enrichmentId=2'
+    );
   });
 
   it('displays background notice when pending draft is selected without polling loop', () => {
@@ -158,10 +162,12 @@ describe('AIEnrichment Component', () => {
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
-    expect(screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).toBeInTheDocument();
+    expect(
+      screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)
+    ).toBeInTheDocument();
   });
 
-  it('displays saved version content when selected and draft is separately pending', () => {
+  it('prefers the active draft over a previously selected saved version when generation is pending', () => {
     const mockSavedVersion: GeneratedContent = {
       id: 'completed-id',
       storyId,
@@ -195,8 +201,11 @@ describe('AIEnrichment Component', () => {
       />
     );
 
-    expect(screen.getByText('Loaded Content')).toBeInTheDocument();
-    expect(screen.queryByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).not.toBeInTheDocument();
+    expect(screen.queryByText('Loaded Content')).not.toBeInTheDocument();
+    expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
+    expect(
+      screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)
+    ).toBeInTheDocument();
   });
 
   it('presents completed non-empty draft version first even when selectedEnrichmentId points to a saved version', () => {
