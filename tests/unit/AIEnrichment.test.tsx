@@ -70,6 +70,32 @@ describe('AIEnrichment Component', () => {
     expect(screen.getByText('Generate')).toBeInTheDocument();
   });
 
+  it('uses the retry label only when the current draft has failed', () => {
+    const mockSavedVersion: GeneratedContent = {
+      id: 'saved-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Saved Version Text',
+      version: 1,
+      createdAt: new Date(Date.now() - 10000),
+      updatedAt: new Date(Date.now() - 10000),
+    };
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockSavedVersion]}
+        selectedEnrichmentId={mockSavedVersion.id}
+        translations={mockTranslations}
+        retryCount={2}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeInTheDocument();
+  });
+
   it('renders enrichment content when a saved version is selected', () => {
     const mockContent: GeneratedContent = {
       id: '1',
@@ -264,6 +290,46 @@ describe('AIEnrichment Component', () => {
 
     expect(screen.getByText('Unsaved Draft Text')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('keeps the unsaved draft selectable in the dropdown while preserving saved versions', () => {
+    const mockSavedVersion: GeneratedContent = {
+      id: 'saved-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Saved Version Text',
+      version: 1,
+      createdAt: new Date(Date.now() - 10000),
+      updatedAt: new Date(Date.now() - 10000),
+    };
+
+    const mockCompletedDraft: GeneratedContent = {
+      id: 'draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Unsaved Draft Text',
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockSavedVersion, mockCompletedDraft]}
+        selectedEnrichmentId={mockSavedVersion.id}
+        translations={mockTranslations}
+        retryCount={1}
+      />
+    );
+
+    const select = screen.getByRole('combobox');
+    expect(select).toHaveValue('draft-id');
+    expect(screen.getByRole('option', { name: 'Draft' })).toBeInTheDocument();
   });
 
   it('prompts confirmation when user clicks generate and an unsaved non-empty draft exists', async () => {
