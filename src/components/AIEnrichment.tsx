@@ -63,8 +63,8 @@ export default function AIEnrichment({
 
     const isDraftNonEmpty = Boolean(
       initDraft &&
-        initDraft.status === 'completed' &&
-        initDraft.generatedText?.trim()
+      initDraft.status === 'completed' &&
+      initDraft.generatedText?.trim()
     );
 
     if (isDraftNonEmpty && initDraft) {
@@ -93,8 +93,8 @@ export default function AIEnrichment({
     }
     const isDraftNonEmpty = Boolean(
       draftContent &&
-        draftContent.status === 'completed' &&
-        draftContent.generatedText?.trim()
+      draftContent.status === 'completed' &&
+      draftContent.generatedText?.trim()
     );
     if (isDraftNonEmpty && draftContent) {
       return draftContent;
@@ -131,8 +131,8 @@ export default function AIEnrichment({
         const sortedDraft = sorted.find((c) => c.version == null);
         const isDraftNonEmpty = Boolean(
           sortedDraft &&
-            sortedDraft.status === 'completed' &&
-            sortedDraft.generatedText?.trim()
+          sortedDraft.status === 'completed' &&
+          sortedDraft.generatedText?.trim()
         );
 
         let target: GeneratedContent | undefined;
@@ -162,16 +162,19 @@ export default function AIEnrichment({
 
     const hasUnsavedDraftContent = Boolean(
       draftContent &&
-        draftContent.status === 'completed' &&
-        draftContent.generatedText?.trim()
+      draftContent.status === 'completed' &&
+      draftContent.generatedText?.trim()
     );
 
     if (hasUnsavedDraftContent) {
       const confirmMsg =
         translations.stories.aiConfirmOverwriteDraft ||
         'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?';
-      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
-        return;
+      if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+        const userConfirmed = window.confirm(confirmMsg);
+        if (!userConfirmed) {
+          return;
+        }
       }
     }
 
@@ -250,7 +253,7 @@ export default function AIEnrichment({
   const isPending =
     selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
   const isFailed = selectedContent?.status === 'failed';
-  const generationCount = draftContent?.retryCount ?? 0;
+  const generationCount = savedVersions.length + (draftContent?.retryCount ?? 0);
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
   const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
@@ -295,11 +298,10 @@ export default function AIEnrichment({
                 <button
                   onClick={handleSave}
                   disabled={isSubmitting}
-                  className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-                    isSubmitting
+                  className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${isSubmitting
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                    }`}
                 >
                   {translations.stories.save}
                 </button>
@@ -364,11 +366,10 @@ export default function AIEnrichment({
           <button
             onClick={handleGenerate}
             disabled={isGenerateDisabled}
-            className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${
-              isGenerateDisabled
+            className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${isGenerateDisabled
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-primary-600 text-white hover:bg-primary-700'
-            }`}
+              }`}
           >
             {isSubmitting ? translations.stories.aiEnrichmentPending : generateLabel()}
           </button>
