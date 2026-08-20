@@ -13,6 +13,7 @@ export interface Story {
   language: string;
   verifiedEmail: boolean;
   selectedEnrichmentId?: string | null;
+  retryCount: number;
   createdAt: Date;
   updatedAt: Date;
   generatedContents?: GeneratedContent[];
@@ -30,7 +31,6 @@ export interface GeneratedContent {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string | null;
   version?: number | null;
-  retryCount: number;
   createdAt: Date;
   updatedAt: Date;
 }

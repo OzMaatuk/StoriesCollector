@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Story {
@@ -21,6 +22,7 @@ model Story {
   language         String   @db.VarChar(5)
   verifiedEmail    Boolean  @default(false)
   selectedEnrichmentId String?
+  retryCount       Int      @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -42,7 +44,6 @@ model GeneratedContent {
   status        String   @default("pending") @db.VarChar(20)
   errorMessage  String?  @db.Text
   version       Int?
-  retryCount    Int      @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

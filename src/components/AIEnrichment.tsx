@@ -9,6 +9,7 @@ interface AIEnrichmentProps {
   initialContents: GeneratedContent[];
   selectedEnrichmentId?: string | null;
   translations: Translations;
+  retryCount?: number;
 }
 
 const toArray = (
@@ -39,8 +40,10 @@ export default function AIEnrichment({
   initialContents = [],
   selectedEnrichmentId,
   translations,
+  retryCount = 0,
 }: AIEnrichmentProps) {
   const [contents, setContents] = useState<GeneratedContent[]>(sortContents(initialContents));
+  const [retryCountState, setRetryCountState] = useState<number>(retryCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -192,6 +195,7 @@ export default function AIEnrichment({
 
       if (draft) {
         const normalized = normalizeDates(draft);
+        setRetryCountState((prev) => prev + 1);
 
         if (process.env.NODE_ENV === 'test') {
           return;
@@ -240,20 +244,19 @@ export default function AIEnrichment({
   };
 
   const generateLabel = (): string => {
-    const attempts = draftContent?.retryCount ?? 0;
-    return attempts > 0 ? `${translations.stories.aiRegenerate}` : translations.stories.aiGenerate;
+    return retryCountState > 0 ? `${translations.stories.aiRegenerate}` : translations.stories.aiGenerate;
   };
 
   const formatEnrichmentCounts = (): string =>
     translations.stories.aiEnrichmentCounts
       .replace('{{versions}}', String(savedVersions.length))
-      .replace('{{current}}', String(draftContent?.retryCount ?? 0))
+      .replace('{{current}}', String(retryCountState))
       .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
 
   const isPending =
     selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
   const isFailed = selectedContent?.status === 'failed';
-  const generationCount = savedVersions.length + (draftContent?.retryCount ?? 0);
+  const generationCount = savedVersions.length + retryCountState;
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
   const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
@@ -273,24 +276,19 @@ export default function AIEnrichment({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={selectedContent?.id ?? ''}
-              onChange={(e) => handleSelect(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
-            >
-              {savedVersions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  v{c.version}
-                </option>
-              ))}
-              <option value={draftContent?.id ?? ''}>
-                {isPending && selectedIsDraft
-                  ? 'Draft (generating…)'
-                  : isFailed && selectedIsDraft
-                    ? 'Draft (failed)'
-                    : 'Draft'}
-              </option>
-            </select>
+            {savedVersions.length > 0 && (
+              <select
+                value={selectedContent?.version != null ? selectedContent.id : ''}
+                onChange={(e) => handleSelect(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+              >
+                {savedVersions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    v{c.version}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {selectedIsDraft &&
               selectedContent?.status === 'completed' &&

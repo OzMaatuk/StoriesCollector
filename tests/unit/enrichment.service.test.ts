@@ -22,6 +22,7 @@ describe('EnrichmentService', () => {
     content: 'Long ago in a land far away...',
     language: 'en',
     verifiedEmail: true,
+    retryCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -51,7 +52,6 @@ describe('EnrichmentService', () => {
       modelName: 'test-model',
       status: 'pending',
       version: null,
-      retryCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['claimDraftForGeneration']>>);

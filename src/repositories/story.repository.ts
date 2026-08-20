@@ -16,6 +16,7 @@ const publicStorySelect = {
   language: true,
   verifiedEmail: true,
   selectedEnrichmentId: true,
+  retryCount: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.StorySelect;
@@ -28,7 +29,6 @@ const publicGeneratedContentSelect = {
   generatedText: true,
   status: true,
   version: true,
-  retryCount: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.GeneratedContentSelect;
@@ -108,13 +108,9 @@ export class StoryRepository {
     modelName: string;
     status: string;
     version?: number | null;
-    retryCount?: number;
   }) {
     return await prisma.generatedContent.create({
-      data: {
-        ...data,
-        retryCount: data.retryCount ?? 1,
-      },
+      data,
     });
   }
 
@@ -125,7 +121,6 @@ export class StoryRepository {
       status?: string;
       errorMessage?: string | null;
       version?: number | null;
-      retryCount?: number;
     }
   ) {
     return await prisma.generatedContent.update({
@@ -169,6 +164,7 @@ export class StoryRepository {
       // during the long-running LLM request.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${storyId}))`;
 
+      const story = await tx.story.findUnique({ where: { id: storyId } });
       const records = await tx.generatedContent.findMany({
         where: { storyId },
         orderBy: { createdAt: 'desc' },
@@ -186,10 +182,16 @@ export class StoryRepository {
       }
 
       const completedVersions = records.filter((record) => record.version !== null).length;
-      const generationCount = completedVersions + (draft?.retryCount ?? 0);
+      const currentRetryCount = story?.retryCount ?? 0;
+      const generationCount = completedVersions + currentRetryCount;
       if (generationCount >= maxGenerations) {
         throw new LimitExceededError('This story has reached its enrichment limit');
       }
+
+      await tx.story.update({
+        where: { id: storyId },
+        data: { retryCount: { increment: 1 } },
+      });
 
       if (draft) {
         return tx.generatedContent.update({
@@ -198,7 +200,6 @@ export class StoryRepository {
             status: 'pending',
             generatedText: null,
             errorMessage: null,
-            retryCount: draft.retryCount + 1,
           },
         });
       }
@@ -210,7 +211,6 @@ export class StoryRepository {
           modelName: process.env.LLM_MODEL_NAME || 'default',
           status: 'pending',
           version: null,
-          retryCount: 1,
         },
       });
     });
@@ -237,7 +237,6 @@ export class StoryRepository {
         generatedText: null,
         status: 'completed',
         version: null,
-        retryCount: 0,
       },
     });
   }
@@ -283,7 +282,6 @@ export class StoryRepository {
           generatedText: null,
           status: 'completed',
           version: null,
-          retryCount: 0,
         },
       });
     });

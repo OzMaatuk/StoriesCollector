@@ -109,7 +109,7 @@ export class EnrichmentService {
       systemPrompt: systemPrompt,
       prompt: userContent,
       version: draftRecord.version,
-      retryCount: draftRecord.retryCount,
+      retryCount: story.retryCount,
     };
 
     try {

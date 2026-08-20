@@ -37,6 +37,7 @@ describe('StoryService', () => {
         id: '123',
         ...input,
         verifiedEmail: false,
+        retryCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -65,6 +66,7 @@ describe('StoryService', () => {
         content: 'stub',
         language: 'stub',
         verifiedEmail: false,
+        retryCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -90,6 +92,7 @@ describe('StoryService', () => {
         ...input,
         language: 'he',
         verifiedEmail: false,
+        retryCount: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -123,6 +126,7 @@ describe('StoryService', () => {
           content: 'Story 1',
           language: 'en',
           verifiedEmail: false,
+          retryCount: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -143,7 +147,7 @@ describe('StoryService', () => {
     it('uses the public repository projection for an individual story', async () => {
       const publicStory = {
         id: '1', name: 'John', content: 'A public story', language: 'en', verifiedEmail: false,
-        city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
+        retryCount: 0, city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
         selectedEnrichmentId: null, generatedContents: [], createdAt: new Date(), updatedAt: new Date(),
       };
       mockRepository.findPublicById.mockResolvedValue(publicStory);
@@ -158,7 +162,7 @@ describe('StoryService', () => {
     it('uses the public repository projection for listings', async () => {
       const publicStory = {
         id: '1', name: 'John', content: 'A public story', language: 'en', verifiedEmail: false,
-        city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
+        retryCount: 0, city: null, country: null, tellerBackground: null, storyBackground: null, title: null,
         selectedEnrichmentId: null, createdAt: new Date(), updatedAt: new Date(),
       };
       mockRepository.findManyPublic.mockResolvedValue([publicStory]);

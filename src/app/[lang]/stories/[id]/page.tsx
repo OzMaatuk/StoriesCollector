@@ -97,6 +97,7 @@ export default async function StoryPage({ params }: PageProps) {
               initialContents={story.generatedContents || []}
               selectedEnrichmentId={story.selectedEnrichmentId}
               translations={translations}
+              retryCount={story.retryCount}
             />
           </div>
         </div>
