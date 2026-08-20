@@ -41,6 +41,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 
@@ -56,7 +57,6 @@ describe('AIEnrichment Component', () => {
       generatedText: 'Enriched Text',
       providerName: 'Test',
       modelName: 'Model',
-      retryCount: 1,
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -69,7 +69,6 @@ describe('AIEnrichment Component', () => {
       generatedText: null,
       providerName: 'Test',
       modelName: 'Model',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -81,6 +80,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockContent, mockDraft]}
         selectedEnrichmentId={mockContent.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -98,7 +98,6 @@ describe('AIEnrichment Component', () => {
         modelName: 'Model',
         status: 'completed',
         generatedText: 'First version',
-        retryCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
         version: 1,
@@ -110,7 +109,6 @@ describe('AIEnrichment Component', () => {
         modelName: 'Model',
         status: 'completed',
         generatedText: 'Second version',
-        retryCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
         version: 2,
@@ -128,6 +126,7 @@ describe('AIEnrichment Component', () => {
         initialContents={mockContents}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -143,7 +142,6 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -155,6 +153,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockPendingDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -170,7 +169,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Loaded Content',
-      retryCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
       version: 1,
@@ -182,7 +180,6 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
-      retryCount: 1,
       version: null,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
@@ -194,6 +191,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockSavedVersion, mockPendingDraft]}
         selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -209,7 +207,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Saved Version Text',
-      retryCount: 1,
       version: 1,
       createdAt: new Date(Date.now() - 10000),
       updatedAt: new Date(Date.now() - 10000),
@@ -222,7 +219,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -234,6 +230,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockSavedVersion, mockCompletedDraft]}
         selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -249,7 +246,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -263,6 +259,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockCompletedDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 
@@ -285,7 +282,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -298,7 +294,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'pending',
       generatedText: null,
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -316,6 +311,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockCompletedDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 
