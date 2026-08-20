@@ -28,6 +28,7 @@ export interface Translations {
     aiEnrichmentCounts: string;
     aiEnrichmentBackgroundNotice: string;
     aiConfirmOverwriteDraft: string;
+    storyGenerateEnrichmentErrorBusy: string;
     save: string;
     saved: string;
   };

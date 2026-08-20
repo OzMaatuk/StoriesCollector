@@ -205,7 +205,10 @@ export default function AIEnrichment({
         setSelectedId(normalized.id);
       }
     } catch (err) {
-      setErrorMessage('Unable to start enrichment generation. Please try again.');
+      setErrorMessage(
+        translations.stories.storyGenerateEnrichmentErrorBusy ||
+        'Unable to start enrichment generation. Probably because somebody is already generating a new enrichment for this story. Please try again.'
+      );
       console.error('Error generating enrichment:', err);
     } finally {
       setIsSubmitting(false);
@@ -297,8 +300,8 @@ export default function AIEnrichment({
                   onClick={handleSave}
                   disabled={isSubmitting}
                   className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${isSubmitting
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-green-600 text-white hover:bg-green-700'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                 >
                   {translations.stories.save}
@@ -365,8 +368,8 @@ export default function AIEnrichment({
             onClick={handleGenerate}
             disabled={isGenerateDisabled}
             className={`px-3 py-2 text-sm rounded-md font-medium transition-colors ${isGenerateDisabled
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-primary-600 text-white hover:bg-primary-700'
               }`}
           >
             {isSubmitting ? translations.stories.aiEnrichmentPending : generateLabel()}
