@@ -173,8 +173,7 @@ export class StoryRepository {
 
       if (draft?.status === 'pending' || draft?.status === 'processing') {
         const isStale =
-          draft.updatedAt &&
-          Date.now() - new Date(draft.updatedAt).getTime() > staleTimeoutMs;
+          draft.updatedAt && Date.now() - new Date(draft.updatedAt).getTime() > staleTimeoutMs;
 
         if (!isStale) {
           throw new ConflictError('An enrichment is already being generated for this story');
@@ -193,8 +192,9 @@ export class StoryRepository {
         data: { retryCount: { increment: 1 } },
       });
 
+      let draftRecord;
       if (draft) {
-        return tx.generatedContent.update({
+        draftRecord = await tx.generatedContent.update({
           where: { id: draft.id },
           data: {
             status: 'pending',
@@ -202,17 +202,24 @@ export class StoryRepository {
             errorMessage: null,
           },
         });
+      } else {
+        draftRecord = await tx.generatedContent.create({
+          data: {
+            storyId,
+            providerName: process.env.LLM_PROVIDER_NAME || 'default',
+            modelName: process.env.LLM_MODEL_NAME || 'default',
+            status: 'pending',
+            version: null,
+          },
+        });
       }
 
-      return tx.generatedContent.create({
-        data: {
-          storyId,
-          providerName: process.env.LLM_PROVIDER_NAME || 'default',
-          modelName: process.env.LLM_MODEL_NAME || 'default',
-          status: 'pending',
-          version: null,
-        },
+      await tx.story.update({
+        where: { id: storyId },
+        data: { selectedEnrichmentId: draftRecord.id },
       });
+
+      return draftRecord;
     });
   }
 
