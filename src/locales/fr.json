@@ -81,8 +81,10 @@
     "aiRegenerate": "Réessayer",
     "aiEnrichmentDescription": "Selon les écrits de Rabbi Nachman de Breslev, nous racontons l'histoire dans ses propres mots, en ajoutant des contextes et des enseignements de sa pensée avec référence à la source.",
     "aiEnrichmentCounts": "{{versions}} versions · {{current}}/{{max}}",
+    "aiEnrichmentUsage": "Vous avez utilisé {{used}} sur {{max}} générations",
     "aiEnrichmentBackgroundNotice": "Le processus d'enrichissement s'exécute en arrière-plan et peut prendre jusqu'à un jour. Veuillez rafraîchir cette page plus tard pour afficher le contenu mis à jour.",
     "aiConfirmOverwriteDraft": "Vous avez un brouillon d'enrichissement non enregistré. En générer un nouveau supprimera ce brouillon. Voulez-vous continuer ?",
+    "storyGenerateEnrichmentErrorBusy": "Impossible de démarrer la génération d'enrichissement. Il se peut que quelqu'un génère déjà un nouvel enrichissement pour cette histoire. Veuillez réessayer.",
     "enrichmentNote": "Remarque : la génération du résumé et de l'enrichissement de l'histoire peut prendre quelques secondes.",
     "save": "Enregistrer",
     "saved": "Enregistré"

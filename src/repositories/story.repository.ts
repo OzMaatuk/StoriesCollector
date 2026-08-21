@@ -16,6 +16,7 @@ const publicStorySelect = {
   language: true,
   verifiedEmail: true,
   selectedEnrichmentId: true,
+  retryCount: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.StorySelect;
@@ -28,7 +29,6 @@ const publicGeneratedContentSelect = {
   generatedText: true,
   status: true,
   version: true,
-  retryCount: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.GeneratedContentSelect;
@@ -108,13 +108,9 @@ export class StoryRepository {
     modelName: string;
     status: string;
     version?: number | null;
-    retryCount?: number;
   }) {
     return await prisma.generatedContent.create({
-      data: {
-        ...data,
-        retryCount: data.retryCount ?? 1,
-      },
+      data,
     });
   }
 
@@ -125,7 +121,6 @@ export class StoryRepository {
       status?: string;
       errorMessage?: string | null;
       version?: number | null;
-      retryCount?: number;
     }
   ) {
     return await prisma.generatedContent.update({
@@ -169,6 +164,7 @@ export class StoryRepository {
       // during the long-running LLM request.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${storyId}))`;
 
+      const story = await tx.story.findUnique({ where: { id: storyId } });
       const records = await tx.generatedContent.findMany({
         where: { storyId },
         orderBy: { createdAt: 'desc' },
@@ -177,42 +173,56 @@ export class StoryRepository {
 
       if (draft?.status === 'pending' || draft?.status === 'processing') {
         const isStale =
-          draft.updatedAt &&
-          Date.now() - new Date(draft.updatedAt).getTime() > staleTimeoutMs;
+          draft.updatedAt && Date.now() - new Date(draft.updatedAt).getTime() > staleTimeoutMs;
 
         if (!isStale) {
           throw new ConflictError('An enrichment is already being generated for this story');
         }
       }
 
-      const completedVersions = records.filter((record) => record.version !== null).length;
-      const generationCount = completedVersions + (draft?.retryCount ?? 0);
+      // Only count the number of previous generation attempts (retryCount)
+      // when enforcing the maximum. Saved version rows are a record of
+      // completed enrichments and should not by themselves consume the
+      // generation quota.
+      const currentRetryCount = story?.retryCount ?? 0;
+      const generationCount = currentRetryCount;
       if (generationCount >= maxGenerations) {
         throw new LimitExceededError('This story has reached its enrichment limit');
       }
 
+      await tx.story.update({
+        where: { id: storyId },
+        data: { retryCount: { increment: 1 } },
+      });
+
+      let draftRecord;
       if (draft) {
-        return tx.generatedContent.update({
+        draftRecord = await tx.generatedContent.update({
           where: { id: draft.id },
           data: {
             status: 'pending',
             generatedText: null,
             errorMessage: null,
-            retryCount: draft.retryCount + 1,
+          },
+        });
+      } else {
+        draftRecord = await tx.generatedContent.create({
+          data: {
+            storyId,
+            providerName: process.env.LLM_PROVIDER_NAME || 'default',
+            modelName: process.env.LLM_MODEL_NAME || 'default',
+            status: 'pending',
+            version: null,
           },
         });
       }
 
-      return tx.generatedContent.create({
-        data: {
-          storyId,
-          providerName: process.env.LLM_PROVIDER_NAME || 'default',
-          modelName: process.env.LLM_MODEL_NAME || 'default',
-          status: 'pending',
-          version: null,
-          retryCount: 1,
-        },
+      await tx.story.update({
+        where: { id: storyId },
+        data: { selectedEnrichmentId: draftRecord.id },
       });
+
+      return draftRecord;
     });
   }
 
@@ -237,7 +247,6 @@ export class StoryRepository {
         generatedText: null,
         status: 'completed',
         version: null,
-        retryCount: 0,
       },
     });
   }
@@ -283,7 +292,6 @@ export class StoryRepository {
           generatedText: null,
           status: 'completed',
           version: null,
-          retryCount: 0,
         },
       });
     });

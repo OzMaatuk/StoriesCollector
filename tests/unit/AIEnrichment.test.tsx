@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import AIEnrichment from '@/components/AIEnrichment';
+import { ENRICHMENT } from '@/lib/constants';
 import { GeneratedContent, Translations } from '@/types';
 
 global.fetch = jest.fn();
@@ -14,8 +15,10 @@ const mockTranslations: Translations = {
     aiProducedBy: 'Produced by AI',
     aiEnrichmentDescription: 'This is the description of the feature.',
     aiEnrichmentCounts: '{{versions}} versions · {{current}}/{{max}}',
-    aiEnrichmentBackgroundNotice: 'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
-    aiConfirmOverwriteDraft: 'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?',
+    aiEnrichmentBackgroundNotice:
+      'The enrichment process is running in the background and may take up to one day to finish. Please refresh this page later to view your updated content.',
+    aiConfirmOverwriteDraft:
+      'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?',
     aiRegenerate: 'Regenerate',
     aiGenerate: 'Generate',
     save: 'Save',
@@ -34,6 +37,25 @@ describe('AIEnrichment Component', () => {
     jest.clearAllMocks();
   });
 
+  it('defaults to 5 total generations and allows configuration override', async () => {
+    expect(ENRICHMENT.MAX_RETRIES).toBe(5);
+
+    const original = process.env.ENRICHMENT_MAX_RETRIES;
+    process.env.ENRICHMENT_MAX_RETRIES = '7';
+
+    // Reset module registry so the module picks up the new env var when imported
+    jest.resetModules();
+    const mod = await import('@/lib/constants');
+    const overridden = mod.ENRICHMENT;
+    expect(overridden.MAX_RETRIES).toBe(7);
+
+    if (original === undefined) {
+      delete process.env.ENRICHMENT_MAX_RETRIES;
+    } else {
+      process.env.ENRICHMENT_MAX_RETRIES = original;
+    }
+  });
+
   it('renders generate button when no content exists', () => {
     render(
       <AIEnrichment
@@ -41,11 +63,38 @@ describe('AIEnrichment Component', () => {
         initialContents={[]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentTitle)).toBeInTheDocument();
     expect(screen.getByText('Generate')).toBeInTheDocument();
+  });
+
+  it('uses the retry label only when the current draft has failed', () => {
+    const mockSavedVersion: GeneratedContent = {
+      id: 'saved-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Saved Version Text',
+      version: 1,
+      createdAt: new Date(Date.now() - 10000),
+      updatedAt: new Date(Date.now() - 10000),
+    };
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockSavedVersion]}
+        selectedEnrichmentId={mockSavedVersion.id}
+        translations={mockTranslations}
+        retryCount={2}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeInTheDocument();
   });
 
   it('renders enrichment content when a saved version is selected', () => {
@@ -56,7 +105,6 @@ describe('AIEnrichment Component', () => {
       generatedText: 'Enriched Text',
       providerName: 'Test',
       modelName: 'Model',
-      retryCount: 1,
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -69,7 +117,6 @@ describe('AIEnrichment Component', () => {
       generatedText: null,
       providerName: 'Test',
       modelName: 'Model',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -81,6 +128,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockContent, mockDraft]}
         selectedEnrichmentId={mockContent.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
@@ -98,7 +146,6 @@ describe('AIEnrichment Component', () => {
         modelName: 'Model',
         status: 'completed',
         generatedText: 'First version',
-        retryCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
         version: 1,
@@ -110,7 +157,6 @@ describe('AIEnrichment Component', () => {
         modelName: 'Model',
         status: 'completed',
         generatedText: 'Second version',
-        retryCount: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
         version: 2,
@@ -128,12 +174,15 @@ describe('AIEnrichment Component', () => {
         initialContents={mockContents}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: '2' } });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/stories/test-story-id/enrichment?enrichmentId=2');
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/stories/test-story-id/enrichment?enrichmentId=2'
+    );
   });
 
   it('displays background notice when pending draft is selected without polling loop', () => {
@@ -143,7 +192,6 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -155,14 +203,17 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockPendingDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
     expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
-    expect(screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).toBeInTheDocument();
+    expect(
+      screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)
+    ).toBeInTheDocument();
   });
 
-  it('displays saved version content when selected and draft is separately pending', () => {
+  it('prefers the active draft over a previously selected saved version when generation is pending', () => {
     const mockSavedVersion: GeneratedContent = {
       id: 'completed-id',
       storyId,
@@ -170,7 +221,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Loaded Content',
-      retryCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
       version: 1,
@@ -182,7 +232,6 @@ describe('AIEnrichment Component', () => {
       providerName: 'Test',
       modelName: 'Model',
       status: 'pending',
-      retryCount: 1,
       version: null,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
       updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
@@ -194,11 +243,15 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockSavedVersion, mockPendingDraft]}
         selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
-    expect(screen.getByText('Loaded Content')).toBeInTheDocument();
-    expect(screen.queryByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)).not.toBeInTheDocument();
+    expect(screen.queryByText('Loaded Content')).not.toBeInTheDocument();
+    expect(screen.getByText(mockTranslations.stories.aiEnrichmentPending)).toBeInTheDocument();
+    expect(
+      screen.getByText(mockTranslations.stories.aiEnrichmentBackgroundNotice)
+    ).toBeInTheDocument();
   });
 
   it('presents completed non-empty draft version first even when selectedEnrichmentId points to a saved version', () => {
@@ -209,7 +262,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Saved Version Text',
-      retryCount: 1,
       version: 1,
       createdAt: new Date(Date.now() - 10000),
       updatedAt: new Date(Date.now() - 10000),
@@ -222,7 +274,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -234,11 +285,52 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockSavedVersion, mockCompletedDraft]}
         selectedEnrichmentId={mockSavedVersion.id}
         translations={mockTranslations}
+        retryCount={1}
       />
     );
 
     expect(screen.getByText('Unsaved Draft Text')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('keeps the unsaved draft selectable in the dropdown while preserving saved versions', () => {
+    const mockSavedVersion: GeneratedContent = {
+      id: 'saved-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Saved Version Text',
+      version: 1,
+      createdAt: new Date(Date.now() - 10000),
+      updatedAt: new Date(Date.now() - 10000),
+    };
+
+    const mockCompletedDraft: GeneratedContent = {
+      id: 'draft-id',
+      storyId,
+      providerName: 'Test',
+      modelName: 'Model',
+      status: 'completed',
+      generatedText: 'Unsaved Draft Text',
+      version: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    render(
+      <AIEnrichment
+        storyId={storyId}
+        initialContents={[mockSavedVersion, mockCompletedDraft]}
+        selectedEnrichmentId={mockSavedVersion.id}
+        translations={mockTranslations}
+        retryCount={1}
+      />
+    );
+
+    const select = screen.getByRole('combobox');
+    expect(select).toHaveValue('draft-id');
+    expect(screen.getByRole('option', { name: 'Draft' })).toBeInTheDocument();
   });
 
   it('prompts confirmation when user clicks generate and an unsaved non-empty draft exists', async () => {
@@ -249,7 +341,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -263,6 +354,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockCompletedDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 
@@ -285,7 +377,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'completed',
       generatedText: 'Unsaved Draft Text',
-      retryCount: 0,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -298,7 +389,6 @@ describe('AIEnrichment Component', () => {
       modelName: 'Model',
       status: 'pending',
       generatedText: null,
-      retryCount: 1,
       version: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -316,6 +406,7 @@ describe('AIEnrichment Component', () => {
         initialContents={[mockCompletedDraft]}
         selectedEnrichmentId={null}
         translations={mockTranslations}
+        retryCount={0}
       />
     );
 

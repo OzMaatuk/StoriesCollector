@@ -26,8 +26,10 @@ export interface Translations {
     aiRegenerate: string;
     aiEnrichmentDescription: string;
     aiEnrichmentCounts: string;
+    aiEnrichmentUsage: string;
     aiEnrichmentBackgroundNotice: string;
     aiConfirmOverwriteDraft: string;
+    storyGenerateEnrichmentErrorBusy: string;
     save: string;
     saved: string;
   };

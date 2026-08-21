@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { GeneratedContent, Translations } from '@/types';
 import { ENRICHMENT } from '@/lib/constants';
 
@@ -9,6 +9,7 @@ interface AIEnrichmentProps {
   initialContents: GeneratedContent[];
   selectedEnrichmentId?: string | null;
   translations: Translations;
+  retryCount?: number;
 }
 
 const toArray = (
@@ -34,13 +35,32 @@ const normalizeDates = (c: GeneratedContent): GeneratedContent => ({
   updatedAt: new Date(c.updatedAt),
 });
 
+const getPreferredDraft = (contents: GeneratedContent[]): GeneratedContent | null => {
+  const draftCandidates = contents.filter((c) => c.version == null);
+  if (draftCandidates.length === 0) return null;
+
+  const activeDraft = [...draftCandidates]
+    .reverse()
+    .find((c) => c.status === 'pending' || c.status === 'processing');
+
+  if (activeDraft) return activeDraft;
+
+  return (
+    [...draftCandidates]
+      .reverse()
+      .find((c) => c.status === 'completed' && c.generatedText?.trim()) ?? null
+  );
+};
+
 export default function AIEnrichment({
   storyId,
   initialContents = [],
   selectedEnrichmentId,
   translations,
+  retryCount = 0,
 }: AIEnrichmentProps) {
   const [contents, setContents] = useState<GeneratedContent[]>(sortContents(initialContents));
+  const [retryCountState, setRetryCountState] = useState<number>(retryCount);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -58,32 +78,23 @@ export default function AIEnrichment({
 
   const [selectedId, setSelectedId] = useState<string | null>(() => {
     const sortedInit = sortContents(initialContents);
-    const initDraft = sortedInit.find((c) => c.version == null) ?? null;
-    const initSaved = sortedInit.filter((c) => c.version != null);
+    const preferredDraft = getPreferredDraft(sortedInit);
 
-    const isDraftNonEmpty = Boolean(
-      initDraft &&
-        initDraft.status === 'completed' &&
-        initDraft.generatedText?.trim()
-    );
-
-    if (isDraftNonEmpty && initDraft) {
-      return initDraft.id;
+    if (preferredDraft) {
+      return preferredDraft.id;
     }
 
     if (selectedEnrichmentId) {
-      const pinned = initSaved.find(
-        (c) => c.id === selectedEnrichmentId && c.version != null
-      );
+      const pinned = sortedInit.find((c) => c.id === selectedEnrichmentId && c.version != null);
       if (pinned) return pinned.id;
     }
 
-    const latestSaved = initSaved.length > 0 ? initSaved[initSaved.length - 1] : null;
+    const latestSaved = sortedInit.filter((c) => c.version != null).at(-1) ?? null;
     if (latestSaved) {
       return latestSaved.id;
     }
 
-    return initDraft?.id ?? null;
+    return null;
   });
 
   const selectedContent = useMemo(() => {
@@ -91,14 +102,12 @@ export default function AIEnrichment({
       const found = sortedContents.find((c) => c.id === selectedId);
       if (found) return found;
     }
-    const isDraftNonEmpty = Boolean(
-      draftContent &&
-        draftContent.status === 'completed' &&
-        draftContent.generatedText?.trim()
-    );
-    if (isDraftNonEmpty && draftContent) {
-      return draftContent;
+
+    const preferredDraft = getPreferredDraft(sortedContents);
+    if (preferredDraft) {
+      return preferredDraft;
     }
+
     if (savedVersions.length > 0) {
       return savedVersions[savedVersions.length - 1];
     }
@@ -128,22 +137,15 @@ export default function AIEnrichment({
 
         setContents(sorted);
         const sortedSaved = sorted.filter((c) => c.version != null);
-        const sortedDraft = sorted.find((c) => c.version == null);
-        const isDraftNonEmpty = Boolean(
-          sortedDraft &&
-            sortedDraft.status === 'completed' &&
-            sortedDraft.generatedText?.trim()
-        );
+        const preferredDraft = getPreferredDraft(sorted);
 
         let target: GeneratedContent | undefined;
         if (pinToId) {
           target = sorted.find((c) => c.id === pinToId);
-        } else if (isDraftNonEmpty && sortedDraft) {
-          target = sortedDraft;
+        } else if (preferredDraft) {
+          target = preferredDraft;
         } else if (sortedSaved.length > 0) {
           target = sortedSaved[sortedSaved.length - 1];
-        } else {
-          target = sortedDraft;
         }
 
         if (target) setSelectedId(target.id);
@@ -157,21 +159,38 @@ export default function AIEnrichment({
     [storyId]
   );
 
+  // Poll every 3 s while the async backend is generating.
+  useEffect(() => {
+    if (
+      !selectedContent ||
+      (selectedContent.status !== 'pending' && selectedContent.status !== 'processing')
+    ) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      void refreshContents(selectedContent.id);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [refreshContents, selectedContent]);
+
   const handleGenerate = async () => {
     if (isSubmitting) return;
 
     const hasUnsavedDraftContent = Boolean(
-      draftContent &&
-        draftContent.status === 'completed' &&
-        draftContent.generatedText?.trim()
+      draftContent && draftContent.status === 'completed' && draftContent.generatedText?.trim()
     );
 
     if (hasUnsavedDraftContent) {
       const confirmMsg =
         translations.stories.aiConfirmOverwriteDraft ||
         'You have an unsaved draft enrichment. Generating a new one will delete this draft. Do you want to proceed?';
-      if (typeof window !== 'undefined' && window.confirm && !window.confirm(confirmMsg)) {
-        return;
+      if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+        const userConfirmed = window.confirm(confirmMsg);
+        if (!userConfirmed) {
+          return;
+        }
       }
     }
 
@@ -189,6 +208,7 @@ export default function AIEnrichment({
 
       if (draft) {
         const normalized = normalizeDates(draft);
+        setRetryCountState((prev) => prev + 1);
 
         if (process.env.NODE_ENV === 'test') {
           return;
@@ -198,7 +218,10 @@ export default function AIEnrichment({
         setSelectedId(normalized.id);
       }
     } catch (err) {
-      setErrorMessage('Unable to start enrichment generation. Please try again.');
+      setErrorMessage(
+        translations.stories.storyGenerateEnrichmentErrorBusy ||
+          'Unable to start enrichment generation. Probably because somebody is already generating a new enrichment for this story. Please try again.'
+      );
       console.error('Error generating enrichment:', err);
     } finally {
       setIsSubmitting(false);
@@ -236,21 +259,25 @@ export default function AIEnrichment({
     void refreshContents(id);
   };
 
+  const hasFailedDraft = draftContent?.status === 'failed' || selectedContent?.status === 'failed';
+
   const generateLabel = (): string => {
-    const attempts = draftContent?.retryCount ?? 0;
-    return attempts > 0 ? `${translations.stories.aiRegenerate}` : translations.stories.aiGenerate;
+    return hasFailedDraft ? translations.stories.aiRegenerate : translations.stories.aiGenerate;
   };
 
-  const formatEnrichmentCounts = (): string =>
-    translations.stories.aiEnrichmentCounts
-      .replace('{{versions}}', String(savedVersions.length))
-      .replace('{{current}}', String(draftContent?.retryCount ?? 0))
+  // The number of generation attempts the user has used. This is stored on
+  // the story as `retryCount` and mirrored in component state via
+  // `retryCountState`.
+  const generationCount = retryCountState;
+
+  const formatEnrichmentUsage = (): string =>
+    (translations.stories.aiEnrichmentUsage || '')
+      .replace('{{used}}', String(generationCount))
       .replace('{{max}}', String(ENRICHMENT.MAX_RETRIES));
 
   const isPending =
     selectedContent?.status === 'pending' || selectedContent?.status === 'processing';
   const isFailed = selectedContent?.status === 'failed';
-  const generationCount = draftContent?.retryCount ?? 0;
   const retriesExhausted = generationCount >= ENRICHMENT.MAX_RETRIES;
   const isGenerateDisabled = isSubmitting || isPending || retriesExhausted;
 
@@ -270,24 +297,28 @@ export default function AIEnrichment({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <select
-              value={selectedContent?.id ?? ''}
-              onChange={(e) => handleSelect(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
-            >
-              {savedVersions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  v{c.version}
-                </option>
-              ))}
-              <option value={draftContent?.id ?? ''}>
-                {isPending && selectedIsDraft
-                  ? 'Draft (generating…)'
-                  : isFailed && selectedIsDraft
-                    ? 'Draft (failed)'
-                    : 'Draft'}
-              </option>
-            </select>
+            {(savedVersions.length > 0 || draftContent) && (
+              <select
+                value={selectedContent?.id ?? ''}
+                onChange={(e) => handleSelect(e.target.value)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+              >
+                {savedVersions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    v{c.version}
+                  </option>
+                ))}
+                {draftContent && (
+                  <option value={draftContent.id}>
+                    {isPending && selectedIsDraft
+                      ? 'Draft (generating…)'
+                      : isFailed && selectedIsDraft
+                        ? 'Draft (failed)'
+                        : 'Draft'}
+                  </option>
+                )}
+              </select>
+            )}
 
             {selectedIsDraft &&
               selectedContent?.status === 'completed' &&
@@ -360,7 +391,7 @@ export default function AIEnrichment({
         {errorMessage && <p className="mt-4 text-sm text-red-600">{errorMessage}</p>}
 
         <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-end gap-3 flex-wrap">
-          <span className="text-sm text-gray-500">{formatEnrichmentCounts()}</span>
+          <span className="text-sm text-gray-500">{formatEnrichmentUsage()}</span>
           <button
             onClick={handleGenerate}
             disabled={isGenerateDisabled}

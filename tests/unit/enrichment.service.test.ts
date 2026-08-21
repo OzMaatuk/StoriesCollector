@@ -1,6 +1,7 @@
 import { EnrichmentService } from '@/services/enrichment.service';
 import { LLMService } from '@/services/llm.service';
 import { StoryRepository } from '@/repositories/story.repository';
+import { ENRICHMENT } from '@/lib/constants';
 import fs from 'fs';
 import { Story } from '@/types';
 
@@ -22,6 +23,7 @@ describe('EnrichmentService', () => {
     content: 'Long ago in a land far away...',
     language: 'en',
     verifiedEmail: true,
+    retryCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -51,7 +53,6 @@ describe('EnrichmentService', () => {
       modelName: 'test-model',
       status: 'pending',
       version: null,
-      retryCount: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as unknown as Awaited<ReturnType<StoryRepository['claimDraftForGeneration']>>);
@@ -68,7 +69,10 @@ describe('EnrichmentService', () => {
 
     await service.enrichStory(mockStory);
 
-    expect(mockRepository.claimDraftForGeneration).toHaveBeenCalledWith(mockStory.id, 5);
+    expect(mockRepository.claimDraftForGeneration).toHaveBeenCalledWith(
+      mockStory.id,
+      ENRICHMENT.MAX_RETRIES
+    );
 
     expect(mockLLMService.generateCompletion).toHaveBeenCalledWith(
       expect.stringContaining('Return only the final answer'),

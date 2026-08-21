@@ -59,6 +59,7 @@ describe('Enrichment Integration', () => {
       id: 'new-id',
       ...input,
       verifiedEmail: false,
+      retryCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
