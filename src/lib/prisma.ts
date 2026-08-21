@@ -30,9 +30,9 @@ export const prisma =
   });
 
 if (!globalForPrisma.prisma) {
-  console.log('[Prisma] New PrismaClient instance created');
+  console.warn('[Prisma] New PrismaClient instance created');
 } else {
-  console.log('[Prisma] Reusing existing PrismaClient instance');
+  console.warn('[Prisma] Reusing existing PrismaClient instance');
 }
 
 if (process.env.NODE_ENV !== 'production') {

@@ -173,7 +173,7 @@ export default function AIEnrichment({
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [refreshContents, selectedContent?.id, selectedContent?.status]);
+  }, [refreshContents, selectedContent]);
 
   const handleGenerate = async () => {
     if (isSubmitting) return;

@@ -1,5 +1,4 @@
 import { ENRICHMENT } from '@/lib/constants';
-import { ConflictError, LimitExceededError } from '@/lib/errors';
 
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
@@ -9,8 +8,12 @@ jest.mock('@/lib/prisma', () => ({
 }));
 
 describe('StoryRepository.claimDraftForGeneration', () => {
-  let repo: any;
-  const mockTx: any = {};
+  let repo: { claimDraftForGeneration: (storyId: string, max: number) => Promise<unknown> };
+  const mockTx: {
+    $executeRaw?: jest.Mock;
+    story?: { findUnique: jest.Mock; update: jest.Mock };
+    generatedContent?: { findMany: jest.Mock; create?: jest.Mock; update?: jest.Mock };
+  } = {};
 
   beforeEach(() => {
     jest.resetModules();
@@ -37,7 +40,9 @@ describe('StoryRepository.claimDraftForGeneration', () => {
     };
 
     const { default: prisma } = await import('@/lib/prisma');
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn: any) => fn(mockTx));
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx as unknown as unknown)
+    );
 
     const draft = await repo.claimDraftForGeneration(storyId, ENRICHMENT.MAX_RETRIES);
 
@@ -61,7 +66,9 @@ describe('StoryRepository.claimDraftForGeneration', () => {
     };
 
     const { default: prisma } = await import('@/lib/prisma');
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn: any) => fn(mockTx));
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx as unknown as unknown)
+    );
 
     await expect(repo.claimDraftForGeneration(storyId, ENRICHMENT.MAX_RETRIES)).rejects.toThrow(
       'This story has reached its enrichment limit'
@@ -86,7 +93,9 @@ describe('StoryRepository.claimDraftForGeneration', () => {
     };
 
     const { default: prisma } = await import('@/lib/prisma');
-    (prisma.$transaction as jest.Mock).mockImplementation(async (fn: any) => fn(mockTx));
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => fn(mockTx as unknown as unknown)
+    );
 
     await expect(repo.claimDraftForGeneration(storyId, ENRICHMENT.MAX_RETRIES)).rejects.toThrow(
       'An enrichment is already being generated for this story'
