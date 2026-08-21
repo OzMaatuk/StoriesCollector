@@ -37,16 +37,17 @@ describe('AIEnrichment Component', () => {
     jest.clearAllMocks();
   });
 
-  it('defaults to 5 total generations and allows configuration override', () => {
+  it('defaults to 5 total generations and allows configuration override', async () => {
     expect(ENRICHMENT.MAX_RETRIES).toBe(5);
 
     const original = process.env.ENRICHMENT_MAX_RETRIES;
     process.env.ENRICHMENT_MAX_RETRIES = '7';
 
-    jest.isolateModules(() => {
-      const { ENRICHMENT: overridden } = require('@/lib/constants');
-      expect(overridden.MAX_RETRIES).toBe(7);
-    });
+    // Reset module registry so the module picks up the new env var when imported
+    jest.resetModules();
+    const mod = await import('@/lib/constants');
+    const overridden = mod.ENRICHMENT;
+    expect(overridden.MAX_RETRIES).toBe(7);
 
     if (original === undefined) {
       delete process.env.ENRICHMENT_MAX_RETRIES;

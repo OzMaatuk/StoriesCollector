@@ -25,9 +25,10 @@ describe('LLMService', () => {
   });
 
   it('retries on status 524 Cloudflare gateway timeout', async () => {
-    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
-      fn();
-      return 0 as any;
+    jest.spyOn(global, 'setTimeout').mockImplementation((fn: (...args: unknown[]) => unknown) => {
+      // Call the callback immediately in tests
+      (fn as (...args: unknown[]) => unknown)();
+      return 0 as unknown as number;
     });
 
     mockedCallLLM
@@ -46,9 +47,10 @@ describe('LLMService', () => {
   });
 
   it('retries on client request timeout error', async () => {
-    jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => {
-      fn();
-      return 0 as any;
+    jest.spyOn(global, 'setTimeout').mockImplementation((fn: (...args: unknown[]) => unknown) => {
+      // Call the callback immediately in tests
+      (fn as (...args: unknown[]) => unknown)();
+      return 0 as unknown as number;
     });
 
     mockedCallLLM
