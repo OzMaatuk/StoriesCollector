@@ -44,6 +44,7 @@ jobs:
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db?schema=public
+          DIRECT_URL: postgresql://test_user:test_pass@localhost:5432/test_db?schema=public
         run: npx prisma migrate deploy
 
       - name: Run linter
@@ -89,6 +90,7 @@ jobs:
       - name: Build application
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         run: npm run build
 
