@@ -89,10 +89,10 @@ jobs:
 
       - name: Build application
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+          DIRECT_URL: postgresql://user:pass@localhost:5432/db?schema=public
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: npm run build
 
       - name: Build Docker image
-        run: docker build -t stories-collector:${{ github.sha }} --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} --build-arg DIRECT_URL=${{ secrets.DIRECT_URL }} .
+        run: docker build -t stories-collector:${{ github.sha }} --build-arg DATABASE_URL=postgresql://user:pass@localhost:5432/db?schema=public --build-arg DIRECT_URL=postgresql://user:pass@localhost:5432/db?schema=public .
