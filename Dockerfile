@@ -15,10 +15,14 @@ COPY prisma ./prisma
 # Install ALL deps (dev included) for build
 RUN npm ci
 
-RUN npx prisma generate
+# Prisma generate needs DATABASE_URL - pass as build arg
+ARG DATABASE_URL
+ARG DIRECT_URL
+RUN DATABASE_URL=$DATABASE_URL DIRECT_URL=$DIRECT_URL npx prisma generate
 
 COPY . .
-RUN npm run build
+# Build also needs DATABASE_URL
+RUN DATABASE_URL=$DATABASE_URL DIRECT_URL=$DIRECT_URL npm run build
 
 # ── Stage 2: production image ──────────────────────────────────────
 FROM node:${NODE_VERSION}-alpine AS runner
